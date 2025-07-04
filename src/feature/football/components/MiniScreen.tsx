@@ -8,6 +8,8 @@ import {
     TouchableOpacity,
     Dimensions,
     ScrollView,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/shared/context/ThemeContext';
@@ -75,8 +77,8 @@ export default function MiniScreen() {
                     style={[styles.safeArea, { paddingTop: insets.top }]}
                     edges={['top']}
                 >
-                    {/* Header */}
-                    <View style={styles.header}>
+                    {/* Header - Toujours visible */}
+                    <View style={[styles.header, { backgroundColor: colors.background }]}>
                         <TouchableOpacity
                             style={styles.backButton}
                             onPress={() => router.back()}
@@ -90,13 +92,25 @@ export default function MiniScreen() {
                         <View style={styles.placeholder} />
                     </View>
 
-                    {/* Custom Tab Bar avec ScrollView */}
-                    <View style={[styles.tabBarWrapper, { backgroundColor: colors.background }]}>
+                    {/* Custom Tab Bar - Toujours visible */}
+                    <View style={[
+                        styles.tabBarWrapper,
+                        {
+                            backgroundColor: colors.background,
+                            elevation: 2,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,
+                            zIndex: 1000,
+                        }
+                    ]}>
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={styles.tabBarContent}
                             style={styles.tabBarContainer}
+                            keyboardShouldPersistTaps="handled" // Permet de cliquer sur les tabs même avec le clavier ouvert
                         >
                             {tabs.map((tab) => (
                                 <TouchableOpacity
@@ -124,10 +138,16 @@ export default function MiniScreen() {
                         </ScrollView>
                     </View>
 
-                    {/* Tab Content */}
-                    <View style={[styles.content, { paddingBottom: insets.bottom + 90 }]}>
-                        {renderTabContent()}
-                    </View>
+                    {/* Content avec KeyboardAvoidingView */}
+                    <KeyboardAvoidingView
+                        style={styles.contentContainer}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                    >
+                        <View style={[styles.content, { paddingBottom: insets.bottom + 20 }]}>
+                            {renderTabContent()}
+                        </View>
+                    </KeyboardAvoidingView>
                 </SafeAreaView>
             </View>
         </SafeAreaProvider>
@@ -147,6 +167,11 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 24,
         paddingVertical: 16,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
     },
     backButton: {
         width: 40,
@@ -189,6 +214,9 @@ const styles = StyleSheet.create({
         right: 0,
         height: 3,
         borderRadius: 2,
+    },
+    contentContainer: {
+        flex: 1,
     },
     content: {
         flex: 1,

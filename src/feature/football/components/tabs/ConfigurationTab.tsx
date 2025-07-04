@@ -9,6 +9,9 @@ import {
     Alert,
     RefreshControl,
     TextInput,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -104,6 +107,9 @@ export default function ConfigurationTab() {
     const handleSave = async () => {
         console.log('🚀 handleSave called with formData:', formData);
 
+        // Fermer le clavier d'abord
+        Keyboard.dismiss();
+
         const validationError = validateForm();
         if (validationError) {
             console.log('❌ Validation error:', validationError);
@@ -139,6 +145,9 @@ export default function ConfigurationTab() {
     };
 
     const handleReset = () => {
+        // Fermer le clavier d'abord
+        Keyboard.dismiss();
+
         if (config) {
             setFormData({
                 min_odds: config.constraints.min_odds,
@@ -183,6 +192,9 @@ export default function ConfigurationTab() {
                 keyboardType={keyboardType}
                 placeholder={placeholder}
                 placeholderTextColor={colors.textSecondary}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+                blurOnSubmit={true}
             />
             <Text style={[styles.inputHelper, { color: colors.textSecondary }]}>
                 {helperText}
@@ -195,7 +207,7 @@ export default function ConfigurationTab() {
             style={styles.container}
             contentContainerStyle={[
                 styles.content,
-                { paddingBottom: 24 } // Padding bottom pour éviter que le contenu soit coupé
+                { paddingBottom: 50 } // Réduit car le KeyboardAvoidingView est maintenant au niveau parent
             ]}
             refreshControl={
                 <RefreshControl
@@ -206,6 +218,7 @@ export default function ConfigurationTab() {
                 />
             }
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled" // Important pour permettre les clics sur les boutons
         >
             {/* Current Configuration Display */}
             {config && (
@@ -399,7 +412,7 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 24,
-        paddingTop: 8, // Réduit le padding top
+        paddingTop: 8,
     },
     card: {
         borderRadius: 12,

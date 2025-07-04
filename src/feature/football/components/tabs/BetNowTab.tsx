@@ -9,6 +9,9 @@ import {
     Alert,
     RefreshControl,
     TextInput,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,6 +54,9 @@ export default function BetNowTab() {
 
     const handleExecuteBet = async () => {
         console.log('🚀 handleExecuteBet called');
+
+        // Fermer le clavier d'abord
+        Keyboard.dismiss();
 
         if (!matches?.matches.length) {
             console.log('❌ No matches available');
@@ -149,7 +155,7 @@ export default function BetNowTab() {
             style={styles.container}
             contentContainerStyle={[
                 styles.content,
-                { paddingBottom: 24 } // Padding bottom pour éviter que le contenu soit coupé
+                { paddingBottom: 50 } // Réduit car le KeyboardAvoidingView est maintenant au niveau parent
             ]}
             refreshControl={
                 <RefreshControl
@@ -160,6 +166,7 @@ export default function BetNowTab() {
                 />
             }
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled" // Important pour permettre les clics sur les boutons
         >
             {/* Configuration Summary */}
             {config && (
@@ -242,6 +249,9 @@ export default function BetNowTab() {
                         keyboardType="numeric"
                         placeholder="Montant de la mise"
                         placeholderTextColor={colors.textSecondary}
+                        returnKeyType="done"
+                        onSubmitEditing={Keyboard.dismiss}
+                        blurOnSubmit={true}
                     />
                     <Text style={[styles.inputHelper, { color: colors.textSecondary }]}>
                         Entre 100 et 50 000 MGA
@@ -325,7 +335,7 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 24,
-        paddingTop: 8, // Réduit le padding top
+        paddingTop: 8,
     },
     card: {
         borderRadius: 12,

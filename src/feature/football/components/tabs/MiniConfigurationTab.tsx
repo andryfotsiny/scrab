@@ -9,6 +9,7 @@ import {
     Alert,
     RefreshControl,
     TextInput,
+    Keyboard,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -96,6 +97,9 @@ export default function MiniConfigurationTab() {
     };
 
     const handleSave = async () => {
+        // Fermer le clavier d'abord
+        Keyboard.dismiss();
+
         const validationError = validateForm();
         if (validationError) {
             Alert.alert('Erreur de validation', validationError);
@@ -127,6 +131,9 @@ export default function MiniConfigurationTab() {
     };
 
     const handleReset = () => {
+        // Fermer le clavier d'abord
+        Keyboard.dismiss();
+
         if (config) {
             setFormData({
                 min_odds: config.constraints.min_odds,
@@ -170,6 +177,9 @@ export default function MiniConfigurationTab() {
                 keyboardType={keyboardType}
                 placeholder={placeholder}
                 placeholderTextColor={colors.textSecondary}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+                blurOnSubmit={true}
             />
             <Text style={[styles.inputHelper, { color: colors.textSecondary }]}>
                 {helperText}
@@ -182,7 +192,7 @@ export default function MiniConfigurationTab() {
             style={styles.container}
             contentContainerStyle={[
                 styles.content,
-                { paddingBottom: 24 }
+                { paddingBottom: 50 } // Réduit car le KeyboardAvoidingView est maintenant au niveau parent
             ]}
             refreshControl={
                 <RefreshControl
@@ -193,6 +203,7 @@ export default function MiniConfigurationTab() {
                 />
             }
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled" // Important pour permettre les clics sur les boutons
         >
             {/* Current Configuration Display */}
             {config && (

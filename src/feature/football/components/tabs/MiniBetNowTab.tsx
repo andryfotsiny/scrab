@@ -9,6 +9,7 @@ import {
     Alert,
     RefreshControl,
     TextInput,
+    Keyboard,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,6 +51,9 @@ export default function MiniBetNowTab() {
     }, [loadConfig, loadMatches]);
 
     const handleExecuteBet = async () => {
+        // Fermer le clavier d'abord
+        Keyboard.dismiss();
+
         if (!matches?.matches.length) {
             Alert.alert('Erreur', 'Aucun match disponible pour le pari');
             return;
@@ -137,7 +141,7 @@ export default function MiniBetNowTab() {
             style={styles.container}
             contentContainerStyle={[
                 styles.content,
-                { paddingBottom: 24 }
+                { paddingBottom: 50 } // Réduit car le KeyboardAvoidingView est maintenant au niveau parent
             ]}
             refreshControl={
                 <RefreshControl
@@ -148,6 +152,7 @@ export default function MiniBetNowTab() {
                 />
             }
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled" // Important pour permettre les clics sur les boutons
         >
             {/* Configuration Summary */}
             {config && (
@@ -230,6 +235,9 @@ export default function MiniBetNowTab() {
                         keyboardType="numeric"
                         placeholder="Montant de la mise"
                         placeholderTextColor={colors.textSecondary}
+                        returnKeyType="done"
+                        onSubmitEditing={Keyboard.dismiss}
+                        blurOnSubmit={true}
                     />
                     <Text style={[styles.inputHelper, { color: colors.textSecondary }]}>
                         Entre 100 et 50 000 MGA
