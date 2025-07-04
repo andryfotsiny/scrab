@@ -12,6 +12,12 @@ export interface MiniConfig {
         default_stake: number;
     };
     system_type: string;
+    metadata?: {
+        created_at?: string;
+        updated_at?: string;
+        system_type?: string;
+        [key: string]: any;
+    };
 }
 
 export interface MiniMatch {

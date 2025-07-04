@@ -42,7 +42,16 @@ export function useFootball() {
             setError(null);
             const response = await footballService.updateConfig(updates);
             console.log('✅ Football config updated successfully:', response);
-            setConfig(response.new_config);
+
+            // Mettre à jour la configuration avec les métadonnées de la réponse
+            if (response.new_config) {
+                const updatedConfig = {
+                    ...response.new_config,
+                    metadata: response.metadata || response.new_config.metadata
+                };
+                setConfig(updatedConfig);
+            }
+
             return response;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Erreur de mise à jour de la configuration';

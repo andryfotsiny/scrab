@@ -42,7 +42,30 @@ export function useMini() {
             setError(null);
             const response = await miniService.updateConfig(updates);
             console.log('✅ Mini config updated successfully:', response);
-            setConfig(response.new_config);
+
+            // Corriger la configuration avec les valeurs envoyées si elles ne sont pas correctement retournées
+            if (response.new_config) {
+                const correctedConfig: MiniConfig = {
+                    ...response.new_config,
+                    metadata: response.metadata || response.new_config.metadata || undefined,
+                    constraints: {
+                        ...response.new_config.constraints,
+                        // S'assurer que les valeurs envoyées sont utilisées si elles diffèrent
+                        min_odds: updates.min_odds !== undefined ? updates.min_odds : response.new_config.constraints.min_odds,
+                        max_odds: updates.max_odds !== undefined ? updates.max_odds : response.new_config.constraints.max_odds,
+                        max_total_odds: updates.max_total_odds !== undefined ? updates.max_total_odds : response.new_config.constraints.max_total_odds,
+                    },
+                    settings: {
+                        ...response.new_config.settings,
+                        // S'assurer que la valeur envoyée est utilisée pour default_stake
+                        default_stake: updates.default_stake !== undefined ? updates.default_stake : response.new_config.settings.default_stake,
+                    }
+                };
+
+                console.log('🔧 Corrected config:', correctedConfig);
+                setConfig(correctedConfig);
+            }
+
             return response;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Erreur de mise à jour de la configuration';

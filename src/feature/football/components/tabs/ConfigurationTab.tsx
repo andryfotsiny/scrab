@@ -31,6 +31,7 @@ export default function ConfigurationTab() {
     // Form state
     const [formData, setFormData] = useState<ConfigUpdateRequest>({});
     const [hasChanges, setHasChanges] = useState(false);
+    const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
     useEffect(() => {
         loadConfig().catch(console.error);
@@ -129,6 +130,12 @@ export default function ConfigurationTab() {
                         try {
                             const result = await updateConfig(formData);
                             console.log('🎉 Config update successful:', result);
+
+                            // Mettre à jour le temps de dernière modification
+                            if (result.metadata && result.metadata.updated_at) {
+                                setLastUpdateTime(result.metadata.updated_at);
+                            }
+
                             Alert.alert(
                                 'Configuration mise à jour',
                                 `Modifications sauvegardées avec succès !\n\nChangements:\n${result.changes_made.join('\n')}`
@@ -207,7 +214,7 @@ export default function ConfigurationTab() {
             style={styles.container}
             contentContainerStyle={[
                 styles.content,
-                { paddingBottom: 50 } // Réduit car le KeyboardAvoidingView est maintenant au niveau parent
+                { paddingBottom: 50 }
             ]}
             refreshControl={
                 <RefreshControl
@@ -218,7 +225,7 @@ export default function ConfigurationTab() {
                 />
             }
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled" // Important pour permettre les clics sur les boutons
+            keyboardShouldPersistTaps="handled"
         >
             {/* Current Configuration Display */}
             {config && (
@@ -267,7 +274,13 @@ export default function ConfigurationTab() {
 
                     <View style={styles.metadataContainer}>
                         <Text style={[styles.metadataText, { color: colors.textSecondary }]}>
-                            Dernière mise à jour: {new Date(config.metadata.updated_at).toLocaleString('fr-FR')}
+                            Dernière mise à jour: {lastUpdateTime
+                            ? new Date(lastUpdateTime).toLocaleString('fr-FR')
+                            : (config.metadata?.updated_at
+                                    ? new Date(config.metadata.updated_at).toLocaleString('fr-FR')
+                                    : 'Information non disponible'
+                            )
+                        }
                         </Text>
                     </View>
                 </View>

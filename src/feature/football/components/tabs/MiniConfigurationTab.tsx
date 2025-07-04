@@ -29,6 +29,7 @@ export default function MiniConfigurationTab() {
     // Form state
     const [formData, setFormData] = useState<MiniConfigUpdateRequest>({});
     const [hasChanges, setHasChanges] = useState(false);
+    const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
     useEffect(() => {
         loadConfig().catch(console.error);
@@ -97,11 +98,14 @@ export default function MiniConfigurationTab() {
     };
 
     const handleSave = async () => {
+        console.log('🚀 Mini handleSave called with formData:', formData);
+
         // Fermer le clavier d'abord
         Keyboard.dismiss();
 
         const validationError = validateForm();
         if (validationError) {
+            console.log('❌ Mini validation error:', validationError);
             Alert.alert('Erreur de validation', validationError);
             return;
         }
@@ -114,14 +118,23 @@ export default function MiniConfigurationTab() {
                 {
                     text: 'Sauvegarder',
                     onPress: async () => {
+                        console.log('✅ Mini user confirmed save, calling updateConfig...');
                         try {
                             const result = await updateConfig(formData);
+                            console.log('🎉 Mini config update successful:', result);
+
+                            // Mettre à jour le temps de dernière modification
+                            if (result.metadata && result.metadata.updated_at) {
+                                setLastUpdateTime(result.metadata.updated_at);
+                            }
+
                             Alert.alert(
                                 'Configuration Mini mise à jour',
                                 `Modifications sauvegardées avec succès !\n\nChangements:\n${result.changes_made.join('\n')}`
                             );
                             setHasChanges(false);
                         } catch (err) {
+                            console.log('💥 Mini config update failed:', err);
                             Alert.alert('Erreur', error || 'Erreur lors de la sauvegarde');
                         }
                     },
@@ -192,7 +205,7 @@ export default function MiniConfigurationTab() {
             style={styles.container}
             contentContainerStyle={[
                 styles.content,
-                { paddingBottom: 50 } // Réduit car le KeyboardAvoidingView est maintenant au niveau parent
+                { paddingBottom: 50 }
             ]}
             refreshControl={
                 <RefreshControl
@@ -203,7 +216,7 @@ export default function MiniConfigurationTab() {
                 />
             }
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled" // Important pour permettre les clics sur les boutons
+            keyboardShouldPersistTaps="handled"
         >
             {/* Current Configuration Display */}
             {config && (
@@ -252,7 +265,16 @@ export default function MiniConfigurationTab() {
 
                     <View style={styles.systemTypeContainer}>
                         <Text style={[styles.systemTypeText, { color: colors.textSecondary }]}>
-                            Type de système: {config.system_type}
+                            Type de système: {config.system_type || 'mini_two_matches'}
+                        </Text>
+                        <Text style={[styles.systemTypeText, { color: colors.textSecondary }]}>
+                            Dernière mise à jour: {lastUpdateTime
+                            ? new Date(lastUpdateTime).toLocaleString('fr-FR')
+                            : (config.metadata?.updated_at
+                                    ? new Date(config.metadata.updated_at).toLocaleString('fr-FR')
+                                    : 'Information non disponible'
+                            )
+                        }
                         </Text>
                     </View>
                 </View>
@@ -430,11 +452,11 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         borderTopWidth: 1,
         borderTopColor: 'rgba(0,0,0,0.1)',
+        gap: 4,
     },
     systemTypeText: {
         fontSize: 12,
         fontFamily: 'Poppins_400Regular',
-        fontStyle: 'italic',
     },
     section: {
         marginBottom: 24,
