@@ -188,7 +188,7 @@ export default function MiniConfigurationTab() {
         >
             {/* Current Configuration Display */}
             {config && (
-                <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <View style={styles.firstSection}>
                     <Text variant="heading3" color="text">
                         Configuration Mini Actuelle
                     </Text>
@@ -248,14 +248,17 @@ export default function MiniConfigurationTab() {
                 </View>
             )}
 
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
             {/* Configuration Form */}
-            <View style={[styles.card, { backgroundColor: colors.surface }]}>
+            <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Modifier la Configuration Mini
                 </Text>
 
                 {/* Cotes Section */}
-                <View style={styles.section}>
+                <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
                         Contraintes de Cotes Mini
                     </Text>
@@ -284,7 +287,7 @@ export default function MiniConfigurationTab() {
                 </View>
 
                 {/* Limits Section */}
-                <View style={styles.section}>
+                <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
                         Limites Mini
                     </Text>
@@ -302,7 +305,7 @@ export default function MiniConfigurationTab() {
                 </View>
 
                 {/* Settings Section */}
-                <View style={styles.section}>
+                <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
                         Paramètres Mini
                     </Text>
@@ -347,8 +350,11 @@ export default function MiniConfigurationTab() {
                 </View>
             </View>
 
-            {/* Information Card */}
-            <View style={[styles.card, { backgroundColor: colors.surface }]}>
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            {/* Information Section */}
+            <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Informations Mini
                 </Text>
@@ -388,15 +394,15 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingTop: spacing.xs,
     },
-    card: {
-        borderRadius: 12,
-        padding: spacing.lg,
-        marginBottom: spacing.md,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+    firstSection: {
+        paddingBottom: spacing.lg,
+    },
+    section: {
+        paddingVertical: spacing.lg,
+    },
+    separator: {
+        height: 1,
+        marginVertical: spacing.xs,
     },
     currentConfigGrid: {
         flexDirection: 'row',
@@ -414,7 +420,7 @@ const styles = StyleSheet.create({
         borderTopColor: 'rgba(0,0,0,0.1)',
         gap: spacing.xs,
     },
-    section: {
+    formSection: {
         marginBottom: spacing.lg,
     },
     actionButtons: {

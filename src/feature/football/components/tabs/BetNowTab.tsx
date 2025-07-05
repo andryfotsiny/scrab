@@ -172,7 +172,7 @@ export default function BetNowTab() {
         >
             {/* Configuration Summary */}
             {config && (
-                <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <View style={styles.firstSection}>
                     <Text variant="heading3" color="text">
                         Configuration
                     </Text>
@@ -188,9 +188,12 @@ export default function BetNowTab() {
                 </View>
             )}
 
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
             {/* Matches Summary */}
             {matches && (
-                <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <View style={styles.section}>
                     <View style={styles.summaryHeader}>
                         <Text variant="heading3" color="text">
                             Résumé ({matches.total_matches} matchs)
@@ -227,8 +230,11 @@ export default function BetNowTab() {
                 </View>
             )}
 
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
             {/* Bet Configuration */}
-            <View style={[styles.card, { backgroundColor: colors.surface }]}>
+            <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Configuration du Pari
                 </Text>
@@ -281,9 +287,12 @@ export default function BetNowTab() {
                 />
             </View>
 
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
             {/* Matches List */}
             {matches?.matches.length ? (
-                <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <View style={styles.section}>
                     <Text variant="heading3" color="text">
                         Matchs sélectionnés
                     </Text>
@@ -293,7 +302,7 @@ export default function BetNowTab() {
                     </View>
                 </View>
             ) : (
-                <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <View style={styles.section}>
                     <View style={styles.emptyState}>
                         <Ionicons name="football-outline" size={48} color={colors.textSecondary} />
                         <Text variant="heading3" color="text" style={{ marginTop: spacing.md }}>
@@ -317,15 +326,15 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingTop: spacing.xs,
     },
-    card: {
-        borderRadius: 12,
-        padding: spacing.lg,
-        marginBottom: spacing.md,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+    firstSection: {
+        paddingBottom: spacing.lg,
+    },
+    section: {
+        paddingVertical: spacing.lg,
+    },
+    separator: {
+        height: 1,
+        marginVertical: spacing.xs,
     },
     configRow: {
         gap: spacing.xs,

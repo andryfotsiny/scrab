@@ -195,7 +195,7 @@ export default function ConfigurationTab() {
         >
             {/* Current Configuration Display */}
             {config && (
-                <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <View style={styles.firstSection}>
                     <Text variant="heading3" color="text">
                         Configuration Actuelle
                     </Text>
@@ -252,14 +252,17 @@ export default function ConfigurationTab() {
                 </View>
             )}
 
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
             {/* Configuration Form */}
-            <View style={[styles.card, { backgroundColor: colors.surface }]}>
+            <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Modifier la Configuration
                 </Text>
 
                 {/* Cotes Section */}
-                <View style={styles.section}>
+                <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
                         Contraintes de Cotes
                     </Text>
@@ -288,7 +291,7 @@ export default function ConfigurationTab() {
                 </View>
 
                 {/* Limits Section */}
-                <View style={styles.section}>
+                <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
                         Limites
                     </Text>
@@ -317,7 +320,7 @@ export default function ConfigurationTab() {
                 </View>
 
                 {/* Settings Section */}
-                <View style={styles.section}>
+                <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
                         Paramètres
                     </Text>
@@ -364,8 +367,11 @@ export default function ConfigurationTab() {
                 </View>
             </View>
 
-            {/* Information Card */}
-            <View style={[styles.card, { backgroundColor: colors.surface }]}>
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            {/* Information Section */}
+            <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Informations importantes
                 </Text>
@@ -405,15 +411,15 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingTop: spacing.xs,
     },
-    card: {
-        borderRadius: 12,
-        padding: spacing.lg,
-        marginBottom: spacing.md,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+    firstSection: {
+        paddingBottom: spacing.lg,
+    },
+    section: {
+        paddingVertical: spacing.lg,
+    },
+    separator: {
+        height: 1,
+        marginVertical: spacing.xs,
     },
     currentConfigGrid: {
         flexDirection: 'row',
@@ -430,7 +436,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: 'rgba(0,0,0,0.1)',
     },
-    section: {
+    formSection: {
         marginBottom: spacing.lg,
     },
     actionButtons: {

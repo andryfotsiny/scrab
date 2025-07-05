@@ -39,7 +39,6 @@ class ApiClient {
             }
 
             const data = await response.json();
-            console.log('✅ Request success:', data);
             return data;
         } catch (error) {
             console.error('❌ Request error:', error);

@@ -55,18 +55,16 @@ export default function MenuFootball() {
                     >
                         {/* Grolo */}
                         <TouchableOpacity
-                            style={[styles.menuCard, { backgroundColor: colors.surface }]}
+                            style={styles.menuItem}
                             onPress={handleGroloPress}
                             activeOpacity={0.7}
                         >
                             <View style={styles.menuContent}>
-                                <View style={[styles.iconContainer, { backgroundColor: colors.primary + '15' }]}>
-                                    <Ionicons
-                                        name="trophy-outline"
-                                        size={32}
-                                        color={colors.primary}
-                                    />
-                                </View>
+                                <Ionicons
+                                    name="trophy-outline"
+                                    size={24}
+                                    color={colors.primary}
+                                />
                                 <View style={styles.textContainer}>
                                     <Text style={[styles.menuTitle, { color: colors.text }]}>
                                         Grolo
@@ -83,20 +81,21 @@ export default function MenuFootball() {
                             </View>
                         </TouchableOpacity>
 
+                        {/* Ligne de séparation */}
+                        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
                         {/* Mini */}
                         <TouchableOpacity
-                            style={[styles.menuCard, { backgroundColor: colors.surface }]}
+                            style={styles.menuItem}
                             onPress={handleMiniPress}
                             activeOpacity={0.7}
                         >
                             <View style={styles.menuContent}>
-                                <View style={[styles.iconContainer, { backgroundColor: colors.success + '15' }]}>
-                                    <Ionicons
-                                        name="flash-outline"
-                                        size={32}
-                                        color={colors.success}
-                                    />
-                                </View>
+                                <Ionicons
+                                    name="flash-outline"
+                                    size={24}
+                                    color={colors.primary}
+                                />
                                 <View style={styles.textContainer}>
                                     <Text style={[styles.menuTitle, { color: colors.text }]}>
                                         Mini
@@ -141,25 +140,16 @@ const styles = StyleSheet.create({
     scrollContent: {
         padding: 24,
     },
-    menuCard: {
-        borderRadius: 12,
-        padding: 20,
-        marginBottom: 16,
+    menuItem: {
+        paddingVertical: 20,
     },
     menuContent: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    iconContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
     textContainer: {
         flex: 1,
+        marginLeft: 16,
     },
     menuTitle: {
         fontSize: 20,
@@ -169,5 +159,9 @@ const styles = StyleSheet.create({
     menuDescription: {
         fontSize: 14,
         fontFamily: 'Poppins_400Regular',
+    },
+    separator: {
+        height: 1,
+        marginVertical: 8,
     },
 });

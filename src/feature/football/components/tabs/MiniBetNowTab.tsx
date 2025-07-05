@@ -160,7 +160,7 @@ export default function MiniBetNowTab() {
         >
             {/* Configuration Summary */}
             {config && (
-                <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <View style={styles.firstSection}>
                     <Text variant="heading3" color="text">
                         Configuration Mini
                     </Text>
@@ -176,9 +176,12 @@ export default function MiniBetNowTab() {
                 </View>
             )}
 
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
             {/* Matches Summary */}
             {matches && (
-                <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <View style={styles.section}>
                     <View style={styles.summaryHeader}>
                         <Text variant="heading3" color="text">
                             Mini - {matches.total_matches} matchs sélectionnés
@@ -215,8 +218,11 @@ export default function MiniBetNowTab() {
                 </View>
             )}
 
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
             {/* Bet Configuration */}
-            <View style={[styles.card, { backgroundColor: colors.surface }]}>
+            <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Configuration du Pari Mini
                 </Text>
@@ -269,9 +275,12 @@ export default function MiniBetNowTab() {
                 />
             </View>
 
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
             {/* Matches List */}
             {matches?.matches.length === 2 ? (
-                <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <View style={styles.section}>
                     <Text variant="heading3" color="text">
                         2 Matchs Mini sélectionnés
                     </Text>
@@ -281,7 +290,7 @@ export default function MiniBetNowTab() {
                     </View>
                 </View>
             ) : (
-                <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <View style={styles.section}>
                     <View style={styles.emptyState}>
                         <Ionicons name="flash-outline" size={48} color={colors.textSecondary} />
                         <Text variant="heading3" color="text" style={{ marginTop: spacing.md }}>
@@ -305,15 +314,15 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingTop: spacing.xs,
     },
-    card: {
-        borderRadius: 12,
-        padding: spacing.lg,
-        marginBottom: spacing.md,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+    firstSection: {
+        paddingBottom: spacing.lg,
+    },
+    section: {
+        paddingVertical: spacing.lg,
+    },
+    separator: {
+        height: 1,
+        marginVertical: spacing.xs,
     },
     configRow: {
         gap: spacing.xs,

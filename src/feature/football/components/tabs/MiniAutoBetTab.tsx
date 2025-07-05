@@ -77,10 +77,10 @@ export default function MiniAutoBetTab() {
             }
             showsVerticalScrollIndicator={false}
         >
-            {/* Configuration Card */}
+            {/* Configuration Section */}
             {config && (
-                <View style={[styles.card, { backgroundColor: colors.surface }]}>
-                    <View style={styles.cardHeader}>
+                <View style={styles.firstSection}>
+                    <View style={styles.sectionHeader}>
                         <Text variant="heading3" color="text">
                             Configuration Mini (2 matchs)
                         </Text>
@@ -131,8 +131,8 @@ export default function MiniAutoBetTab() {
                 </View>
             )}
 
-            {/* Auto Execution Card */}
-            <View style={[styles.card, { backgroundColor: colors.surface }]}>
+            {/* Auto Execution Section */}
+            <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Exécution Automatique Mini
                 </Text>
@@ -190,8 +190,11 @@ export default function MiniAutoBetTab() {
                 />
             </View>
 
-            {/* Information Card */}
-            <View style={[styles.card, { backgroundColor: colors.surface }]}>
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            {/* Information Section */}
+            <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Informations Mini
                 </Text>
@@ -231,21 +234,21 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingTop: spacing.xs,
     },
-    card: {
-        borderRadius: 12,
-        padding: spacing.lg,
-        marginBottom: spacing.md,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+    firstSection: {
+        paddingBottom: spacing.lg,
     },
-    cardHeader: {
+    section: {
+        paddingVertical: spacing.lg,
+    },
+    sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: spacing.lg,
+    },
+    separator: {
+        height: 1,
+        marginVertical: spacing.xs,
     },
     statusBadge: {
         paddingHorizontal: spacing.sm,

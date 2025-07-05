@@ -10,7 +10,7 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../../../shared/context/ThemeContext';
+import { useTheme } from '@/src/shared/context/ThemeContext';
 import ThemeToggle from '@/src/components/atoms/ThemeToggle';
 import { authService, UserInfo } from '@/src/shared/services/api/auth/auth.api';
 
@@ -106,10 +106,10 @@ export default function UserProfileScreen() {
                         }
                         showsVerticalScrollIndicator={false}
                     >
-                        {/* Carte Login */}
-                        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-                            <View style={styles.cardHeader}>
-                                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                        {/* Section Informations */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={[styles.sectionTitle, { color: colors.text }]}>
                                     Informations
                                 </Text>
                                 <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
@@ -127,9 +127,12 @@ export default function UserProfileScreen() {
                             </View>
                         </View>
 
-                        {/* Carte Solde uniquement */}
-                        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-                            <Text style={[styles.cardTitle, { color: colors.text }]}>
+                        {/* Ligne de séparation */}
+                        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+                        {/* Section Solde */}
+                        <View style={styles.section}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
                                 Solde
                             </Text>
 
@@ -183,26 +186,23 @@ const styles = StyleSheet.create({
     scrollContent: {
         padding: 24,
     },
-    card: {
-        borderRadius: 12,
-        padding: 24,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+    section: {
+        paddingVertical: 24,
     },
-    cardHeader: {
+    sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 24,
     },
-    cardTitle: {
+    sectionTitle: {
         fontSize: 18,
         fontFamily: 'Poppins_700Bold',
         marginBottom: 16,
+    },
+    separator: {
+        height: 1,
+        marginVertical: 8,
     },
     statusBadge: {
         paddingHorizontal: 12,
