@@ -1,4 +1,4 @@
-// ConfigurationTab.tsx - Refactorisé avec les composants réutilisables
+// ConfigurationTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -17,6 +17,7 @@ import { ConfigUpdateRequest } from '@/src/feature/football/types';
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
 import Text from '@/src/components/atoms/Text';
+import Skeleton from '@/src/components/atoms/Skeleton';
 import { spacing } from '@/src/styles';
 
 export default function ConfigurationTab() {
@@ -33,9 +34,20 @@ export default function ConfigurationTab() {
     const [formData, setFormData] = useState<ConfigUpdateRequest>({});
     const [hasChanges, setHasChanges] = useState(false);
     const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
+    const [initialLoading, setInitialLoading] = useState(true);
 
     useEffect(() => {
-        loadConfig().catch(console.error);
+        const initializeData = async () => {
+            try {
+                await loadConfig();
+            } catch (err) {
+                console.error('Initialize error:', err);
+            } finally {
+                setInitialLoading(false);
+            }
+        };
+
+        initializeData();
     }, [loadConfig]);
 
     useEffect(() => {
@@ -175,24 +187,192 @@ export default function ConfigurationTab() {
         }).format(amount);
     };
 
-    return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={[
-                styles.content,
-                { paddingBottom: 50 }
-            ]}
-            refreshControl={
-                <RefreshControl
-                    refreshing={loading}
-                    onRefresh={onRefresh}
-                    tintColor={colors.primary}
-                    colors={[colors.primary]}
-                />
-            }
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-        >
+    const renderSkeletonContent = () => (
+        <>
+            {/* Current Configuration Display Skeleton - SEULEMENT pour les données API */}
+            <View style={styles.firstSection}>
+                <Text variant="heading3" color="text">
+                    Configuration Actuelle
+                </Text>
+
+                <View style={styles.currentConfigGrid}>
+                    <View style={styles.configItem}>
+                        <Text variant="caption" color="textSecondary">
+                            Cotes
+                        </Text>
+                        <Skeleton width="60%" height={18} animated={false} />
+                    </View>
+
+                    <View style={styles.configItem}>
+                        <Text variant="caption" color="textSecondary">
+                            Max Matchs
+                        </Text>
+                        <Skeleton width="30%" height={18} animated={false} />
+                    </View>
+
+                    <View style={styles.configItem}>
+                        <Text variant="caption" color="textSecondary">
+                            Cote totale max
+                        </Text>
+                        <Skeleton width="45%" height={18} animated={false} />
+                    </View>
+
+                    <View style={styles.configItem}>
+                        <Text variant="caption" color="textSecondary">
+                            Mise par défaut
+                        </Text>
+                        <Skeleton width="75%" height={18} animated={false} />
+                    </View>
+                </View>
+
+                <View style={styles.metadataContainer}>
+                    <Text variant="caption" color="textSecondary">
+                        Dernière mise à jour:
+                    </Text>
+                    <Skeleton width="60%" height={14} animated={false} />
+                </View>
+            </View>
+
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            {/* Configuration Form - PAS de skeleton, juste inputs vides */}
+            <View style={styles.section}>
+                <Text variant="heading3" color="text">
+                    Modifier la Configuration
+                </Text>
+
+                {/* Cotes Section */}
+                <View style={styles.formSection}>
+                    <Text variant="body" weight="bold" color="text">
+                        Contraintes de Cotes
+                    </Text>
+
+                    <Input
+                        label="Cote minimale"
+                        value=""
+                        onChangeText={() => {}}
+                        keyboardType="decimal-pad"
+                        placeholder="1.2"
+                        helperText="Entre 1.0 et 3.0"
+                        editable={false}
+                    />
+
+                    <Input
+                        label="Cote maximale"
+                        value=""
+                        onChangeText={() => {}}
+                        keyboardType="decimal-pad"
+                        placeholder="1.5"
+                        helperText="Entre 1.0 et 5.0"
+                        editable={false}
+                    />
+                </View>
+
+                {/* Limits Section */}
+                <View style={styles.formSection}>
+                    <Text variant="body" weight="bold" color="text">
+                        Limites
+                    </Text>
+
+                    <Input
+                        label="Nombre maximum de matchs"
+                        value=""
+                        onChangeText={() => {}}
+                        keyboardType="numeric"
+                        placeholder="40"
+                        helperText="Entre 1 et 50 matchs"
+                        editable={false}
+                    />
+
+                    <Input
+                        label="Cote totale maximum"
+                        value=""
+                        onChangeText={() => {}}
+                        keyboardType="numeric"
+                        placeholder="70000"
+                        helperText="Entre 1 000 et 100 000"
+                        editable={false}
+                    />
+                </View>
+
+                {/* Settings Section */}
+                <View style={styles.formSection}>
+                    <Text variant="body" weight="bold" color="text">
+                        Paramètres
+                    </Text>
+
+                    <Input
+                        label="Mise par défaut (MGA)"
+                        value=""
+                        onChangeText={() => {}}
+                        keyboardType="numeric"
+                        placeholder="400"
+                        helperText="Entre 100 et 100 000 MGA"
+                        editable={false}
+                        required
+                    />
+                </View>
+
+                {/* Action Buttons - Désactivés */}
+                <View style={styles.actionButtons}>
+                    <Button
+                        title="Réinitialiser"
+                        onPress={() => {}}
+                        variant="outline"
+                        size = 'sm'
+                        disabled={true}
+                        style={{ flex: 1 }}
+                    />
+
+                    <Button
+                        title="Sauvegarder"
+                        onPress={() => {}}
+                        variant="outline"
+                        size = 'sm'
+                        disabled={true}
+                        style={{ flex: 1 }}
+                    />
+                </View>
+            </View>
+
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            {/* Information Section - Textes statiques, PAS de skeleton */}
+            <View style={styles.section}>
+                <Text variant="heading3" color="text">
+                    Informations importantes
+                </Text>
+
+                <View style={styles.infoList}>
+                    <View style={styles.infoItem}>
+                        <Ionicons name="warning-outline" size={16} color={colors.warning} />
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                            Les modifications prendront effet immédiatement après la sauvegarde
+                        </Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                        <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                            La cote minimale doit toujours être inférieure à la cote maximale
+                        </Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                        <Ionicons name="shield-checkmark-outline" size={16} color={colors.success} />
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                            Les paris automatiques respecteront ces nouvelles contraintes
+                        </Text>
+                    </View>
+                </View>
+            </View>
+        </>
+    );
+
+    const renderContent = () => (
+        <>
             {/* Current Configuration Display */}
             {config && (
                 <View style={styles.firstSection}>
@@ -399,6 +579,28 @@ export default function ConfigurationTab() {
                     </View>
                 </View>
             </View>
+        </>
+    );
+
+    return (
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={[
+                styles.content,
+                { paddingBottom: 50 }
+            ]}
+            refreshControl={
+                <RefreshControl
+                    refreshing={loading && !!config} // Only show refresh si on a déjà des données
+                    onRefresh={onRefresh}
+                    tintColor={colors.primary}
+                    colors={[colors.primary]}
+                />
+            }
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+        >
+            {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
         </ScrollView>
     );
 }

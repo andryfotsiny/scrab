@@ -1,4 +1,4 @@
-// BetNowTab.tsx - Refactorisé avec les composants réutilisables
+// BetNowTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -18,6 +18,7 @@ import { FootballMatch } from '@/src/feature/football/types';
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
 import Text from '@/src/components/atoms/Text';
+import Skeleton from '@/src/components/atoms/Skeleton';
 import { spacing } from '@/src/styles';
 
 export default function BetNowTab() {
@@ -34,10 +35,20 @@ export default function BetNowTab() {
 
     const [customStake, setCustomStake] = useState('');
     const [acceptOddsChange, setAcceptOddsChange] = useState(true);
+    const [initialLoading, setInitialLoading] = useState(true);
 
     useEffect(() => {
-        loadConfig().catch(console.error);
-        loadMatches().catch(console.error);
+        const initializeData = async () => {
+            try {
+                await Promise.all([loadConfig(), loadMatches()]);
+            } catch (err) {
+                console.error('Initialize error:', err);
+            } finally {
+                setInitialLoading(false);
+            }
+        };
+
+        initializeData();
     }, [loadConfig, loadMatches]);
 
     useEffect(() => {
@@ -152,24 +163,150 @@ export default function BetNowTab() {
         </View>
     );
 
-    return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={[
-                styles.content,
-                { paddingBottom: 50 }
-            ]}
-            refreshControl={
-                <RefreshControl
-                    refreshing={loading}
-                    onRefresh={onRefresh}
-                    tintColor={colors.primary}
-                    colors={[colors.primary]}
+
+
+    const renderSkeletonContent = () => (
+        <>
+            {/* Configuration Summary Skeleton - SEULEMENT données API */}
+            <View style={styles.firstSection}>
+                <Text variant="heading3" color="text">
+                    Configuration
+                </Text>
+
+                <View style={styles.configRow}>
+                    <Text variant="caption" color="textSecondary">
+                        Plage de cotes:
+                    </Text>
+                    <Skeleton width="25%" height={14} animated={false} />
+                    <Text variant="caption" color="textSecondary">
+                        Max matchs:
+                    </Text>
+                    <Skeleton width="15%" height={14} animated={false} />
+                </View>
+            </View>
+
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            {/* Matches Summary Skeleton - SEULEMENT données API */}
+            <View style={styles.section}>
+                <View style={styles.summaryHeader}>
+                    <Text variant="heading3" color="text">
+                        Résumé (
+                    </Text>
+                    <Skeleton width="20%" height={24} animated={false} />
+                    <Text variant="heading3" color="text">
+                        matchs)
+                    </Text>
+                    <Skeleton width={60} height={28} borderRadius={14} animated={false} />
+                </View>
+
+                <View style={styles.summaryStats}>
+                    <View style={styles.statItem}>
+                        <Text variant="caption" color="textSecondary">
+                            Cote totale
+                        </Text>
+                        <Skeleton width="50%" height={24} animated={false} />
+                    </View>
+
+                    <View style={styles.statItem}>
+                        <Text variant="caption" color="textSecondary">
+                            Gain estimé
+                        </Text>
+                        <Skeleton width="80%" height={24} animated={false} />
+                    </View>
+                </View>
+            </View>
+
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            {/* Bet Configuration - Inputs vides mais visibles */}
+            <View style={styles.section}>
+                <Text variant="heading3" color="text">
+                    Configuration du Pari
+                </Text>
+
+                <Input
+                    label="Mise (MGA)"
+                    value=""
+                    onChangeText={() => {}}
+                    keyboardType="numeric"
+                    placeholder="Montant de la mise"
+                    helperText="Entre 100 et 50 000 MGA"
+                    editable={false}
+                    required
                 />
-            }
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-        >
+
+                <TouchableOpacity
+                    style={styles.checkboxContainer}
+                    onPress={() => {}}
+                    activeOpacity={0.7}
+                    disabled={true}
+                >
+                    <View style={[
+                        styles.checkbox,
+                        {
+                            borderColor: colors.primary,
+                            backgroundColor: colors.primary,
+                        },
+                    ]}>
+                        <Ionicons name="checkmark" size={16} color="#ffffff" />
+                    </View>
+                    <Text variant="caption" color="text" style={styles.checkboxLabel}>
+                        Accepter les changements de cotes
+                    </Text>
+                </TouchableOpacity>
+
+                <Button
+                    title="Chargement..."
+                    onPress={() => {}}
+                    variant="outline"
+                    disabled={true}
+                    style={{
+                        borderColor: colors.textSecondary,
+                    }}
+                    textStyle={{
+                        color: colors.textSecondary,
+                    }}
+                />
+            </View>
+
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            {/* Matches List Skeleton - Seulement quelques cartes */}
+            <View style={styles.section}>
+                <Text variant="heading3" color="text">
+                    Matchs sélectionnés
+                </Text>
+
+                <View style={styles.matchesList}>
+                    {Array.from({ length: 2 }).map((_, index) => (
+                        <View key={index} style={[styles.matchCard, { backgroundColor: colors.background }]}>
+                            <View style={styles.matchHeader}>
+                                <Skeleton width="70%" height={14} animated={false} />
+                                <Skeleton width={40} height={20} borderRadius={10} animated={false} />
+                            </View>
+
+                            <View style={styles.matchDetails}>
+                                <View style={styles.betInfo}>
+                                    <Text variant="caption" color="textSecondary">
+                                        Pari:
+                                    </Text>
+                                    <Skeleton width="40%" height={12} animated={false} />
+                                    <Skeleton width="35%" height={12} animated={false} />
+                                </View>
+                            </View>
+                        </View>
+                    ))}
+                </View>
+            </View>
+        </>
+    );
+
+    const renderContent = () => (
+        <>
             {/* Configuration Summary */}
             {config && (
                 <View style={styles.firstSection}>
@@ -314,6 +451,28 @@ export default function BetNowTab() {
                     </View>
                 </View>
             )}
+        </>
+    );
+
+    return (
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={[
+                styles.content,
+                { paddingBottom: 50 }
+            ]}
+            refreshControl={
+                <RefreshControl
+                    refreshing={loading && !!(config && matches)} // Only show refresh si on a déjà des données
+                    onRefresh={onRefresh}
+                    tintColor={colors.primary}
+                    colors={[colors.primary]}
+                />
+            }
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+        >
+            {initialLoading || (loading && !(config && matches)) ? renderSkeletonContent() : renderContent()}
         </ScrollView>
     );
 }

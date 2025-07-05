@@ -1,6 +1,6 @@
 // src/shared/context/ThemeContext.tsx
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
-import { colors } from '../../styles';
+import { colors } from '@/src/styles';
 
 type ThemeMode = 'light' | 'dark';
 

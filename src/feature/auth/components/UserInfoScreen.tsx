@@ -12,13 +12,14 @@ import {
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import ThemeToggle from '@/src/components/atoms/ThemeToggle';
+import Skeleton, { SkeletonText } from '@/src/components/atoms/Skeleton';
 import { authService, UserInfo } from '@/src/shared/services/api/auth/auth.api';
 
 export default function UserProfileScreen() {
     const { colors, mode } = useTheme();
     const insets = useSafeAreaInsets();
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // Start avec true pour le skeleton initial
 
     const loadUserInfo = useCallback(async () => {
         setLoading(true);
@@ -44,29 +45,79 @@ export default function UserProfileScreen() {
         }).format(balance);
     }, []);
 
-    if (!userInfo) {
-        return (
-            <SafeAreaProvider>
-                <View style={[styles.container, { backgroundColor: colors.background }]}>
-                    <StatusBar
-                        barStyle={mode === 'dark' ? 'light-content' : 'dark-content'}
-                        backgroundColor={colors.background}
-                        translucent={false}
-                    />
-                    <SafeAreaView
-                        style={[styles.safeArea, { paddingTop: insets.top }]}
-                        edges={['top']}
-                    >
-                        <View style={styles.loadingContainer}>
-                            <Text style={[styles.loadingText, { color: colors.text }]}>
-                                Chargement...
-                            </Text>
-                        </View>
-                    </SafeAreaView>
+    const renderSkeletonContent = () => (
+        <>
+            {/* Section Informations Skeleton */}
+            <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                    <Skeleton width="40%" height={24} />
+                    <Skeleton width={60} height={28} borderRadius={14} />
                 </View>
-            </SafeAreaProvider>
-        );
-    }
+
+                <View style={styles.infoRow}>
+                    <Skeleton width="25%" height={16} />
+                    <Skeleton width="45%" height={16} />
+                </View>
+            </View>
+
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            {/* Section Solde Skeleton */}
+            <View style={styles.section}>
+                <Skeleton width="30%" height={24} style={{ marginBottom: 24 }} />
+
+                <View style={styles.balanceContainer}>
+                    <Skeleton width="40%" height={14} style={{ marginBottom: 16 }} />
+                    <Skeleton width="60%" height={32} />
+                </View>
+            </View>
+        </>
+    );
+
+    const renderContent = () => (
+        <>
+            {/* Section Informations */}
+            <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                        Informations
+                    </Text>
+                    <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
+                        <Text style={styles.statusText}>Actif</Text>
+                    </View>
+                </View>
+
+                <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                        Login
+                    </Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
+                        {userInfo?.login}
+                    </Text>
+                </View>
+            </View>
+
+            {/* Ligne de séparation */}
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            {/* Section Solde */}
+            <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    Solde
+                </Text>
+
+                <View style={styles.balanceContainer}>
+                    <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>
+                        Solde principal
+                    </Text>
+                    <Text style={[styles.balanceValue, { color: colors.primary }]}>
+                        {userInfo ? formatBalance(userInfo.balance) : ''}
+                    </Text>
+                </View>
+            </View>
+        </>
+    );
 
     return (
         <SafeAreaProvider>
@@ -98,7 +149,7 @@ export default function UserProfileScreen() {
                         ]}
                         refreshControl={
                             <RefreshControl
-                                refreshing={loading}
+                                refreshing={loading && !!userInfo} // Only show refresh si on a déjà des données
                                 onRefresh={loadUserInfo}
                                 tintColor={colors.primary}
                                 colors={[colors.primary]}
@@ -106,45 +157,7 @@ export default function UserProfileScreen() {
                         }
                         showsVerticalScrollIndicator={false}
                     >
-                        {/* Section Informations */}
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                                    Informations
-                                </Text>
-                                <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
-                                    <Text style={styles.statusText}>Actif</Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.infoRow}>
-                                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
-                                    Login
-                                </Text>
-                                <Text style={[styles.infoValue, { color: colors.text }]}>
-                                    {userInfo.login}
-                                </Text>
-                            </View>
-                        </View>
-
-                        {/* Ligne de séparation */}
-                        <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-                        {/* Section Solde */}
-                        <View style={styles.section}>
-                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                                Solde
-                            </Text>
-
-                            <View style={styles.balanceContainer}>
-                                <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>
-                                    Solde principal
-                                </Text>
-                                <Text style={[styles.balanceValue, { color: colors.primary }]}>
-                                    {formatBalance(userInfo.balance)}
-                                </Text>
-                            </View>
-                        </View>
+                        {loading && !userInfo ? renderSkeletonContent() : renderContent()}
                     </ScrollView>
                 </SafeAreaView>
             </View>
@@ -158,15 +171,6 @@ const styles = StyleSheet.create({
     },
     safeArea: {
         flex: 1,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    loadingText: {
-        fontSize: 16,
-        fontFamily: 'Poppins_400Regular',
     },
     header: {
         flexDirection: 'row',

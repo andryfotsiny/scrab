@@ -13,6 +13,8 @@ export const colors = {
         error: '#ef4444',
         warning: '#f59e0b',
         shadow: 'rgba(0, 0, 0, 0.1)',
+        skeleton: '#e2e8f0',
+        skeletonHighlight: '#f1f5f9',
     },
     dark: {
         primary: '#818cf8',
@@ -27,6 +29,8 @@ export const colors = {
         error: '#f87171',
         warning: '#fbbf24',
         shadow: 'rgba(0, 0, 0, 0.3)',
+        skeleton: '#334155',
+        skeletonHighlight: '#475569',
     },
 };
 
