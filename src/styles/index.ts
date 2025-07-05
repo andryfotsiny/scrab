@@ -45,13 +45,13 @@ export const typography = {
         bold: 'Poppins_700Bold',
     },
     fontSize: {
-        xs: 12,
-        sm: 14,
-        md: 16,
-        lg: 18,
-        xl: 20,
-        xxl: 24,
-        xxxl: 32,
+        xs: 9,    // Ajusté de 10 à 11
+        sm: 11,    // Ajusté de 12 à 13
+        md: 13,    // Ajusté de 14 à 15
+        lg: 15,    // Ajusté de 16 à 17
+        xl: 17,    // Ajusté de 18 à 19
+        xxl: 20,   // Ajusté de 20 à 22
+        xxxl: 28,  // Ajusté de 28 à 30
     },
     lineHeight: {
         tight: 1.2,

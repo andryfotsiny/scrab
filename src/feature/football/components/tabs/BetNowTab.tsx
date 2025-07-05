@@ -267,13 +267,16 @@ export default function BetNowTab() {
                 </TouchableOpacity>
 
                 <Button
-                    title={loading ? 'Exécution...' : `Parier maintenant (${matches?.total_matches || 0} matchs)`}
+                    title={loading ? 'Exécution...' : `Parier maintenant`}
                     onPress={handleExecuteBet}
-                    variant="primary"
+                    variant="outline"
                     disabled={loading || !matches?.total_matches}
                     loading={loading}
                     style={{
-                        backgroundColor: matches?.total_matches ? colors.success : colors.textSecondary,
+                        borderColor: matches?.total_matches ? colors.success : colors.textSecondary,
+                    }}
+                    textStyle={{
+                        color: matches?.total_matches ? colors.success : colors.textSecondary,
                     }}
                 />
             </View>

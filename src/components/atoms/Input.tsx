@@ -38,8 +38,8 @@ export default function Input({
                               }: InputProps) {
     const { colors } = useTheme();
 
-    const getInputStyle = (): ViewStyle => {
-        const baseStyle: ViewStyle = {
+    const getInputStyle = (): TextStyle => {
+        const baseStyle: TextStyle = {
             borderRadius: borderRadius.md,
             fontFamily: typography.fontFamily.regular,
             color: colors.text,

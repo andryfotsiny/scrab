@@ -173,15 +173,19 @@ export default function MiniAutoBetTab() {
                     title={loading
                         ? 'Traitement...'
                         : localAutoActive
-                            ? 'Arrêter l\'exécution automatique'
-                            : 'Démarrer l\'exécution automatique'
+                            ? 'Arrêter '
+                            : 'Démarrer '
                     }
                     onPress={handleToggleAutoExecution}
-                    variant={localAutoActive ? 'secondary' : 'primary'}
+                    variant="outline"
+                    size="sm"
                     disabled={loading}
                     loading={loading}
                     style={{
-                        backgroundColor: localAutoActive ? colors.error : colors.success
+                        borderColor: localAutoActive ? colors.error : colors.success,
+                    }}
+                    textStyle={{
+                        color: localAutoActive ? colors.error : colors.success,
                     }}
                 />
             </View>

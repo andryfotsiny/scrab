@@ -37,30 +37,30 @@ export default function Text({
         // Variant styles
         const variantStyles = {
             heading1: {
-                fontSize: typography.fontSize.xxxl,
+                fontSize: typography.fontSize.xxxl, // 30px
                 lineHeight: typography.fontSize.xxxl * typography.lineHeight.tight,
                 fontFamily: typography.fontFamily.bold,
             },
             heading2: {
-                fontSize: typography.fontSize.xxl,
+                fontSize: typography.fontSize.xxl, // 22px
                 lineHeight: typography.fontSize.xxl * typography.lineHeight.tight,
                 fontFamily: typography.fontFamily.bold,
             },
             heading3: {
-                fontSize: typography.fontSize.xl,
+                fontSize: typography.fontSize.xl, // 19px
                 lineHeight: typography.fontSize.xl * typography.lineHeight.normal,
                 fontFamily: typography.fontFamily.bold,
             },
             body: {
-                fontSize: typography.fontSize.md,
+                fontSize: typography.fontSize.md, // 15px
                 lineHeight: typography.fontSize.md * typography.lineHeight.normal,
             },
             caption: {
-                fontSize: typography.fontSize.sm,
+                fontSize: typography.fontSize.sm, // 13px
                 lineHeight: typography.fontSize.sm * typography.lineHeight.normal,
             },
             label: {
-                fontSize: typography.fontSize.xs,
+                fontSize: typography.fontSize.xs, // 11px
                 lineHeight: typography.fontSize.xs * typography.lineHeight.normal,
                 fontFamily: typography.fontFamily.bold,
             },

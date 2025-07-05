@@ -24,6 +24,7 @@ interface HeaderProps {
     style?: ViewStyle;
     titleStyle?: TextStyle;
     elevated?: boolean;
+    showBorder?: boolean;
 }
 
 export default function Header({
@@ -35,7 +36,8 @@ export default function Header({
                                    textColor,
                                    style,
                                    titleStyle,
-                                   elevated = true,
+                                   elevated = false,
+                                   showBorder = false,
                                }: HeaderProps) {
     const { colors } = useTheme();
     const insets = useSafeAreaInsets();
@@ -51,15 +53,23 @@ export default function Header({
     const getHeaderStyle = (): ViewStyle => {
         const baseStyle: ViewStyle = {
             backgroundColor: backgroundColor || colors.background,
-            paddingTop: insets.top,
+            // paddingTop: insets.top,
             paddingHorizontal: spacing.lg,
-            paddingBottom: spacing.md,
+            paddingBottom: spacing.xs,
         };
 
         if (elevated) {
             return {
                 ...baseStyle,
                 ...shadows.sm,
+            };
+        }
+
+        if (showBorder) {
+            return {
+                ...baseStyle,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border,
             };
         }
 

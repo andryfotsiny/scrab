@@ -40,6 +40,8 @@ export default function Button({
             alignItems: 'center',
             justifyContent: 'center',
             flexDirection: 'row',
+            // Ajout de alignSelf pour que le bouton s'adapte à son contenu et soit centré
+            alignSelf: variant === 'outline' ? 'center' : 'stretch',
         };
 
         // Size styles
@@ -60,7 +62,7 @@ export default function Button({
             },
             outline: {
                 backgroundColor: 'transparent',
-                borderWidth: 2,
+                borderWidth: 1,
                 borderColor: disabled ? colors.border : colors.primary,
             },
         };

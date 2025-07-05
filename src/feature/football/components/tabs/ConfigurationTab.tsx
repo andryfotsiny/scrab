@@ -341,6 +341,7 @@ export default function ConfigurationTab() {
                         title="Réinitialiser"
                         onPress={handleReset}
                         variant="outline"
+                        size = 'sm'
                         disabled={!hasChanges || loading}
                         style={{ flex: 1 }}
                     />
@@ -348,12 +349,16 @@ export default function ConfigurationTab() {
                     <Button
                         title={loading ? 'Sauvegarde...' : 'Sauvegarder'}
                         onPress={handleSave}
-                        variant="primary"
+                        variant="outline"
+                        size = 'sm'
                         disabled={!hasChanges || loading}
                         loading={loading}
                         style={{
                             flex: 1,
-                            backgroundColor: hasChanges ? colors.success : colors.textSecondary,
+                            borderColor: hasChanges ? colors.success : colors.textSecondary,
+                        }}
+                        textStyle={{
+                            color: hasChanges ? colors.success : colors.textSecondary,
                         }}
                     />
                 </View>
@@ -429,7 +434,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.lg,
     },
     actionButtons: {
-        flexDirection: 'row',
+        flexDirection: 'column-reverse',
         gap: spacing.sm,
         marginTop: spacing.xs,
     },

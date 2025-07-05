@@ -4,8 +4,6 @@ import {
     View,
     StyleSheet,
     StatusBar,
-    TouchableOpacity,
-    ScrollView,
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
@@ -15,7 +13,7 @@ import { useMini } from '@/src/feature/football/hooks/useMini';
 
 // Import des composants réutilisables
 import Header from '@/src/components/molecules/Header';
-import Text from '@/src/components/atoms/Text';
+import TabBar, { TabItem } from '@/src/components/molecules/TabBar';
 
 // Import des tabs
 import MiniAutoBetTab from './tabs/MiniAutoBetTab';
@@ -34,20 +32,24 @@ export default function MiniScreen() {
         loadConfig().catch(console.error);
     }, [loadConfig]);
 
-    const tabs = [
+    const tabs: TabItem[] = [
         {
-            id: 'auto' as TabType,
+            id: 'auto',
             title: 'Pari Auto',
         },
         {
-            id: 'now' as TabType,
+            id: 'now',
             title: 'Pari Maintenant',
         },
         {
-            id: 'config' as TabType,
+            id: 'config',
             title: 'Configuration',
         },
     ];
+
+    const handleTabPress = (tabId: string) => {
+        setActiveTab(tabId as TabType);
+    };
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -76,46 +78,17 @@ export default function MiniScreen() {
                     <Header
                         title="Football Mini (2 matchs)"
                         showBackButton={true}
-                        elevated={true}
+                        elevated={false}
                     />
 
-                    {/* Custom Tab Bar */}
-                    <View style={[
-                        styles.tabBarWrapper,
-                        {
-                            backgroundColor: colors.background,
-                            borderBottomColor: colors.border,
-                        }
-                    ]}>
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.tabBarContent}
-                            style={styles.tabBarContainer}
-                            keyboardShouldPersistTaps="handled"
-                        >
-                            {tabs.map((tab) => (
-                                <TouchableOpacity
-                                    key={tab.id}
-                                    style={styles.tabItem}
-                                    onPress={() => setActiveTab(tab.id)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text
-                                        variant="body"
-                                        weight={activeTab === tab.id ? 'bold' : 'regular'}
-                                        color={activeTab === tab.id ? 'primary' : 'textSecondary'}
-                                        align="center"
-                                    >
-                                        {tab.title}
-                                    </Text>
-                                    {activeTab === tab.id && (
-                                        <View style={[styles.tabUnderline, { backgroundColor: colors.primary }]} />
-                                    )}
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    </View>
+                    {/* TabBar réutilisable */}
+                    <TabBar
+                        tabs={tabs}
+                        activeTab={activeTab}
+                        onTabPress={handleTabPress}
+                        variant="default"
+                        scrollable={true}
+                    />
 
                     {/* Content avec KeyboardAvoidingView */}
                     <KeyboardAvoidingView
@@ -139,36 +112,6 @@ const styles = StyleSheet.create({
     },
     safeArea: {
         flex: 1,
-    },
-    tabBarWrapper: {
-        paddingBottom: 8,
-        borderBottomWidth: 1,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        zIndex: 1000,
-    },
-    tabBarContainer: {
-        paddingHorizontal: 24,
-    },
-    tabBarContent: {
-        paddingRight: 24,
-    },
-    tabItem: {
-        position: 'relative',
-        paddingVertical: 8,
-        paddingHorizontal: 20,
-        marginRight: 24,
-    },
-    tabUnderline: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 3,
-        borderRadius: 2,
     },
     contentContainer: {
         flex: 1,
