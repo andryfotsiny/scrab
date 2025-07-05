@@ -8,8 +8,8 @@ import {
     TextStyle,
     ActivityIndicator,
 } from 'react-native';
-import { useTheme } from '../../shared/context/ThemeContext';
-import { spacing, typography, borderRadius, shadows } from '../../styles';
+import { useTheme } from '@/src/shared/context/ThemeContext';
+import { spacing, typography, borderRadius, shadows } from '@/src/styles';
 
 interface ButtonProps {
     title: string;

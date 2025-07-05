@@ -1,17 +1,20 @@
-// src/feature/football/components/tabs/MiniAutoBetTab.tsx
+// MiniAutoBetTab.tsx - Refactorisé avec les composants réutilisables
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
-    TouchableOpacity,
     Alert,
     RefreshControl,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useMini } from '@/src/feature/football/hooks/useMini';
+
+// Import des composants réutilisables
+import Button from '@/src/components/atoms/Button';
+import Text from '@/src/components/atoms/Text';
+import { spacing } from '@/src/styles';
 
 export default function MiniAutoBetTab() {
     const { colors } = useTheme();
@@ -63,10 +66,7 @@ export default function MiniAutoBetTab() {
     return (
         <ScrollView
             style={styles.container}
-            contentContainerStyle={[
-                styles.content,
-                { paddingBottom: 24 }
-            ]}
+            contentContainerStyle={styles.content}
             refreshControl={
                 <RefreshControl
                     refreshing={loading}
@@ -81,47 +81,49 @@ export default function MiniAutoBetTab() {
             {config && (
                 <View style={[styles.card, { backgroundColor: colors.surface }]}>
                     <View style={styles.cardHeader}>
-                        <Text style={[styles.cardTitle, { color: colors.text }]}>
+                        <Text variant="heading3" color="text">
                             Configuration Mini (2 matchs)
                         </Text>
                         <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
-                            <Text style={styles.statusText}>Actif</Text>
+                            <Text variant="label" style={{ color: '#ffffff' }}>
+                                Actif
+                            </Text>
                         </View>
                     </View>
 
                     <View style={styles.configGrid}>
                         <View style={styles.configItem}>
-                            <Text style={[styles.configLabel, { color: colors.textSecondary }]}>
+                            <Text variant="caption" color="textSecondary">
                                 Cotes
                             </Text>
-                            <Text style={[styles.configValue, { color: colors.text }]}>
+                            <Text variant="body" weight="bold" color="text">
                                 {config.constraints.min_odds} - {config.constraints.max_odds}
                             </Text>
                         </View>
 
                         <View style={styles.configItem}>
-                            <Text style={[styles.configLabel, { color: colors.textSecondary }]}>
+                            <Text variant="caption" color="textSecondary">
                                 Nombre de matchs
                             </Text>
-                            <Text style={[styles.configValue, { color: colors.text }]}>
+                            <Text variant="body" weight="bold" color="text">
                                 {config.constraints.max_matches} matchs
                             </Text>
                         </View>
 
                         <View style={styles.configItem}>
-                            <Text style={[styles.configLabel, { color: colors.textSecondary }]}>
+                            <Text variant="caption" color="textSecondary">
                                 Mise par défaut
                             </Text>
-                            <Text style={[styles.configValue, { color: colors.primary }]}>
+                            <Text variant="body" weight="bold" color="primary">
                                 {formatCurrency(config.settings.default_stake)}
                             </Text>
                         </View>
 
                         <View style={styles.configItem}>
-                            <Text style={[styles.configLabel, { color: colors.textSecondary }]}>
+                            <Text variant="caption" color="textSecondary">
                                 Gain max
                             </Text>
-                            <Text style={[styles.configValue, { color: colors.primary }]}>
+                            <Text variant="body" weight="bold" color="primary">
                                 {formatCurrency(config.constraints.max_payout)}
                             </Text>
                         </View>
@@ -131,7 +133,7 @@ export default function MiniAutoBetTab() {
 
             {/* Auto Execution Card */}
             <View style={[styles.card, { backgroundColor: colors.surface }]}>
-                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                <Text variant="heading3" color="text">
                     Exécution Automatique Mini
                 </Text>
 
@@ -143,10 +145,10 @@ export default function MiniAutoBetTab() {
                             color={colors.primary}
                         />
                         <View style={styles.autoTextContainer}>
-                            <Text style={[styles.autoTitle, { color: colors.text }]}>
+                            <Text variant="body" weight="bold" color="text">
                                 Pari automatique mini à 00h00
                             </Text>
-                            <Text style={[styles.autoDescription, { color: colors.textSecondary }]}>
+                            <Text variant="caption" color="textSecondary">
                                 Système: 2 matchs sélectionnés automatiquement
                             </Text>
                         </View>
@@ -157,66 +159,57 @@ export default function MiniAutoBetTab() {
                             styles.statusIndicator,
                             { backgroundColor: localAutoActive ? colors.success : colors.error }
                         ]} />
-                        <Text style={[
-                            styles.statusLabel,
-                            { color: localAutoActive ? colors.success : colors.error }
-                        ]}>
+                        <Text
+                            variant="caption"
+                            weight="bold"
+                            style={{ color: localAutoActive ? colors.success : colors.error }}
+                        >
                             {localAutoActive ? 'Actif' : 'Inactif'}
                         </Text>
                     </View>
                 </View>
 
-                <TouchableOpacity
-                    style={[
-                        styles.toggleButton,
-                        {
-                            backgroundColor: localAutoActive ? colors.error : colors.success
-                        }
-                    ]}
+                <Button
+                    title={loading
+                        ? 'Traitement...'
+                        : localAutoActive
+                            ? 'Arrêter l\'exécution automatique'
+                            : 'Démarrer l\'exécution automatique'
+                    }
                     onPress={handleToggleAutoExecution}
+                    variant={localAutoActive ? 'secondary' : 'primary'}
                     disabled={loading}
-                    activeOpacity={0.8}
-                >
-                    <Ionicons
-                        name={localAutoActive ? 'stop' : 'play'}
-                        size={20}
-                        color="#ffffff"
-                    />
-                    <Text style={styles.toggleButtonText}>
-                        {loading
-                            ? 'Traitement...'
-                            : localAutoActive
-                                ? 'Arrêter l\'exécution automatique'
-                                : 'Démarrer l\'exécution automatique'
-                        }
-                    </Text>
-                </TouchableOpacity>
+                    loading={loading}
+                    style={{
+                        backgroundColor: localAutoActive ? colors.error : colors.success
+                    }}
+                />
             </View>
 
             {/* Information Card */}
             <View style={[styles.card, { backgroundColor: colors.surface }]}>
-                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                <Text variant="heading3" color="text">
                     Informations Mini
                 </Text>
 
                 <View style={styles.infoList}>
                     <View style={styles.infoItem}>
                         <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-                        <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
                             Le système Mini sélectionne automatiquement exactement 2 matchs
                         </Text>
                     </View>
 
                     <View style={styles.infoItem}>
                         <Ionicons name="checkmark-circle-outline" size={16} color={colors.success} />
-                        <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
                             Cotes optimisées pour des gains réguliers avec risque réduit
                         </Text>
                     </View>
 
                     <View style={styles.infoItem}>
                         <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
-                        <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
                             Exécution quotidienne à minuit (Madagascar)
                         </Text>
                     </View>
@@ -231,13 +224,13 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     content: {
-        padding: 24,
-        paddingTop: 8,
+        padding: spacing.lg,
+        paddingTop: spacing.xs,
     },
     card: {
         borderRadius: 12,
-        padding: 20,
-        marginBottom: 16,
+        padding: spacing.lg,
+        marginBottom: spacing.md,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -248,102 +241,54 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontFamily: 'Poppins_700Bold',
-        marginBottom: 16,
+        marginBottom: spacing.lg,
     },
     statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 4,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xs,
         borderRadius: 20,
-    },
-    statusText: {
-        color: '#ffffff',
-        fontSize: 12,
-        fontFamily: 'Poppins_700Bold',
     },
     configGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 16,
+        gap: spacing.md,
     },
     configItem: {
         flex: 1,
         minWidth: '45%',
     },
-    configLabel: {
-        fontSize: 14,
-        fontFamily: 'Poppins_400Regular',
-        marginBottom: 4,
-    },
-    configValue: {
-        fontSize: 16,
-        fontFamily: 'Poppins_700Bold',
-    },
     autoSection: {
-        marginBottom: 24,
+        marginBottom: spacing.lg,
     },
     autoInfo: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: spacing.md,
     },
     autoTextContainer: {
-        marginLeft: 12,
+        marginLeft: spacing.sm,
         flex: 1,
-    },
-    autoTitle: {
-        fontSize: 16,
-        fontFamily: 'Poppins_600SemiBold',
-        marginBottom: 4,
-    },
-    autoDescription: {
-        fontSize: 14,
-        fontFamily: 'Poppins_400Regular',
     },
     statusContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: spacing.xs,
     },
     statusIndicator: {
         width: 12,
         height: 12,
         borderRadius: 6,
     },
-    statusLabel: {
-        fontSize: 14,
-        fontFamily: 'Poppins_600SemiBold',
-    },
-    toggleButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        paddingHorizontal: 24,
-        borderRadius: 12,
-        gap: 8,
-    },
-    toggleButtonText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontFamily: 'Poppins_600SemiBold',
-    },
     infoList: {
-        gap: 12,
+        gap: spacing.sm,
     },
     infoItem: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: 8,
+        gap: spacing.xs,
     },
     infoText: {
         flex: 1,
-        fontSize: 14,
-        fontFamily: 'Poppins_400Regular',
         lineHeight: 20,
     },
 });

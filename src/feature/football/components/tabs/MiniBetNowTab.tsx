@@ -1,20 +1,24 @@
-// src/feature/football/components/tabs/MiniBetNowTab.tsx
+// MiniBetNowTab.tsx - Refactorisé avec les composants réutilisables
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
     Alert,
     RefreshControl,
-    TextInput,
     Keyboard,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useMini } from '@/src/feature/football/hooks/useMini';
 import { MiniMatch } from '@/src/feature/football/types/mini';
+
+// Import des composants réutilisables
+import Button from '@/src/components/atoms/Button';
+import Input from '@/src/components/atoms/Input';
+import Text from '@/src/components/atoms/Text';
+import { spacing } from '@/src/styles';
 
 export default function MiniBetNowTab() {
     const { colors } = useTheme();
@@ -115,20 +119,20 @@ export default function MiniBetNowTab() {
     const renderMatch = (match: MiniMatch, index: number) => (
         <View key={index} style={[styles.matchCard, { backgroundColor: colors.background }]}>
             <View style={styles.matchHeader}>
-                <Text style={[styles.matchTitle, { color: colors.text }]}>
+                <Text variant="caption" weight="bold" color="text" style={styles.matchTitle}>
                     {match.home_team} vs {match.away_team}
                 </Text>
                 <View style={[styles.oddsBadge, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.oddsText}>{match.odds}</Text>
+                    <Text variant="label" style={{ color: '#ffffff' }}>{match.odds}</Text>
                 </View>
             </View>
 
             <View style={styles.matchDetails}>
                 <View style={styles.betInfo}>
-                    <Text style={[styles.betLabel, { color: colors.textSecondary }]}>
+                    <Text variant="caption" color="textSecondary">
                         Pari: {match.bet}
                     </Text>
-                    <Text style={[styles.matchTime, { color: colors.textSecondary }]}>
+                    <Text variant="caption" color="textSecondary">
                         {formatDate(match.expected_start)}
                     </Text>
                 </View>
@@ -141,7 +145,7 @@ export default function MiniBetNowTab() {
             style={styles.container}
             contentContainerStyle={[
                 styles.content,
-                { paddingBottom: 50 } // Réduit car le KeyboardAvoidingView est maintenant au niveau parent
+                { paddingBottom: 50 }
             ]}
             refreshControl={
                 <RefreshControl
@@ -152,20 +156,20 @@ export default function MiniBetNowTab() {
                 />
             }
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled" // Important pour permettre les clics sur les boutons
+            keyboardShouldPersistTaps="handled"
         >
             {/* Configuration Summary */}
             {config && (
                 <View style={[styles.card, { backgroundColor: colors.surface }]}>
-                    <Text style={[styles.cardTitle, { color: colors.text }]}>
+                    <Text variant="heading3" color="text">
                         Configuration Mini
                     </Text>
 
                     <View style={styles.configRow}>
-                        <Text style={[styles.configLabel, { color: colors.textSecondary }]}>
+                        <Text variant="caption" color="textSecondary">
                             Plage de cotes: {config.constraints.min_odds} - {config.constraints.max_odds}
                         </Text>
-                        <Text style={[styles.configLabel, { color: colors.textSecondary }]}>
+                        <Text variant="caption" color="textSecondary">
                             Système: {config.constraints.max_matches} matchs exactement
                         </Text>
                     </View>
@@ -176,14 +180,14 @@ export default function MiniBetNowTab() {
             {matches && (
                 <View style={[styles.card, { backgroundColor: colors.surface }]}>
                     <View style={styles.summaryHeader}>
-                        <Text style={[styles.cardTitle, { color: colors.text }]}>
+                        <Text variant="heading3" color="text">
                             Mini - {matches.total_matches} matchs sélectionnés
                         </Text>
                         <View style={[
                             styles.statusBadge,
                             { backgroundColor: matches.validation_status === 'valid_and_ready' ? colors.success : colors.warning }
                         ]}>
-                            <Text style={styles.statusText}>
+                            <Text variant="label" style={{ color: '#ffffff' }}>
                                 {matches.validation_status === 'valid_and_ready' ? 'Prêt' : 'En attente'}
                             </Text>
                         </View>
@@ -191,19 +195,19 @@ export default function MiniBetNowTab() {
 
                     <View style={styles.summaryStats}>
                         <View style={styles.statItem}>
-                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                            <Text variant="caption" color="textSecondary">
                                 Cote totale
                             </Text>
-                            <Text style={[styles.statValue, { color: colors.primary }]}>
+                            <Text variant="heading3" color="primary">
                                 {matches.summary.total_odds.toFixed(2)}
                             </Text>
                         </View>
 
                         <View style={styles.statItem}>
-                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                            <Text variant="caption" color="textSecondary">
                                 Gain estimé
                             </Text>
-                            <Text style={[styles.statValue, { color: colors.success }]}>
+                            <Text variant="heading3" color="success">
                                 {formatCurrency(matches.summary.estimated_payout)}
                             </Text>
                         </View>
@@ -213,36 +217,21 @@ export default function MiniBetNowTab() {
 
             {/* Bet Configuration */}
             <View style={[styles.card, { backgroundColor: colors.surface }]}>
-                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                <Text variant="heading3" color="text">
                     Configuration du Pari Mini
                 </Text>
 
-                <View style={styles.inputGroup}>
-                    <Text style={[styles.inputLabel, { color: colors.text }]}>
-                        Mise (MGA)
-                    </Text>
-                    <TextInput
-                        style={[
-                            styles.input,
-                            {
-                                backgroundColor: colors.background,
-                                borderColor: colors.border || colors.textSecondary,
-                                color: colors.text,
-                            },
-                        ]}
-                        value={customStake}
-                        onChangeText={setCustomStake}
-                        keyboardType="numeric"
-                        placeholder="Montant de la mise"
-                        placeholderTextColor={colors.textSecondary}
-                        returnKeyType="done"
-                        onSubmitEditing={Keyboard.dismiss}
-                        blurOnSubmit={true}
-                    />
-                    <Text style={[styles.inputHelper, { color: colors.textSecondary }]}>
-                        Entre 100 et 50 000 MGA
-                    </Text>
-                </View>
+                <Input
+                    label="Mise (MGA)"
+                    value={customStake}
+                    onChangeText={setCustomStake}
+                    keyboardType="numeric"
+                    placeholder="Montant de la mise"
+                    helperText="Entre 100 et 50 000 MGA"
+                    returnKeyType="done"
+                    onSubmitEditing={Keyboard.dismiss}
+                    required
+                />
 
                 <TouchableOpacity
                     style={styles.checkboxContainer}
@@ -260,37 +249,27 @@ export default function MiniBetNowTab() {
                             <Ionicons name="checkmark" size={16} color="#ffffff" />
                         )}
                     </View>
-                    <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+                    <Text variant="caption" color="text" style={styles.checkboxLabel}>
                         Accepter les changements de cotes
                     </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={[
-                        styles.executeButton,
-                        {
-                            backgroundColor: matches?.total_matches === 2 ? colors.success : colors.textSecondary,
-                        },
-                    ]}
+                <Button
+                    title={loading ? 'Exécution...' : `Parier maintenant (${matches?.total_matches || 0} matchs)`}
                     onPress={handleExecuteBet}
+                    variant="primary"
                     disabled={loading || matches?.total_matches !== 2}
-                    activeOpacity={0.8}
-                >
-                    <Ionicons
-                        name="flash"
-                        size={20}
-                        color="#ffffff"
-                    />
-                    <Text style={styles.executeButtonText}>
-                        {loading ? 'Exécution...' : `Parier maintenant (${matches?.total_matches || 0} matchs)`}
-                    </Text>
-                </TouchableOpacity>
+                    loading={loading}
+                    style={{
+                        backgroundColor: matches?.total_matches === 2 ? colors.success : colors.textSecondary,
+                    }}
+                />
             </View>
 
             {/* Matches List */}
             {matches?.matches.length === 2 ? (
                 <View style={[styles.card, { backgroundColor: colors.surface }]}>
-                    <Text style={[styles.cardTitle, { color: colors.text }]}>
+                    <Text variant="heading3" color="text">
                         2 Matchs Mini sélectionnés
                     </Text>
 
@@ -302,10 +281,10 @@ export default function MiniBetNowTab() {
                 <View style={[styles.card, { backgroundColor: colors.surface }]}>
                     <View style={styles.emptyState}>
                         <Ionicons name="flash-outline" size={48} color={colors.textSecondary} />
-                        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                        <Text variant="heading3" color="text" style={{ marginTop: spacing.md }}>
                             Sélection en cours
                         </Text>
-                        <Text style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+                        <Text variant="body" color="textSecondary" align="center" style={{ marginTop: spacing.xs }}>
                             Le système Mini sélectionne automatiquement 2 matchs optimaux
                         </Text>
                     </View>
@@ -320,89 +299,45 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     content: {
-        padding: 24,
-        paddingTop: 8,
+        padding: spacing.lg,
+        paddingTop: spacing.xs,
     },
     card: {
         borderRadius: 12,
-        padding: 20,
-        marginBottom: 16,
+        padding: spacing.lg,
+        marginBottom: spacing.md,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
     },
-    cardTitle: {
-        fontSize: 18,
-        fontFamily: 'Poppins_700Bold',
-        marginBottom: 16,
-    },
     configRow: {
-        gap: 8,
-    },
-    configLabel: {
-        fontSize: 14,
-        fontFamily: 'Poppins_400Regular',
+        gap: spacing.xs,
     },
     summaryHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: spacing.md,
     },
     statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 4,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xs,
         borderRadius: 20,
-    },
-    statusText: {
-        color: '#ffffff',
-        fontSize: 12,
-        fontFamily: 'Poppins_700Bold',
     },
     summaryStats: {
         flexDirection: 'row',
-        gap: 24,
+        gap: spacing.lg,
     },
     statItem: {
         flex: 1,
     },
-    statLabel: {
-        fontSize: 14,
-        fontFamily: 'Poppins_400Regular',
-        marginBottom: 4,
-    },
-    statValue: {
-        fontSize: 18,
-        fontFamily: 'Poppins_700Bold',
-    },
-    inputGroup: {
-        marginBottom: 20,
-    },
-    inputLabel: {
-        fontSize: 16,
-        fontFamily: 'Poppins_600SemiBold',
-        marginBottom: 8,
-    },
-    input: {
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        fontSize: 16,
-        fontFamily: 'Poppins_400Regular',
-    },
-    inputHelper: {
-        fontSize: 12,
-        fontFamily: 'Poppins_400Regular',
-        marginTop: 4,
-    },
     checkboxContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 24,
-        gap: 12,
+        marginBottom: spacing.lg,
+        gap: spacing.sm,
     },
     checkbox: {
         width: 24,
@@ -413,30 +348,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     checkboxLabel: {
-        fontSize: 14,
-        fontFamily: 'Poppins_400Regular',
         flex: 1,
     },
-    executeButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        paddingHorizontal: 24,
-        borderRadius: 12,
-        gap: 8,
-    },
-    executeButtonText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontFamily: 'Poppins_600SemiBold',
-    },
     matchesList: {
-        gap: 12,
+        gap: spacing.sm,
     },
     matchCard: {
         borderRadius: 8,
-        padding: 16,
+        padding: spacing.md,
         borderWidth: 1,
         borderColor: 'rgba(0,0,0,0.1)',
     },
@@ -444,52 +363,26 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: spacing.xs,
     },
     matchTitle: {
-        fontSize: 14,
-        fontFamily: 'Poppins_600SemiBold',
         flex: 1,
     },
     oddsBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: spacing.xs,
+        paddingVertical: spacing.xs,
         borderRadius: 12,
     },
-    oddsText: {
-        color: '#ffffff',
-        fontSize: 12,
-        fontFamily: 'Poppins_700Bold',
-    },
     matchDetails: {
-        gap: 4,
+        gap: spacing.xs,
     },
     betInfo: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    betLabel: {
-        fontSize: 12,
-        fontFamily: 'Poppins_400Regular',
-    },
-    matchTime: {
-        fontSize: 12,
-        fontFamily: 'Poppins_400Regular',
-    },
     emptyState: {
         alignItems: 'center',
-        paddingVertical: 32,
-    },
-    emptyTitle: {
-        fontSize: 18,
-        fontFamily: 'Poppins_600SemiBold',
-        marginTop: 16,
-        marginBottom: 8,
-    },
-    emptyDescription: {
-        fontSize: 14,
-        fontFamily: 'Poppins_400Regular',
-        textAlign: 'center',
+        paddingVertical: spacing.xxl,
     },
 });

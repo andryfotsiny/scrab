@@ -1,27 +1,26 @@
+// GroloScreen.tsx - Refactorisé avec les composants réutilisables
 import React, { useState, useEffect } from 'react';
 import {
     View,
-    Text,
     StyleSheet,
     StatusBar,
     TouchableOpacity,
-    Dimensions,
     ScrollView,
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/shared/context/ThemeContext';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { useFootball } from '@/src/feature/football/hooks/useFootball';
 
-// Import des composants de tab
+// Import des composants réutilisables
+import Header from '@/src/components/molecules/Header';
+import Text from '@/src/components/atoms/Text';
+
+// Import des tabs
 import AutoBetTab from './tabs/AutoBetTab';
 import BetNowTab from './tabs/BetNowTab';
 import ConfigurationTab from './tabs/ConfigurationTab';
-
-const { width } = Dimensions.get('window');
 
 type TabType = 'auto' | 'now' | 'config';
 
@@ -72,36 +71,20 @@ export default function GroloScreen() {
                     translucent={false}
                 />
 
-                <SafeAreaView
-                    style={[styles.safeArea, { paddingTop: insets.top }]}
-                    edges={['top']}
-                >
-                    {/* Header - Toujours visible */}
-                    <View style={[styles.header, { backgroundColor: colors.background }]}>
-                        <TouchableOpacity
-                            style={styles.backButton}
-                            onPress={() => router.back()}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons name="arrow-back" size={24} color={colors.text} />
-                        </TouchableOpacity>
-                        <Text style={[styles.headerTitle, { color: colors.text }]}>
-                            Football Grolo
-                        </Text>
-                        <View style={styles.placeholder} />
-                    </View>
+                <SafeAreaView style={styles.safeArea} edges={['top']}>
+                    {/* Header réutilisable */}
+                    <Header
+                        title="Football Grolo"
+                        showBackButton={true}
+                        elevated={true}
+                    />
 
-                    {/* Custom Tab Bar - Toujours visible */}
+                    {/* Custom Tab Bar */}
                     <View style={[
                         styles.tabBarWrapper,
                         {
                             backgroundColor: colors.background,
-                            elevation: 2,
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 4,
-                            zIndex: 1000,
+                            borderBottomColor: colors.border,
                         }
                     ]}>
                         <ScrollView
@@ -109,7 +92,7 @@ export default function GroloScreen() {
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={styles.tabBarContent}
                             style={styles.tabBarContainer}
-                            keyboardShouldPersistTaps="handled" // Permet de cliquer sur les tabs même avec le clavier ouvert
+                            keyboardShouldPersistTaps="handled"
                         >
                             {tabs.map((tab) => (
                                 <TouchableOpacity
@@ -119,13 +102,10 @@ export default function GroloScreen() {
                                     activeOpacity={0.7}
                                 >
                                     <Text
-                                        style={[
-                                            styles.tabText,
-                                            {
-                                                color: activeTab === tab.id ? colors.primary : colors.textSecondary,
-                                                fontFamily: activeTab === tab.id ? 'Poppins_700Bold' : 'Poppins_600SemiBold',
-                                            },
-                                        ]}
+                                        variant="body"
+                                        weight={activeTab === tab.id ? 'bold' : 'regular'}
+                                        color={activeTab === tab.id ? 'primary' : 'textSecondary'}
+                                        align="center"
                                     >
                                         {tab.title}
                                     </Text>
@@ -160,35 +140,15 @@ const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 24,
-        paddingVertical: 16,
-        elevation: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontFamily: 'Poppins_700Bold',
-    },
-    placeholder: {
-        width: 40,
-    },
     tabBarWrapper: {
         paddingBottom: 8,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.1)',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        zIndex: 1000,
     },
     tabBarContainer: {
         paddingHorizontal: 24,
@@ -201,10 +161,6 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         paddingHorizontal: 20,
         marginRight: 24,
-    },
-    tabText: {
-        fontSize: 16,
-        textAlign: 'center',
     },
     tabUnderline: {
         position: 'absolute',
