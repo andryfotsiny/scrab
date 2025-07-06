@@ -7,7 +7,7 @@ import {
     MiniExecuteBetResponse,
     MiniAutoExecutionResponse,
     MiniConfigUpdateRequest
-} from '@/src/feature/football/types/mini';
+} from '@/src/features/football/types/mini';
 
 export function useMini() {
     const [loading, setLoading] = useState(false);

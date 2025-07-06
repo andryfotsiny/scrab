@@ -1,5 +1,5 @@
 // app/(auth)/login.tsx
-import {LoginScreen} from "@/src/feature/auth";
+import {LoginScreen} from "@/src/features/auth";
 
 
 export default function LoginPage() {

@@ -21,6 +21,30 @@ export interface UserInfo {
     reference: string;
 }
 
+export interface LoginRequest {
+    bet_login: string;
+    bet_password: string;
+}
+
 export interface LoginResponse {
+    success: boolean;
     message: string;
+    user_login: string;
+    token: string;
+    already_authenticated: boolean;
+}
+
+export interface LocalUserInfo {
+    bet_login: number;
+    status_payant: boolean;
+    dure_gratuit: number;
+    created_at: string;
+    updated_at: string;
+    is_authenticated: boolean;
+    authentication_status: string;
+}
+
+export interface Bet261UserData {
+    local_user: string;
+    bet261_user_data: UserInfo;
 }

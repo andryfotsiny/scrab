@@ -1,4 +1,4 @@
-// AutoBetTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
+// MiniAutoBetTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { useFootball } from '@/src/feature/football/hooks/useFootball';
+import { useMini } from '@/src/features/football/hooks/useMini';
 
 // Import des composants réutilisables
 import Button from '@/src/components/atoms/Button';
@@ -17,24 +17,24 @@ import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
 import { spacing } from '@/src/styles';
 
-export default function AutoBetTab() {
+export default function MiniAutoBetTab() {
     const { colors } = useTheme();
     const {
         loading,
         config,
-        autoExecutionActive,
+        miniAutoExecutionActive,
         error,
         loadConfig,
         startAutoExecution,
         stopAutoExecution,
-    } = useFootball();
+    } = useMini();
 
     const [localAutoActive, setLocalAutoActive] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
 
     useEffect(() => {
-        setLocalAutoActive(autoExecutionActive);
-    }, [autoExecutionActive]);
+        setLocalAutoActive(miniAutoExecutionActive);
+    }, [miniAutoExecutionActive]);
 
     useEffect(() => {
         const initializeData = async () => {
@@ -62,10 +62,10 @@ export default function AutoBetTab() {
         try {
             if (localAutoActive) {
                 await stopAutoExecution();
-                Alert.alert('Succès', 'Exécution automatique arrêtée');
+                Alert.alert('Succès', 'Exécution automatique Mini arrêtée');
             } else {
                 await startAutoExecution();
-                Alert.alert('Succès', 'Exécution automatique démarrée pour 00h00 Madagascar');
+                Alert.alert('Succès', 'Exécution automatique Mini démarrée pour 00h00 Madagascar');
             }
         } catch (err) {
             Alert.alert('Erreur', error || 'Une erreur est survenue');
@@ -85,7 +85,7 @@ export default function AutoBetTab() {
             <View style={styles.firstSection}>
                 <View style={styles.sectionHeader}>
                     <Text variant="heading3" color="text">
-                        Configuration Actuelle
+                        Configuration Mini (2 matchs)
                     </Text>
                     <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
                         <Text variant="label" style={{ color: '#ffffff' }}>
@@ -104,9 +104,9 @@ export default function AutoBetTab() {
 
                     <View style={styles.configItem}>
                         <Text variant="caption" color="textSecondary">
-                            Max Matchs
+                            Nombre de matchs
                         </Text>
-                        <Skeleton width="30%" height={18} animated={false} />
+                        <Skeleton width="40%" height={18} animated={false} />
                     </View>
 
                     <View style={styles.configItem}>
@@ -128,22 +128,22 @@ export default function AutoBetTab() {
             {/* Auto Execution Section - Textes statiques + état API */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Exécution Automatique
+                    Exécution Automatique Mini
                 </Text>
 
                 <View style={styles.autoSection}>
                     <View style={styles.autoInfo}>
                         <Ionicons
-                            name="time-outline"
+                            name="flash-outline"
                             size={24}
                             color={colors.primary}
                         />
                         <View style={styles.autoTextContainer}>
                             <Text variant="body" weight="bold" color="text">
-                                Pari automatique à 00h00
+                                Pari automatique mini à 00h00
                             </Text>
                             <Text variant="caption" color="textSecondary">
-                                Fuseau horaire: Madagascar (Indian/Antananarivo)
+                                Système: 2 matchs sélectionnés automatiquement
                             </Text>
                         </View>
                     </View>
@@ -162,8 +162,6 @@ export default function AutoBetTab() {
                     disabled={true}
                     style={{
                         borderColor: colors.textSecondary,
-                        paddingVertical: spacing.xs,
-                        paddingHorizontal: spacing.xs,
                     }}
                     textStyle={{
                         color: colors.textSecondary,
@@ -177,28 +175,28 @@ export default function AutoBetTab() {
             {/* Information Section - Textes statiques, PAS de skeleton */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Informations
+                    Informations Mini
                 </Text>
 
                 <View style={styles.infoList}>
                     <View style={styles.infoItem}>
                         <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            L'exécution automatique se déclenche tous les jours à minuit (Madagascar)
+                            Le système Mini sélectionne automatiquement exactement 2 matchs
                         </Text>
                     </View>
 
                     <View style={styles.infoItem}>
                         <Ionicons name="checkmark-circle-outline" size={16} color={colors.success} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Seuls les matchs validés selon la configuration seront pariés
+                            Cotes optimisées pour des gains réguliers avec risque réduit
                         </Text>
                     </View>
 
                     <View style={styles.infoItem}>
                         <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Vous pouvez arrêter l'exécution automatique à tout moment
+                            Exécution quotidienne à minuit (Madagascar)
                         </Text>
                     </View>
                 </View>
@@ -213,7 +211,7 @@ export default function AutoBetTab() {
                 <View style={styles.firstSection}>
                     <View style={styles.sectionHeader}>
                         <Text variant="heading3" color="text">
-                            Configuration Actuelle
+                            Configuration Mini (2 matchs)
                         </Text>
                         <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
                             <Text variant="label" style={{ color: '#ffffff' }}>
@@ -234,10 +232,10 @@ export default function AutoBetTab() {
 
                         <View style={styles.configItem}>
                             <Text variant="caption" color="textSecondary">
-                                Max Matchs
+                                Nombre de matchs
                             </Text>
                             <Text variant="body" weight="bold" color="text">
-                                {config.constraints.max_matches}
+                                {config.constraints.max_matches} matchs
                             </Text>
                         </View>
 
@@ -265,22 +263,22 @@ export default function AutoBetTab() {
             {/* Auto Execution Section */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Exécution Automatique
+                    Exécution Automatique Mini
                 </Text>
 
                 <View style={styles.autoSection}>
                     <View style={styles.autoInfo}>
                         <Ionicons
-                            name="time-outline"
+                            name="flash-outline"
                             size={24}
                             color={colors.primary}
                         />
                         <View style={styles.autoTextContainer}>
                             <Text variant="body" weight="bold" color="text">
-                                Pari automatique à 00h00
+                                Pari automatique mini à 00h00
                             </Text>
                             <Text variant="caption" color="textSecondary">
-                                Fuseau horaire: Madagascar (Indian/Antananarivo)
+                                Système: 2 matchs sélectionnés automatiquement
                             </Text>
                         </View>
                     </View>
@@ -304,8 +302,8 @@ export default function AutoBetTab() {
                     title={loading
                         ? 'Traitement...'
                         : localAutoActive
-                            ? 'Arrêter l\'exécution automatique'
-                            : 'Démarrer l\'exécution automatique'
+                            ? 'Arrêter '
+                            : 'Démarrer '
                     }
                     onPress={handleToggleAutoExecution}
                     variant="outline"
@@ -314,8 +312,6 @@ export default function AutoBetTab() {
                     loading={loading}
                     style={{
                         borderColor: localAutoActive ? colors.error : colors.success,
-                        paddingVertical: spacing.xs,
-                        paddingHorizontal: spacing.xs,
                     }}
                     textStyle={{
                         color: localAutoActive ? colors.error : colors.success,
@@ -329,28 +325,28 @@ export default function AutoBetTab() {
             {/* Information Section */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Informations
+                    Informations Mini
                 </Text>
 
                 <View style={styles.infoList}>
                     <View style={styles.infoItem}>
                         <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            L'exécution automatique se déclenche tous les jours à minuit (Madagascar)
+                            Le système Mini sélectionne automatiquement exactement 2 matchs
                         </Text>
                     </View>
 
                     <View style={styles.infoItem}>
                         <Ionicons name="checkmark-circle-outline" size={16} color={colors.success} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Seuls les matchs validés selon la configuration seront pariés
+                            Cotes optimisées pour des gains réguliers avec risque réduit
                         </Text>
                     </View>
 
                     <View style={styles.infoItem}>
                         <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Vous pouvez arrêter l'exécution automatique à tout moment
+                            Exécution quotidienne à minuit (Madagascar)
                         </Text>
                     </View>
                 </View>
@@ -383,6 +379,7 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: spacing.lg,
+        paddingTop: spacing.xs,
     },
     firstSection: {
         paddingBottom: spacing.lg,

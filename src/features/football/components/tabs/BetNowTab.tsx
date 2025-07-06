@@ -1,4 +1,4 @@
-// MiniBetNowTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
+// BetNowTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { useMini } from '@/src/feature/football/hooks/useMini';
-import { MiniMatch } from '@/src/feature/football/types/mini';
+import { useFootball } from '@/src/features/football/hooks/useFootball';
+import { FootballMatch } from '@/src/features/football/types';
 
 // Import des composants réutilisables
 import Button from '@/src/components/atoms/Button';
@@ -21,7 +21,7 @@ import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
 import { spacing } from '@/src/styles';
 
-export default function MiniBetNowTab() {
+export default function BetNowTab() {
     const { colors } = useTheme();
     const {
         loading,
@@ -31,7 +31,7 @@ export default function MiniBetNowTab() {
         loadConfig,
         loadMatches,
         executeBet,
-    } = useMini();
+    } = useFootball();
 
     const [customStake, setCustomStake] = useState('');
     const [acceptOddsChange, setAcceptOddsChange] = useState(true);
@@ -66,42 +66,54 @@ export default function MiniBetNowTab() {
     }, [loadConfig, loadMatches]);
 
     const handleExecuteBet = async () => {
+        console.log('🚀 handleExecuteBet called');
+
         // Fermer le clavier d'abord
         Keyboard.dismiss();
 
         if (!matches?.matches.length) {
+            console.log('❌ No matches available');
             Alert.alert('Erreur', 'Aucun match disponible pour le pari');
             return;
         }
 
         const stake = parseInt(customStake);
+        console.log('💰 Stake parsed:', stake);
+
         if (!stake || stake < 100) {
+            console.log('❌ Invalid stake:', stake);
             Alert.alert('Erreur', 'La mise doit être d\'au moins 100 MGA');
             return;
         }
 
         if (config && stake > 50000) {
+            console.log('❌ Stake too high:', stake);
             Alert.alert('Erreur', 'La mise ne peut pas dépasser 50 000 MGA');
             return;
         }
 
+        console.log('✅ All validations passed, showing confirmation alert');
+
         Alert.alert(
-            'Confirmer le pari Mini',
+            'Confirmer le pari',
             `Êtes-vous sûr de vouloir parier ${formatCurrency(stake)} sur ${matches.total_matches} matchs ?\n\nGain potentiel: ${formatCurrency(matches.summary.total_odds * stake)}`,
             [
                 { text: 'Annuler', style: 'cancel' },
                 {
                     text: 'Confirmer',
                     onPress: async () => {
+                        console.log('✅ User confirmed bet, calling executeBet...');
                         try {
                             const result = await executeBet(stake, acceptOddsChange);
+                            console.log('🎉 Bet execution successful:', result);
                             Alert.alert(
-                                'Pari Mini exécuté !',
-                                `Votre pari mini a été placé avec succès.\n\nID du pari: ${result.bet_id}\nGain potentiel: ${formatCurrency(result.potential_payout)}`
+                                'Pari exécuté !',
+                                `Votre pari a été placé avec succès.\n\nID du pari: ${result.bet_id}\nGain potentiel: ${formatCurrency(result.potential_payout)}`
                             );
                             // Recharger les données après exécution
                             await loadMatches();
                         } catch (err) {
+                            console.log('💥 Bet execution failed:', err);
                             Alert.alert('Erreur', error || 'Erreur lors de l\'exécution du pari');
                         }
                     },
@@ -127,7 +139,7 @@ export default function MiniBetNowTab() {
         });
     };
 
-    const renderMatch = (match: MiniMatch, index: number) => (
+    const renderMatch = (match: FootballMatch, index: number) => (
         <View key={index} style={[styles.matchCard, { backgroundColor: colors.background }]}>
             <View style={styles.matchHeader}>
                 <Text variant="caption" weight="bold" color="text" style={styles.matchTitle}>
@@ -151,12 +163,14 @@ export default function MiniBetNowTab() {
         </View>
     );
 
+
+
     const renderSkeletonContent = () => (
         <>
             {/* Configuration Summary Skeleton - SEULEMENT données API */}
             <View style={styles.firstSection}>
                 <Text variant="heading3" color="text">
-                    Configuration Mini
+                    Configuration
                 </Text>
 
                 <View style={styles.configRow}>
@@ -165,9 +179,9 @@ export default function MiniBetNowTab() {
                     </Text>
                     <Skeleton width="25%" height={14} animated={false} />
                     <Text variant="caption" color="textSecondary">
-                        Système:
+                        Max matchs:
                     </Text>
-                    <Skeleton width="35%" height={14} animated={false} />
+                    <Skeleton width="15%" height={14} animated={false} />
                 </View>
             </View>
 
@@ -178,11 +192,11 @@ export default function MiniBetNowTab() {
             <View style={styles.section}>
                 <View style={styles.summaryHeader}>
                     <Text variant="heading3" color="text">
-                        Mini -
+                        Résumé (
                     </Text>
-                    <Skeleton width="15%" height={24} animated={false} />
+                    <Skeleton width="20%" height={24} animated={false} />
                     <Text variant="heading3" color="text">
-                        matchs sélectionnés
+                        matchs)
                     </Text>
                     <Skeleton width={60} height={28} borderRadius={14} animated={false} />
                 </View>
@@ -207,10 +221,10 @@ export default function MiniBetNowTab() {
             {/* Ligne de séparation */}
             <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
-            {/* Bet Configuration - Input vide mais visible */}
+            {/* Bet Configuration - Inputs vides mais visibles */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Configuration du Pari Mini
+                    Configuration du Pari
                 </Text>
 
                 <Input
@@ -261,16 +275,31 @@ export default function MiniBetNowTab() {
             {/* Ligne de séparation */}
             <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
-            {/* Matches List Skeleton ou Empty State */}
+            {/* Matches List Skeleton - Seulement quelques cartes */}
             <View style={styles.section}>
-                <View style={styles.emptyState}>
-                    <Ionicons name="flash-outline" size={48} color={colors.textSecondary} />
-                    <Text variant="heading3" color="text" style={{ marginTop: spacing.md }}>
-                        Sélection en cours
-                    </Text>
-                    <Text variant="body" color="textSecondary" align="center" style={{ marginTop: spacing.xs }}>
-                        Le système Mini sélectionne automatiquement 2 matchs optimaux
-                    </Text>
+                <Text variant="heading3" color="text">
+                    Matchs sélectionnés
+                </Text>
+
+                <View style={styles.matchesList}>
+                    {Array.from({ length: 2 }).map((_, index) => (
+                        <View key={index} style={[styles.matchCard, { backgroundColor: colors.background }]}>
+                            <View style={styles.matchHeader}>
+                                <Skeleton width="70%" height={14} animated={false} />
+                                <Skeleton width={40} height={20} borderRadius={10} animated={false} />
+                            </View>
+
+                            <View style={styles.matchDetails}>
+                                <View style={styles.betInfo}>
+                                    <Text variant="caption" color="textSecondary">
+                                        Pari:
+                                    </Text>
+                                    <Skeleton width="40%" height={12} animated={false} />
+                                    <Skeleton width="35%" height={12} animated={false} />
+                                </View>
+                            </View>
+                        </View>
+                    ))}
                 </View>
             </View>
         </>
@@ -282,7 +311,7 @@ export default function MiniBetNowTab() {
             {config && (
                 <View style={styles.firstSection}>
                     <Text variant="heading3" color="text">
-                        Configuration Mini
+                        Configuration
                     </Text>
 
                     <View style={styles.configRow}>
@@ -290,7 +319,7 @@ export default function MiniBetNowTab() {
                             Plage de cotes: {config.constraints.min_odds} - {config.constraints.max_odds}
                         </Text>
                         <Text variant="caption" color="textSecondary">
-                            Système: {config.constraints.max_matches} matchs exactement
+                            Max matchs: {config.constraints.max_matches}
                         </Text>
                     </View>
                 </View>
@@ -304,7 +333,7 @@ export default function MiniBetNowTab() {
                 <View style={styles.section}>
                     <View style={styles.summaryHeader}>
                         <Text variant="heading3" color="text">
-                            Mini - {matches.total_matches} matchs sélectionnés
+                            Résumé ({matches.total_matches} matchs)
                         </Text>
                         <View style={[
                             styles.statusBadge,
@@ -344,7 +373,7 @@ export default function MiniBetNowTab() {
             {/* Bet Configuration */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Configuration du Pari Mini
+                    Configuration du Pari
                 </Text>
 
                 <Input
@@ -381,16 +410,16 @@ export default function MiniBetNowTab() {
                 </TouchableOpacity>
 
                 <Button
-                    title={loading ? 'Exécution...' : `Parier maintenant `}
+                    title={loading ? 'Exécution...' : `Parier maintenant`}
                     onPress={handleExecuteBet}
                     variant="outline"
-                    disabled={loading || matches?.total_matches !== 2}
+                    disabled={loading || !matches?.total_matches}
                     loading={loading}
                     style={{
-                        borderColor: matches?.total_matches === 2 ? colors.success : colors.textSecondary,
+                        borderColor: matches?.total_matches ? colors.success : colors.textSecondary,
                     }}
                     textStyle={{
-                        color: matches?.total_matches === 2 ? colors.success : colors.textSecondary,
+                        color: matches?.total_matches ? colors.success : colors.textSecondary,
                     }}
                 />
             </View>
@@ -399,10 +428,10 @@ export default function MiniBetNowTab() {
             <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
             {/* Matches List */}
-            {matches?.matches.length === 2 ? (
+            {matches?.matches.length ? (
                 <View style={styles.section}>
                     <Text variant="heading3" color="text">
-                        2 Matchs Mini sélectionnés
+                        Matchs sélectionnés
                     </Text>
 
                     <View style={styles.matchesList}>
@@ -412,12 +441,12 @@ export default function MiniBetNowTab() {
             ) : (
                 <View style={styles.section}>
                     <View style={styles.emptyState}>
-                        <Ionicons name="flash-outline" size={48} color={colors.textSecondary} />
+                        <Ionicons name="football-outline" size={48} color={colors.textSecondary} />
                         <Text variant="heading3" color="text" style={{ marginTop: spacing.md }}>
-                            Sélection en cours
+                            Aucun match disponible
                         </Text>
                         <Text variant="body" color="textSecondary" align="center" style={{ marginTop: spacing.xs }}>
-                            Le système Mini sélectionne automatiquement 2 matchs optimaux
+                            Aucun match ne correspond aux critères de configuration actuels
                         </Text>
                     </View>
                 </View>

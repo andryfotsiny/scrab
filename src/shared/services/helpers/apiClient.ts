@@ -9,9 +9,25 @@ export interface ApiClientResponse<T = any> {
 
 class ApiClient {
     private baseURL: string;
+    private authToken: string | null = null;
 
     constructor(baseURL: string) {
         this.baseURL = baseURL;
+    }
+
+    // Set authentication token
+    setAuthToken(token: string) {
+        this.authToken = token;
+    }
+
+    // Clear authentication token
+    clearAuthToken() {
+        this.authToken = null;
+    }
+
+    // Get current auth token
+    getAuthToken(): string | null {
+        return this.authToken;
     }
 
     private async request<T>(
@@ -22,19 +38,33 @@ class ApiClient {
 
         console.log(`🔗 ${options.method || 'GET'} request to:`, url);
 
+        const headers: Record<string, string> = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            ...options.headers as Record<string, string>,
+        };
+
+        // Add authorization header if token exists
+        if (this.authToken) {
+            headers['Authorization'] = `Bearer ${this.authToken}`;
+        }
+
         try {
             const response = await fetch(url, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    ...options.headers,
-                },
+                headers,
                 ...options,
             });
 
             console.log('📡 Response status:', response.status);
 
             if (!response.ok) {
+                // Handle specific auth errors
+                if (response.status === 401) {
+                    console.warn('🔒 Authentication failed - clearing token');
+                    this.clearAuthToken();
+                    throw new Error('Session expirée. Veuillez vous reconnecter.');
+                }
+
                 throw new Error(`Request failed: ${response.status} - ${response.statusText}`);
             }
 

@@ -7,7 +7,7 @@ import {
     ExecuteBetResponse,
     AutoExecutionResponse,
     ConfigUpdateRequest
-} from '@/src/feature/football/types';
+} from '@/src/features/football/types';
 
 export function useFootball() {
     const [loading, setLoading] = useState(false);

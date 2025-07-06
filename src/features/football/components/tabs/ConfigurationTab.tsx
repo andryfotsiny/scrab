@@ -1,4 +1,4 @@
-// MiniConfigurationTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
+// ConfigurationTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { useMini } from '@/src/feature/football/hooks/useMini';
-import { MiniConfigUpdateRequest } from '@/src/feature/football/types/mini';
+import { useFootball } from '@/src/features/football/hooks/useFootball';
+import { ConfigUpdateRequest } from '@/src/features/football/types';
 
 // Import des composants réutilisables
 import Button from '@/src/components/atoms/Button';
@@ -20,7 +20,7 @@ import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
 import { spacing } from '@/src/styles';
 
-export default function MiniConfigurationTab() {
+export default function ConfigurationTab() {
     const { colors } = useTheme();
     const {
         loading,
@@ -28,10 +28,10 @@ export default function MiniConfigurationTab() {
         error,
         loadConfig,
         updateConfig,
-    } = useMini();
+    } = useFootball();
 
     // Form state
-    const [formData, setFormData] = useState<MiniConfigUpdateRequest>({});
+    const [formData, setFormData] = useState<ConfigUpdateRequest>({});
     const [hasChanges, setHasChanges] = useState(false);
     const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
     const [initialLoading, setInitialLoading] = useState(true);
@@ -55,6 +55,7 @@ export default function MiniConfigurationTab() {
             const initialData = {
                 min_odds: config.constraints.min_odds,
                 max_odds: config.constraints.max_odds,
+                max_matches: config.constraints.max_matches,
                 max_total_odds: config.constraints.max_total_odds,
                 default_stake: config.settings.default_stake,
             };
@@ -71,7 +72,7 @@ export default function MiniConfigurationTab() {
         }
     }, [loadConfig]);
 
-    const handleInputChange = (field: keyof MiniConfigUpdateRequest, value: string) => {
+    const handleInputChange = (field: keyof ConfigUpdateRequest, value: string) => {
         const numericValue = parseFloat(value) || 0;
         const newFormData = { ...formData, [field]: numericValue };
         setFormData(newFormData);
@@ -81,6 +82,7 @@ export default function MiniConfigurationTab() {
             const hasFieldChanges =
                 newFormData.min_odds !== config.constraints.min_odds ||
                 newFormData.max_odds !== config.constraints.max_odds ||
+                newFormData.max_matches !== config.constraints.max_matches ||
                 newFormData.max_total_odds !== config.constraints.max_total_odds ||
                 newFormData.default_stake !== config.settings.default_stake;
 
@@ -101,8 +103,12 @@ export default function MiniConfigurationTab() {
             return 'La cote minimale doit être inférieure à la cote maximale';
         }
 
-        if (!formData.max_total_odds || formData.max_total_odds < 1000 || formData.max_total_odds > 10000) {
-            return 'La cote totale maximum doit être entre 1 000 et 10 000';
+        if (!formData.max_matches || formData.max_matches < 1 || formData.max_matches > 50) {
+            return 'Le nombre maximum de matchs doit être entre 1 et 50';
+        }
+
+        if (!formData.max_total_odds || formData.max_total_odds < 1000 || formData.max_total_odds > 100000) {
+            return 'La cote totale maximum doit être entre 1 000 et 100 000';
         }
 
         if (!formData.default_stake || formData.default_stake < 100 || formData.default_stake > 100000) {
@@ -113,30 +119,30 @@ export default function MiniConfigurationTab() {
     };
 
     const handleSave = async () => {
-        console.log('🚀 Mini handleSave called with formData:', formData);
+        console.log('🚀 handleSave called with formData:', formData);
 
         // Fermer le clavier d'abord
         Keyboard.dismiss();
 
         const validationError = validateForm();
         if (validationError) {
-            console.log('❌ Mini validation error:', validationError);
+            console.log('❌ Validation error:', validationError);
             Alert.alert('Erreur de validation', validationError);
             return;
         }
 
         Alert.alert(
             'Confirmer les modifications',
-            'Êtes-vous sûr de vouloir sauvegarder ces modifications pour le système Mini ?',
+            'Êtes-vous sûr de vouloir sauvegarder ces modifications ?',
             [
                 { text: 'Annuler', style: 'cancel' },
                 {
                     text: 'Sauvegarder',
                     onPress: async () => {
-                        console.log('✅ Mini user confirmed save, calling updateConfig...');
+                        console.log('✅ User confirmed save, calling updateConfig...');
                         try {
                             const result = await updateConfig(formData);
-                            console.log('🎉 Mini config update successful:', result);
+                            console.log('🎉 Config update successful:', result);
 
                             // Mettre à jour le temps de dernière modification
                             if (result.metadata && result.metadata.updated_at) {
@@ -144,12 +150,12 @@ export default function MiniConfigurationTab() {
                             }
 
                             Alert.alert(
-                                'Configuration Mini mise à jour',
+                                'Configuration mise à jour',
                                 `Modifications sauvegardées avec succès !\n\nChangements:\n${result.changes_made.join('\n')}`
                             );
                             setHasChanges(false);
                         } catch (err) {
-                            console.log('💥 Mini config update failed:', err);
+                            console.log('💥 Config update failed:', err);
                             Alert.alert('Erreur', error || 'Erreur lors de la sauvegarde');
                         }
                     },
@@ -166,6 +172,7 @@ export default function MiniConfigurationTab() {
             setFormData({
                 min_odds: config.constraints.min_odds,
                 max_odds: config.constraints.max_odds,
+                max_matches: config.constraints.max_matches,
                 max_total_odds: config.constraints.max_total_odds,
                 default_stake: config.settings.default_stake,
             });
@@ -182,10 +189,10 @@ export default function MiniConfigurationTab() {
 
     const renderSkeletonContent = () => (
         <>
-            {/* Current Configuration Display Skeleton - SEULEMENT données API */}
+            {/* Current Configuration Display Skeleton - SEULEMENT pour les données API */}
             <View style={styles.firstSection}>
                 <Text variant="heading3" color="text">
-                    Configuration Mini Actuelle
+                    Configuration Actuelle
                 </Text>
 
                 <View style={styles.currentConfigGrid}>
@@ -198,16 +205,16 @@ export default function MiniConfigurationTab() {
 
                     <View style={styles.configItem}>
                         <Text variant="caption" color="textSecondary">
-                            Système
+                            Max Matchs
                         </Text>
-                        <Skeleton width="40%" height={18} animated={false} />
+                        <Skeleton width="30%" height={18} animated={false} />
                     </View>
 
                     <View style={styles.configItem}>
                         <Text variant="caption" color="textSecondary">
                             Cote totale max
                         </Text>
-                        <Skeleton width="50%" height={18} animated={false} />
+                        <Skeleton width="45%" height={18} animated={false} />
                     </View>
 
                     <View style={styles.configItem}>
@@ -218,11 +225,7 @@ export default function MiniConfigurationTab() {
                     </View>
                 </View>
 
-                <View style={styles.systemTypeContainer}>
-                    <Text variant="caption" color="textSecondary">
-                        Type de système:
-                    </Text>
-                    <Skeleton width="40%" height={14} animated={false} />
+                <View style={styles.metadataContainer}>
                     <Text variant="caption" color="textSecondary">
                         Dernière mise à jour:
                     </Text>
@@ -233,16 +236,16 @@ export default function MiniConfigurationTab() {
             {/* Ligne de séparation */}
             <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
-            {/* Configuration Form - Inputs vides mais visibles */}
+            {/* Configuration Form - PAS de skeleton, juste inputs vides */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Modifier la Configuration Mini
+                    Modifier la Configuration
                 </Text>
 
                 {/* Cotes Section */}
                 <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
-                        Contraintes de Cotes Mini
+                        Contraintes de Cotes
                     </Text>
 
                     <Input
@@ -250,7 +253,7 @@ export default function MiniConfigurationTab() {
                         value=""
                         onChangeText={() => {}}
                         keyboardType="decimal-pad"
-                        placeholder="1.1"
+                        placeholder="1.2"
                         helperText="Entre 1.0 et 3.0"
                         editable={false}
                     />
@@ -269,16 +272,26 @@ export default function MiniConfigurationTab() {
                 {/* Limits Section */}
                 <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
-                        Limites Mini
+                        Limites
                     </Text>
+
+                    <Input
+                        label="Nombre maximum de matchs"
+                        value=""
+                        onChangeText={() => {}}
+                        keyboardType="numeric"
+                        placeholder="40"
+                        helperText="Entre 1 et 50 matchs"
+                        editable={false}
+                    />
 
                     <Input
                         label="Cote totale maximum"
                         value=""
                         onChangeText={() => {}}
                         keyboardType="numeric"
-                        placeholder="10000"
-                        helperText="Entre 1 000 et 10 000 (spécifique au Mini)"
+                        placeholder="70000"
+                        helperText="Entre 1 000 et 100 000"
                         editable={false}
                     />
                 </View>
@@ -286,7 +299,7 @@ export default function MiniConfigurationTab() {
                 {/* Settings Section */}
                 <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
-                        Paramètres Mini
+                        Paramètres
                     </Text>
 
                     <Input
@@ -294,7 +307,7 @@ export default function MiniConfigurationTab() {
                         value=""
                         onChangeText={() => {}}
                         keyboardType="numeric"
-                        placeholder="200"
+                        placeholder="400"
                         helperText="Entre 100 et 100 000 MGA"
                         editable={false}
                         required
@@ -307,6 +320,7 @@ export default function MiniConfigurationTab() {
                         title="Réinitialiser"
                         onPress={() => {}}
                         variant="outline"
+                        size = 'sm'
                         disabled={true}
                         style={{ flex: 1 }}
                     />
@@ -315,6 +329,7 @@ export default function MiniConfigurationTab() {
                         title="Sauvegarder"
                         onPress={() => {}}
                         variant="outline"
+                        size = 'sm'
                         disabled={true}
                         style={{ flex: 1 }}
                     />
@@ -327,28 +342,28 @@ export default function MiniConfigurationTab() {
             {/* Information Section - Textes statiques, PAS de skeleton */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Informations Mini
+                    Informations importantes
                 </Text>
 
                 <View style={styles.infoList}>
                     <View style={styles.infoItem}>
-                        <Ionicons name="flash-outline" size={16} color={colors.primary} />
+                        <Ionicons name="warning-outline" size={16} color={colors.warning} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Le système Mini est optimisé pour exactement 2 matchs avec des cotes modérées
+                            Les modifications prendront effet immédiatement après la sauvegarde
                         </Text>
                     </View>
 
                     <View style={styles.infoItem}>
                         <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Les limites de cotes totales sont plus basses pour réduire les risques
+                            La cote minimale doit toujours être inférieure à la cote maximale
                         </Text>
                     </View>
 
                     <View style={styles.infoItem}>
                         <Ionicons name="shield-checkmark-outline" size={16} color={colors.success} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Système idéal pour des gains réguliers avec une mise plus sûre
+                            Les paris automatiques respecteront ces nouvelles contraintes
                         </Text>
                     </View>
                 </View>
@@ -362,7 +377,7 @@ export default function MiniConfigurationTab() {
             {config && (
                 <View style={styles.firstSection}>
                     <Text variant="heading3" color="text">
-                        Configuration Mini Actuelle
+                        Configuration Actuelle
                     </Text>
 
                     <View style={styles.currentConfigGrid}>
@@ -377,10 +392,10 @@ export default function MiniConfigurationTab() {
 
                         <View style={styles.configItem}>
                             <Text variant="caption" color="textSecondary">
-                                Système
+                                Max Matchs
                             </Text>
                             <Text variant="body" weight="bold" color="text">
-                                {config.constraints.max_matches} matchs
+                                {config.constraints.max_matches}
                             </Text>
                         </View>
 
@@ -403,10 +418,7 @@ export default function MiniConfigurationTab() {
                         </View>
                     </View>
 
-                    <View style={styles.systemTypeContainer}>
-                        <Text variant="caption" color="textSecondary">
-                            Type de système: {config.system_type || 'mini_two_matches'}
-                        </Text>
+                    <View style={styles.metadataContainer}>
                         <Text variant="caption" color="textSecondary">
                             Dernière mise à jour: {lastUpdateTime
                             ? new Date(lastUpdateTime).toLocaleString('fr-FR')
@@ -426,13 +438,13 @@ export default function MiniConfigurationTab() {
             {/* Configuration Form */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Modifier la Configuration Mini
+                    Modifier la Configuration
                 </Text>
 
                 {/* Cotes Section */}
                 <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
-                        Contraintes de Cotes Mini
+                        Contraintes de Cotes
                     </Text>
 
                     <Input
@@ -440,7 +452,7 @@ export default function MiniConfigurationTab() {
                         value={formData.min_odds?.toString() || ''}
                         onChangeText={(value) => handleInputChange('min_odds', value)}
                         keyboardType="decimal-pad"
-                        placeholder="1.1"
+                        placeholder="1.2"
                         helperText="Entre 1.0 et 3.0"
                         returnKeyType="done"
                         onSubmitEditing={Keyboard.dismiss}
@@ -461,16 +473,27 @@ export default function MiniConfigurationTab() {
                 {/* Limits Section */}
                 <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
-                        Limites Mini
+                        Limites
                     </Text>
+
+                    <Input
+                        label="Nombre maximum de matchs"
+                        value={formData.max_matches?.toString() || ''}
+                        onChangeText={(value) => handleInputChange('max_matches', value)}
+                        keyboardType="numeric"
+                        placeholder="40"
+                        helperText="Entre 1 et 50 matchs"
+                        returnKeyType="done"
+                        onSubmitEditing={Keyboard.dismiss}
+                    />
 
                     <Input
                         label="Cote totale maximum"
                         value={formData.max_total_odds?.toString() || ''}
                         onChangeText={(value) => handleInputChange('max_total_odds', value)}
                         keyboardType="numeric"
-                        placeholder="10000"
-                        helperText="Entre 1 000 et 10 000 (spécifique au Mini)"
+                        placeholder="70000"
+                        helperText="Entre 1 000 et 100 000"
                         returnKeyType="done"
                         onSubmitEditing={Keyboard.dismiss}
                     />
@@ -479,7 +502,7 @@ export default function MiniConfigurationTab() {
                 {/* Settings Section */}
                 <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
-                        Paramètres Mini
+                        Paramètres
                     </Text>
 
                     <Input
@@ -487,7 +510,7 @@ export default function MiniConfigurationTab() {
                         value={formData.default_stake?.toString() || ''}
                         onChangeText={(value) => handleInputChange('default_stake', value)}
                         keyboardType="numeric"
-                        placeholder="200"
+                        placeholder="400"
                         helperText="Entre 100 et 100 000 MGA"
                         returnKeyType="done"
                         onSubmitEditing={Keyboard.dismiss}
@@ -501,6 +524,7 @@ export default function MiniConfigurationTab() {
                         title="Réinitialiser"
                         onPress={handleReset}
                         variant="outline"
+                        size = 'sm'
                         disabled={!hasChanges || loading}
                         style={{ flex: 1 }}
                     />
@@ -509,6 +533,7 @@ export default function MiniConfigurationTab() {
                         title={loading ? 'Sauvegarde...' : 'Sauvegarder'}
                         onPress={handleSave}
                         variant="outline"
+                        size = 'sm'
                         disabled={!hasChanges || loading}
                         loading={loading}
                         style={{
@@ -528,28 +553,28 @@ export default function MiniConfigurationTab() {
             {/* Information Section */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Informations Mini
+                    Informations importantes
                 </Text>
 
                 <View style={styles.infoList}>
                     <View style={styles.infoItem}>
-                        <Ionicons name="flash-outline" size={16} color={colors.primary} />
+                        <Ionicons name="warning-outline" size={16} color={colors.warning} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Le système Mini est optimisé pour exactement 2 matchs avec des cotes modérées
+                            Les modifications prendront effet immédiatement après la sauvegarde
                         </Text>
                     </View>
 
                     <View style={styles.infoItem}>
                         <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Les limites de cotes totales sont plus basses pour réduire les risques
+                            La cote minimale doit toujours être inférieure à la cote maximale
                         </Text>
                     </View>
 
                     <View style={styles.infoItem}>
                         <Ionicons name="shield-checkmark-outline" size={16} color={colors.success} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Système idéal pour des gains réguliers avec une mise plus sûre
+                            Les paris automatiques respecteront ces nouvelles contraintes
                         </Text>
                     </View>
                 </View>
@@ -608,11 +633,10 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: '45%',
     },
-    systemTypeContainer: {
+    metadataContainer: {
         paddingTop: spacing.md,
         borderTopWidth: 1,
         borderTopColor: 'rgba(0,0,0,0.1)',
-        gap: spacing.xs,
     },
     formSection: {
         marginBottom: spacing.lg,

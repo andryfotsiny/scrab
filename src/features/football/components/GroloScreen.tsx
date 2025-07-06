@@ -1,4 +1,4 @@
-// MiniScreen.tsx - Refactorisé avec les composants réutilisables
+// GroloScreen.tsx - Refactorisé avec les composants réutilisables
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -9,24 +9,24 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/shared/context/ThemeContext';
-import { useMini } from '@/src/feature/football/hooks/useMini';
+import { useFootball } from '@/src/features/football/hooks/useFootball';
 
 // Import des composants réutilisables
 import Header from '@/src/components/molecules/Header';
 import TabBar, { TabItem } from '@/src/components/molecules/TabBar';
 
 // Import des tabs
-import MiniAutoBetTab from './tabs/MiniAutoBetTab';
-import MiniBetNowTab from './tabs/MiniBetNowTab';
-import MiniConfigurationTab from './tabs/MiniConfigurationTab';
+import AutoBetTab from './tabs/AutoBetTab';
+import BetNowTab from './tabs/BetNowTab';
+import ConfigurationTab from './tabs/ConfigurationTab';
 
 type TabType = 'auto' | 'now' | 'config';
 
-export default function MiniScreen() {
+export default function GroloScreen() {
     const { colors, mode } = useTheme();
     const insets = useSafeAreaInsets();
     const [activeTab, setActiveTab] = useState<TabType>('auto');
-    const { loadConfig, config } = useMini();
+    const { loadConfig, config } = useFootball();
 
     useEffect(() => {
         loadConfig().catch(console.error);
@@ -54,13 +54,13 @@ export default function MiniScreen() {
     const renderTabContent = () => {
         switch (activeTab) {
             case 'auto':
-                return <MiniAutoBetTab />;
+                return <AutoBetTab />;
             case 'now':
-                return <MiniBetNowTab />;
+                return <BetNowTab />;
             case 'config':
-                return <MiniConfigurationTab />;
+                return <ConfigurationTab />;
             default:
-                return <MiniAutoBetTab />;
+                return <AutoBetTab />;
         }
     };
 
@@ -76,7 +76,7 @@ export default function MiniScreen() {
                 <SafeAreaView style={styles.safeArea} edges={['top']}>
                     {/* Header réutilisable */}
                     <Header
-                        title="Football Mini (2 matchs)"
+                        title="Football Grolo"
                         showBackButton={true}
                         elevated={false}
                     />
