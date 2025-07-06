@@ -1,20 +1,19 @@
-// AutoBetTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
+// AutoBetTab.tsx - Refactorisé avec SuccessModal seulement
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     StyleSheet,
     ScrollView,
-    Alert,
     RefreshControl,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFootball } from '@/src/features/football/context/FootballContext';
 
-
 import Button from '@/src/components/atoms/Button';
 import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
+import SuccessModal from '@/src/components/molecules/SuccessModal';
 import { spacing } from '@/src/styles';
 
 export default function AutoBetTab() {
@@ -31,6 +30,15 @@ export default function AutoBetTab() {
 
     const [localAutoActive, setLocalAutoActive] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
+
+    // Modal states
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [modalData, setModalData] = useState({
+        title: '',
+        message: '',
+        type: 'success' as 'success' | 'info',
+    });
 
     useEffect(() => {
         setLocalAutoActive(autoExecutionActive);
@@ -62,13 +70,28 @@ export default function AutoBetTab() {
         try {
             if (localAutoActive) {
                 await stopAutoExecution();
-                Alert.alert('Succès', 'Exécution automatique arrêtée');
+                setModalData({
+                    title: 'Exécution automatique arrêtée',
+                    message: 'L\'exécution automatique a été désactivée avec succès.',
+                    type: 'info',
+                });
+                setShowSuccessModal(true);
             } else {
                 await startAutoExecution();
-                Alert.alert('Succès', 'Exécution automatique démarrée pour 00h00 Madagascar');
+                setModalData({
+                    title: 'Exécution automatique démarrée',
+                    message: 'L\'exécution automatique est maintenant active et se déclenchera à 00h00 Madagascar.',
+                    type: 'success',
+                });
+                setShowSuccessModal(true);
             }
         } catch (err) {
-            Alert.alert('Erreur', error || 'Une erreur est survenue');
+            setModalData({
+                title: 'Erreur',
+                message: error || 'Une erreur est survenue lors de la modification.',
+                type: 'info',
+            });
+            setShowErrorModal(true);
         }
     };
 
@@ -359,21 +382,40 @@ export default function AutoBetTab() {
     );
 
     return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.content}
-            refreshControl={
-                <RefreshControl
-                    refreshing={loading && !!config} // Only show refresh si on a déjà des données
-                    onRefresh={onRefresh}
-                    tintColor={colors.primary}
-                    colors={[colors.primary]}
-                />
-            }
-            showsVerticalScrollIndicator={false}
-        >
-            {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
-        </ScrollView>
+        <>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.content}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading && !!config} // Only show refresh si on a déjà des données
+                        onRefresh={onRefresh}
+                        tintColor={colors.primary}
+                        colors={[colors.primary]}
+                    />
+                }
+                showsVerticalScrollIndicator={false}
+            >
+                {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
+            </ScrollView>
+
+            {/* Modals */}
+            <SuccessModal
+                visible={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                title={modalData.title}
+                customMessage={modalData.message}
+                type={modalData.type}
+            />
+
+            <SuccessModal
+                visible={showErrorModal}
+                onClose={() => setShowErrorModal(false)}
+                title={modalData.title}
+                customMessage={modalData.message}
+                type="info"
+            />
+        </>
     );
 }
 

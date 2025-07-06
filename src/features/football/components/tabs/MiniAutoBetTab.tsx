@@ -1,20 +1,19 @@
-// MiniAutoBetTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
+// MiniAutoBetTab.tsx - Refactorisé avec SuccessModal seulement
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     StyleSheet,
     ScrollView,
-    Alert,
     RefreshControl,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useMini } from '@/src/features/football/context/MiniContext';
 
-// Import des composants réutilisables
 import Button from '@/src/components/atoms/Button';
 import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
+import SuccessModal from '@/src/components/molecules/SuccessModal';
 import { spacing } from '@/src/styles';
 
 export default function MiniAutoBetTab() {
@@ -31,6 +30,15 @@ export default function MiniAutoBetTab() {
 
     const [localAutoActive, setLocalAutoActive] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
+
+    // Modal states
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [modalData, setModalData] = useState({
+        title: '',
+        message: '',
+        type: 'success' as 'success' | 'info',
+    });
 
     useEffect(() => {
         setLocalAutoActive(miniAutoExecutionActive);
@@ -62,13 +70,28 @@ export default function MiniAutoBetTab() {
         try {
             if (localAutoActive) {
                 await stopAutoExecution();
-                Alert.alert('Succès', 'Exécution automatique Mini arrêtée');
+                setModalData({
+                    title: 'Exécution automatique Mini arrêtée',
+                    message: 'L\'exécution automatique Mini a été désactivée avec succès.',
+                    type: 'info',
+                });
+                setShowSuccessModal(true);
             } else {
                 await startAutoExecution();
-                Alert.alert('Succès', 'Exécution automatique Mini démarrée pour 00h00 Madagascar');
+                setModalData({
+                    title: 'Exécution automatique Mini démarrée',
+                    message: 'L\'exécution automatique Mini est maintenant active et se déclenchera à 00h00 Madagascar.',
+                    type: 'success',
+                });
+                setShowSuccessModal(true);
             }
         } catch (err) {
-            Alert.alert('Erreur', error || 'Une erreur est survenue');
+            setModalData({
+                title: 'Erreur',
+                message: error || 'Une erreur est survenue lors de la modification.',
+                type: 'info',
+            });
+            setShowErrorModal(true);
         }
     };
 
@@ -162,6 +185,8 @@ export default function MiniAutoBetTab() {
                     disabled={true}
                     style={{
                         borderColor: colors.textSecondary,
+                        paddingVertical: spacing.xs,
+                        paddingHorizontal: spacing.xs,
                     }}
                     textStyle={{
                         color: colors.textSecondary,
@@ -302,8 +327,8 @@ export default function MiniAutoBetTab() {
                     title={loading
                         ? 'Traitement...'
                         : localAutoActive
-                            ? 'Arrêter '
-                            : 'Démarrer '
+                            ? 'Arrêter'
+                            : 'Démarrer'
                     }
                     onPress={handleToggleAutoExecution}
                     variant="outline"
@@ -312,6 +337,8 @@ export default function MiniAutoBetTab() {
                     loading={loading}
                     style={{
                         borderColor: localAutoActive ? colors.error : colors.success,
+                        paddingVertical: spacing.xs,
+                        paddingHorizontal: spacing.xs,
                     }}
                     textStyle={{
                         color: localAutoActive ? colors.error : colors.success,
@@ -355,21 +382,40 @@ export default function MiniAutoBetTab() {
     );
 
     return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.content}
-            refreshControl={
-                <RefreshControl
-                    refreshing={loading && !!config} // Only show refresh si on a déjà des données
-                    onRefresh={onRefresh}
-                    tintColor={colors.primary}
-                    colors={[colors.primary]}
-                />
-            }
-            showsVerticalScrollIndicator={false}
-        >
-            {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
-        </ScrollView>
+        <>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.content}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading && !!config} // Only show refresh si on a déjà des données
+                        onRefresh={onRefresh}
+                        tintColor={colors.primary}
+                        colors={[colors.primary]}
+                    />
+                }
+                showsVerticalScrollIndicator={false}
+            >
+                {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
+            </ScrollView>
+
+            {/* Modals */}
+            <SuccessModal
+                visible={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                title={modalData.title}
+                customMessage={modalData.message}
+                type={modalData.type}
+            />
+
+            <SuccessModal
+                visible={showErrorModal}
+                onClose={() => setShowErrorModal(false)}
+                title={modalData.title}
+                customMessage={modalData.message}
+                type="info"
+            />
+        </>
     );
 }
 

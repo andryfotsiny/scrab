@@ -6,7 +6,6 @@ import {
     StatusBar,
     ScrollView,
     RefreshControl,
-    Alert,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +16,8 @@ import ThemeToggle from '@/src/components/atoms/ThemeToggle';
 import Button from '@/src/components/atoms/Button';
 import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
+import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
+import SuccessModal from '@/src/components/molecules/SuccessModal';
 import { spacing } from '@/src/styles';
 
 export default function UserProfileScreen() {
@@ -33,6 +34,17 @@ export default function UserProfileScreen() {
     } = useAuth();
 
     const [initialLoading, setInitialLoading] = useState(true);
+
+    // Modal states
+    const [showRefreshErrorModal, setShowRefreshErrorModal] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [showSwitchUserModal, setShowSwitchUserModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [modalData, setModalData] = useState({
+        title: '',
+        message: '',
+        type: 'info' as 'success' | 'info',
+    });
 
     // Debug logs
     useEffect(() => {
@@ -70,62 +82,63 @@ export default function UserProfileScreen() {
     const onRefresh = useCallback(async () => {
         // Try to refresh even if isAuthenticated is false but we have user data
         if (!isAuthenticated && !localUserInfo && !bet261UserData) {
-            Alert.alert('Erreur', 'Vous devez vous connecter pour actualiser les données');
+            setModalData({
+                title: 'Erreur',
+                message: 'Vous devez vous connecter pour actualiser les données',
+                type: 'info',
+            });
+            setShowRefreshErrorModal(true);
             return;
         }
 
         try {
             await refreshUserInfo();
+            setModalData({
+                title: 'Données actualisées',
+                message: 'Vos informations ont été mises à jour avec succès.',
+                type: 'success',
+            });
+            setShowSuccessModal(true);
         } catch (err) {
             console.error('❌ Refresh error:', err);
-            Alert.alert('Erreur', 'Impossible de actualiser les données');
+            setModalData({
+                title: 'Erreur',
+                message: 'Impossible d\'actualiser les données',
+                type: 'info',
+            });
+            setShowRefreshErrorModal(true);
         }
     }, [isAuthenticated, localUserInfo, bet261UserData, refreshUserInfo]);
 
     const handleLogout = useCallback(async () => {
-        Alert.alert(
-            'Déconnexion',
-            'Êtes-vous sûr de vouloir vous déconnecter ?',
-            [
-                { text: 'Annuler', style: 'cancel' },
-                {
-                    text: 'Déconnecter',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await logout();
-                            router.replace('/(auth)/login');
-                        } catch (error) {
-                            console.error('Logout error:', error);
-                            // Navigate anyway since local state is cleared
-                            router.replace('/(auth)/login');
-                        }
-                    },
-                },
-            ]
-        );
+        setShowLogoutModal(true);
+    }, []);
+
+    const handleConfirmLogout = useCallback(async () => {
+        setShowLogoutModal(false);
+        try {
+            await logout();
+            router.replace('/(auth)/login');
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Navigate anyway since local state is cleared
+            router.replace('/(auth)/login');
+        }
     }, [logout]);
 
     const handleSwitchUser = useCallback(() => {
-        Alert.alert(
-            'Changer d\'utilisateur',
-            'Voulez-vous vous connecter avec un autre compte ?',
-            [
-                { text: 'Annuler', style: 'cancel' },
-                {
-                    text: 'Changer',
-                    onPress: async () => {
-                        try {
-                            await logout();
-                            router.replace('/(auth)/login');
-                        } catch (error) {
-                            console.error('Switch user error:', error);
-                            router.replace('/(auth)/login');
-                        }
-                    },
-                },
-            ]
-        );
+        setShowSwitchUserModal(true);
+    }, []);
+
+    const handleConfirmSwitchUser = useCallback(async () => {
+        setShowSwitchUserModal(false);
+        try {
+            await logout();
+            router.replace('/(auth)/login');
+        } catch (error) {
+            console.error('Switch user error:', error);
+            router.replace('/(auth)/login');
+        }
     }, [logout]);
 
     const formatBalance = useCallback((balance: number) => {
@@ -583,6 +596,48 @@ export default function UserProfileScreen() {
                         }
                     </ScrollView>
                 </SafeAreaView>
+
+                {/* Modals */}
+                <ConfirmationModal
+                    visible={showRefreshErrorModal}
+                    onClose={() => setShowRefreshErrorModal(false)}
+                    title={modalData.title}
+                    message={modalData.message}
+                    confirmText="Compris"
+                    onConfirm={() => setShowRefreshErrorModal(false)}
+                    type="error"
+                />
+
+                <ConfirmationModal
+                    visible={showLogoutModal}
+                    onClose={() => setShowLogoutModal(false)}
+                    title="Déconnexion"
+                    message="Êtes-vous sûr de vouloir vous déconnecter ?"
+                    confirmText="Déconnecter"
+                    cancelText="Annuler"
+                    onConfirm={handleConfirmLogout}
+                    type="warning"
+                    confirmButtonVariant="outline"
+                />
+
+                <ConfirmationModal
+                    visible={showSwitchUserModal}
+                    onClose={() => setShowSwitchUserModal(false)}
+                    title="Changer d'utilisateur"
+                    message="Voulez-vous vous connecter avec un autre compte ?"
+                    confirmText="Changer"
+                    cancelText="Annuler"
+                    onConfirm={handleConfirmSwitchUser}
+                    type="info"
+                />
+
+                <SuccessModal
+                    visible={showSuccessModal}
+                    onClose={() => setShowSuccessModal(false)}
+                    title={modalData.title}
+                    customMessage={modalData.message}
+                    type={modalData.type}
+                />
             </View>
         </SafeAreaProvider>
     );

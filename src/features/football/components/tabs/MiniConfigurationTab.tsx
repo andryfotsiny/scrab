@@ -1,10 +1,9 @@
-// MiniConfigurationTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
+// MiniConfigurationTab.tsx - Refactorisé avec ConfirmationModal seulement
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     StyleSheet,
     ScrollView,
-    Alert,
     RefreshControl,
     Keyboard,
 } from 'react-native';
@@ -16,8 +15,9 @@ import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
 import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
+import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
 import { spacing } from '@/src/styles';
-import {MiniConfigUpdateRequest} from "@/src/features/football/types/mini";
+import { MiniConfigUpdateRequest } from "@/src/features/football/types/mini";
 
 export default function MiniConfigurationTab() {
     const { colors } = useTheme();
@@ -34,6 +34,17 @@ export default function MiniConfigurationTab() {
     const [hasChanges, setHasChanges] = useState(false);
     const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
     const [initialLoading, setInitialLoading] = useState(true);
+
+    // Modal states
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [modalData, setModalData] = useState({
+        title: '',
+        message: '',
+        confirmText: '',
+        onConfirm: () => {},
+    });
 
     useEffect(() => {
         const initializeData = async () => {
@@ -120,41 +131,56 @@ export default function MiniConfigurationTab() {
         const validationError = validateForm();
         if (validationError) {
             console.log('❌ Mini validation error:', validationError);
-            Alert.alert('Erreur de validation', validationError);
+            setModalData({
+                title: 'Erreur de validation',
+                message: validationError,
+                confirmText: 'Compris',
+                onConfirm: () => setShowErrorModal(false),
+            });
+            setShowErrorModal(true);
             return;
         }
 
-        Alert.alert(
-            'Confirmer les modifications',
-            'Êtes-vous sûr de vouloir sauvegarder ces modifications pour le système Mini ?',
-            [
-                { text: 'Annuler', style: 'cancel' },
-                {
-                    text: 'Sauvegarder',
-                    onPress: async () => {
-                        console.log('✅ Mini user confirmed save, calling updateConfig...');
-                        try {
-                            const result = await updateConfig(formData);
-                            console.log('🎉 Mini config update successful:', result);
+        setModalData({
+            title: 'Confirmer les modifications',
+            message: 'Êtes-vous sûr de vouloir sauvegarder ces modifications pour le système Mini ?',
+            confirmText: 'Sauvegarder',
+            onConfirm: handleConfirmSave,
+        });
+        setShowConfirmModal(true);
+    };
 
-                            // Mettre à jour le temps de dernière modification
-                            if (result.metadata && result.metadata.updated_at) {
-                                setLastUpdateTime(result.metadata.updated_at);
-                            }
+    const handleConfirmSave = async () => {
+        console.log('✅ Mini user confirmed save, calling updateConfig...');
+        setShowConfirmModal(false);
 
-                            Alert.alert(
-                                'Configuration Mini mise à jour',
-                                `Modifications sauvegardées avec succès !\n\nChangements:\n${result.changes_made.join('\n')}`
-                            );
-                            setHasChanges(false);
-                        } catch (err) {
-                            console.log('💥 Mini config update failed:', err);
-                            Alert.alert('Erreur', error || 'Erreur lors de la sauvegarde');
-                        }
-                    },
-                },
-            ]
-        );
+        try {
+            const result = await updateConfig(formData);
+            console.log('🎉 Mini config update successful:', result);
+
+            // Mettre à jour le temps de dernière modification
+            if (result.metadata && result.metadata.updated_at) {
+                setLastUpdateTime(result.metadata.updated_at);
+            }
+
+            setModalData({
+                title: 'Configuration Mini mise à jour',
+                message: `Modifications sauvegardées avec succès !\n\nChangements:\n${result.changes_made.join('\n')}`,
+                confirmText: 'Parfait !',
+                onConfirm: () => setShowSuccessModal(false),
+            });
+            setShowSuccessModal(true);
+            setHasChanges(false);
+        } catch (err) {
+            console.log('💥 Mini config update failed:', err);
+            setModalData({
+                title: 'Erreur',
+                message: error || 'Erreur lors de la sauvegarde',
+                confirmText: 'Compris',
+                onConfirm: () => setShowErrorModal(false),
+            });
+            setShowErrorModal(true);
+        }
     };
 
     const handleReset = () => {
@@ -557,25 +583,59 @@ export default function MiniConfigurationTab() {
     );
 
     return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={[
-                styles.content,
-                { paddingBottom: 50 }
-            ]}
-            refreshControl={
-                <RefreshControl
-                    refreshing={loading && !!config} // Only show refresh si on a déjà des données
-                    onRefresh={onRefresh}
-                    tintColor={colors.primary}
-                    colors={[colors.primary]}
-                />
-            }
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-        >
-            {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
-        </ScrollView>
+        <>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={[
+                    styles.content,
+                    { paddingBottom: 50 }
+                ]}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading && !!config} // Only show refresh si on a déjà des données
+                        onRefresh={onRefresh}
+                        tintColor={colors.primary}
+                        colors={[colors.primary]}
+                    />
+                }
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
+            </ScrollView>
+
+            {/* Modals */}
+            <ConfirmationModal
+                visible={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                title={modalData.title}
+                message={modalData.message}
+                confirmText={modalData.confirmText}
+                onConfirm={modalData.onConfirm}
+                type="warning"
+                loading={loading}
+            />
+
+            <ConfirmationModal
+                visible={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                title={modalData.title}
+                message={modalData.message}
+                confirmText={modalData.confirmText}
+                onConfirm={modalData.onConfirm}
+                type="success"
+            />
+
+            <ConfirmationModal
+                visible={showErrorModal}
+                onClose={() => setShowErrorModal(false)}
+                title={modalData.title}
+                message={modalData.message}
+                confirmText={modalData.confirmText}
+                onConfirm={modalData.onConfirm}
+                type="error"
+            />
+        </>
     );
 }
 

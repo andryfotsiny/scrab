@@ -1,11 +1,10 @@
-// BetNowTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
+// BetNowTab.tsx - Refactorisé avec les modals personnalisées
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     RefreshControl,
     Keyboard,
 } from 'react-native';
@@ -14,11 +13,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFootball } from '@/src/features/football/context/FootballContext';
 import { FootballMatch } from '@/src/features/football/types';
 
-// Import des composants réutilisables
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
 import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
+import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
+import SuccessModal from '@/src/components/molecules/SuccessModal';
 import { spacing } from '@/src/styles';
 
 export default function BetNowTab() {
@@ -36,6 +36,16 @@ export default function BetNowTab() {
     const [customStake, setCustomStake] = useState('');
     const [acceptOddsChange, setAcceptOddsChange] = useState(true);
     const [initialLoading, setInitialLoading] = useState(true);
+
+    // Modal states
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [modalData, setModalData] = useState({
+        betId: '',
+        potentialPayout: '',
+        errorMessage: '',
+    });
 
     useEffect(() => {
         const initializeData = async () => {
@@ -73,7 +83,8 @@ export default function BetNowTab() {
 
         if (!matches?.matches.length) {
             console.log('❌ No matches available');
-            Alert.alert('Erreur', 'Aucun match disponible pour le pari');
+            setModalData({ ...modalData, errorMessage: 'Aucun match disponible pour le pari' });
+            setShowErrorModal(true);
             return;
         }
 
@@ -82,44 +93,48 @@ export default function BetNowTab() {
 
         if (!stake || stake < 100) {
             console.log('❌ Invalid stake:', stake);
-            Alert.alert('Erreur', 'La mise doit être d\'au moins 100 MGA');
+            setModalData({ ...modalData, errorMessage: 'La mise doit être d\'au moins 100 MGA' });
+            setShowErrorModal(true);
             return;
         }
 
         if (config && stake > 50000) {
             console.log('❌ Stake too high:', stake);
-            Alert.alert('Erreur', 'La mise ne peut pas dépasser 50 000 MGA');
+            setModalData({ ...modalData, errorMessage: 'La mise ne peut pas dépasser 50 000 MGA' });
+            setShowErrorModal(true);
             return;
         }
 
-        console.log('✅ All validations passed, showing confirmation alert');
+        console.log('✅ All validations passed, showing confirmation modal');
+        setShowConfirmModal(true);
+    };
 
-        Alert.alert(
-            'Confirmer le pari',
-            `Êtes-vous sûr de vouloir parier ${formatCurrency(stake)} sur ${matches.total_matches} matchs ?\n\nGain potentiel: ${formatCurrency(matches.summary.total_odds * stake)}`,
-            [
-                { text: 'Annuler', style: 'cancel' },
-                {
-                    text: 'Confirmer',
-                    onPress: async () => {
-                        console.log('✅ User confirmed bet, calling executeBet...');
-                        try {
-                            const result = await executeBet(stake, acceptOddsChange);
-                            console.log('🎉 Bet execution successful:', result);
-                            Alert.alert(
-                                'Pari exécuté !',
-                                `Votre pari a été placé avec succès.\n\nID du pari: ${result.bet_id}\nGain potentiel: ${formatCurrency(result.potential_payout)}`
-                            );
-                            // Recharger les données après exécution
-                            await loadMatches();
-                        } catch (err) {
-                            console.log('💥 Bet execution failed:', err);
-                            Alert.alert('Erreur', error || 'Erreur lors de l\'exécution du pari');
-                        }
-                    },
-                },
-            ]
-        );
+    const handleConfirmBet = async () => {
+        console.log('✅ User confirmed bet, calling executeBet...');
+        setShowConfirmModal(false);
+
+        try {
+            const stake = parseInt(customStake);
+            const result = await executeBet(stake, acceptOddsChange);
+            console.log('🎉 Bet execution successful:', result);
+
+            setModalData({
+                betId: result.bet_id.toString(),
+                potentialPayout: formatCurrency(result.potential_payout),
+                errorMessage: '',
+            });
+            setShowSuccessModal(true);
+
+            // Recharger les données après exécution
+            await loadMatches();
+        } catch (err) {
+            console.log('💥 Bet execution failed:', err);
+            setModalData({
+                ...modalData,
+                errorMessage: error || 'Erreur lors de l\'exécution du pari'
+            });
+            setShowErrorModal(true);
+        }
     };
 
     const formatCurrency = (amount: number) => {
@@ -162,8 +177,6 @@ export default function BetNowTab() {
             </View>
         </View>
     );
-
-
 
     const renderSkeletonContent = () => (
         <>
@@ -455,25 +468,61 @@ export default function BetNowTab() {
     );
 
     return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={[
-                styles.content,
-                { paddingBottom: 50 }
-            ]}
-            refreshControl={
-                <RefreshControl
-                    refreshing={loading && !!(config && matches)} // Only show refresh si on a déjà des données
-                    onRefresh={onRefresh}
-                    tintColor={colors.primary}
-                    colors={[colors.primary]}
-                />
-            }
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-        >
-            {initialLoading || (loading && !(config && matches)) ? renderSkeletonContent() : renderContent()}
-        </ScrollView>
+        <>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={[
+                    styles.content,
+                    { paddingBottom: 50 }
+                ]}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading && !!(config && matches)} // Only show refresh si on a déjà des données
+                        onRefresh={onRefresh}
+                        tintColor={colors.primary}
+                        colors={[colors.primary]}
+                    />
+                }
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                {initialLoading || (loading && !(config && matches)) ? renderSkeletonContent() : renderContent()}
+            </ScrollView>
+
+            {/* Modals */}
+            <ConfirmationModal
+                visible={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                title="Confirmer le pari"
+                message={`Êtes-vous sûr de vouloir parier ${formatCurrency(parseInt(customStake) || 0)} sur ${matches?.total_matches || 0} matchs ?\n\nGain potentiel: ${formatCurrency((matches?.summary.total_odds || 0) * (parseInt(customStake) || 0))}`}
+                confirmText="Confirmer"
+                cancelText="Annuler"
+                onConfirm={handleConfirmBet}
+                type="warning"
+                loading={loading}
+                confirmButtonVariant="primary"
+            />
+
+            <SuccessModal
+                visible={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                title="Pari exécuté !"
+                betId={modalData.betId}
+                potentialPayout={modalData.potentialPayout}
+                customMessage="Votre pari a été placé avec succès."
+            />
+
+            <ConfirmationModal
+                visible={showErrorModal}
+                onClose={() => setShowErrorModal(false)}
+                title="Erreur"
+                message={modalData.errorMessage}
+                confirmText="Compris"
+                onConfirm={() => setShowErrorModal(false)}
+                type="error"
+                confirmButtonVariant="outline"
+            />
+        </>
     );
 }
 

@@ -1,10 +1,9 @@
-// ConfigurationTab.tsx - Refactorisé avec les composants réutilisables et Skeleton
+// ConfigurationTab.tsx - Refactorisé avec ConfirmationModal seulement
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     StyleSheet,
     ScrollView,
-    Alert,
     RefreshControl,
     Keyboard,
 } from 'react-native';
@@ -13,11 +12,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFootball } from '@/src/features/football/context/FootballContext';
 import { ConfigUpdateRequest } from '@/src/features/football/types';
 
-
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
 import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
+import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
 import { spacing } from '@/src/styles';
 
 export default function ConfigurationTab() {
@@ -35,6 +34,17 @@ export default function ConfigurationTab() {
     const [hasChanges, setHasChanges] = useState(false);
     const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
     const [initialLoading, setInitialLoading] = useState(true);
+
+    // Modal states
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [modalData, setModalData] = useState({
+        title: '',
+        message: '',
+        confirmText: '',
+        onConfirm: () => {},
+    });
 
     useEffect(() => {
         const initializeData = async () => {
@@ -127,41 +137,56 @@ export default function ConfigurationTab() {
         const validationError = validateForm();
         if (validationError) {
             console.log('❌ Validation error:', validationError);
-            Alert.alert('Erreur de validation', validationError);
+            setModalData({
+                title: 'Erreur de validation',
+                message: validationError,
+                confirmText: 'Compris',
+                onConfirm: () => setShowErrorModal(false),
+            });
+            setShowErrorModal(true);
             return;
         }
 
-        Alert.alert(
-            'Confirmer les modifications',
-            'Êtes-vous sûr de vouloir sauvegarder ces modifications ?',
-            [
-                { text: 'Annuler', style: 'cancel' },
-                {
-                    text: 'Sauvegarder',
-                    onPress: async () => {
-                        console.log('✅ User confirmed save, calling updateConfig...');
-                        try {
-                            const result = await updateConfig(formData);
-                            console.log('🎉 Config update successful:', result);
+        setModalData({
+            title: 'Confirmer les modifications',
+            message: 'Êtes-vous sûr de vouloir sauvegarder ces modifications ?',
+            confirmText: 'Sauvegarder',
+            onConfirm: handleConfirmSave,
+        });
+        setShowConfirmModal(true);
+    };
 
-                            // Mettre à jour le temps de dernière modification
-                            if (result.metadata && result.metadata.updated_at) {
-                                setLastUpdateTime(result.metadata.updated_at);
-                            }
+    const handleConfirmSave = async () => {
+        console.log('✅ User confirmed save, calling updateConfig...');
+        setShowConfirmModal(false);
 
-                            Alert.alert(
-                                'Configuration mise à jour',
-                                `Modifications sauvegardées avec succès !\n\nChangements:\n${result.changes_made.join('\n')}`
-                            );
-                            setHasChanges(false);
-                        } catch (err) {
-                            console.log('💥 Config update failed:', err);
-                            Alert.alert('Erreur', error || 'Erreur lors de la sauvegarde');
-                        }
-                    },
-                },
-            ]
-        );
+        try {
+            const result = await updateConfig(formData);
+            console.log('🎉 Config update successful:', result);
+
+            // Mettre à jour le temps de dernière modification
+            if (result.metadata && result.metadata.updated_at) {
+                setLastUpdateTime(result.metadata.updated_at);
+            }
+
+            setModalData({
+                title: 'Configuration mise à jour',
+                message: `Modifications sauvegardées avec succès !\n\nChangements:\n${result.changes_made.join('\n')}`,
+                confirmText: 'Parfait !',
+                onConfirm: () => setShowSuccessModal(false),
+            });
+            setShowSuccessModal(true);
+            setHasChanges(false);
+        } catch (err) {
+            console.log('💥 Config update failed:', err);
+            setModalData({
+                title: 'Erreur',
+                message: error || 'Erreur lors de la sauvegarde',
+                confirmText: 'Compris',
+                onConfirm: () => setShowErrorModal(false),
+            });
+            setShowErrorModal(true);
+        }
     };
 
     const handleReset = () => {
@@ -189,7 +214,7 @@ export default function ConfigurationTab() {
 
     const renderSkeletonContent = () => (
         <>
-            {/* Current Configuration Display Skeleton - SEULEMENT pour les données API */}
+            {/* Current Configuration Display Skeleton - SEULEMENT données API */}
             <View style={styles.firstSection}>
                 <Text variant="heading3" color="text">
                     Configuration Actuelle
@@ -320,7 +345,7 @@ export default function ConfigurationTab() {
                         title="Réinitialiser"
                         onPress={() => {}}
                         variant="outline"
-                        size = 'sm'
+                        size="sm"
                         disabled={true}
                         style={{ flex: 1 }}
                     />
@@ -329,7 +354,7 @@ export default function ConfigurationTab() {
                         title="Sauvegarder"
                         onPress={() => {}}
                         variant="outline"
-                        size = 'sm'
+                        size="sm"
                         disabled={true}
                         style={{ flex: 1 }}
                     />
@@ -524,7 +549,7 @@ export default function ConfigurationTab() {
                         title="Réinitialiser"
                         onPress={handleReset}
                         variant="outline"
-                        size = 'sm'
+                        size="sm"
                         disabled={!hasChanges || loading}
                         style={{ flex: 1 }}
                     />
@@ -533,7 +558,7 @@ export default function ConfigurationTab() {
                         title={loading ? 'Sauvegarde...' : 'Sauvegarder'}
                         onPress={handleSave}
                         variant="outline"
-                        size = 'sm'
+                        size="sm"
                         disabled={!hasChanges || loading}
                         loading={loading}
                         style={{
@@ -583,25 +608,59 @@ export default function ConfigurationTab() {
     );
 
     return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={[
-                styles.content,
-                { paddingBottom: 50 }
-            ]}
-            refreshControl={
-                <RefreshControl
-                    refreshing={loading && !!config} // Only show refresh si on a déjà des données
-                    onRefresh={onRefresh}
-                    tintColor={colors.primary}
-                    colors={[colors.primary]}
-                />
-            }
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-        >
-            {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
-        </ScrollView>
+        <>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={[
+                    styles.content,
+                    { paddingBottom: 50 }
+                ]}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading && !!config} // Only show refresh si on a déjà des données
+                        onRefresh={onRefresh}
+                        tintColor={colors.primary}
+                        colors={[colors.primary]}
+                    />
+                }
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
+            </ScrollView>
+
+            {/* Modals */}
+            <ConfirmationModal
+                visible={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                title={modalData.title}
+                message={modalData.message}
+                confirmText={modalData.confirmText}
+                onConfirm={modalData.onConfirm}
+                type="warning"
+                loading={loading}
+            />
+
+            <ConfirmationModal
+                visible={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                title={modalData.title}
+                message={modalData.message}
+                confirmText={modalData.confirmText}
+                onConfirm={modalData.onConfirm}
+                type="success"
+            />
+
+            <ConfirmationModal
+                visible={showErrorModal}
+                onClose={() => setShowErrorModal(false)}
+                title={modalData.title}
+                message={modalData.message}
+                confirmText={modalData.confirmText}
+                onConfirm={modalData.onConfirm}
+                type="error"
+            />
+        </>
     );
 }
 
