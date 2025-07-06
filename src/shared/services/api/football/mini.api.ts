@@ -1,4 +1,4 @@
-// src/shared/services/api/football/mini.api.ts
+// src/shared/services/api/football/mini.api.ts (Updated with AuthContext)
 import { apiClient } from "@/src/shared/services/helpers/apiClient";
 import {
     MiniConfig,
@@ -9,7 +9,7 @@ import {
 } from "@/src/features/football/types/mini";
 
 class MiniService {
-    // MINI API 1: Get Mini Config
+    // MINI API 1: Get Mini Config (requires authentication)
     async getConfig(): Promise<MiniConfig> {
         try {
             return await apiClient.get<MiniConfig>('/api/betting/mini/config');
@@ -19,9 +19,10 @@ class MiniService {
         }
     }
 
-    // MINI API 2: Update Mini Config
+    // MINI API 2: Update Mini Config (requires authentication)
     async updateConfig(config: MiniConfigUpdateRequest): Promise<{
         message: string;
+        user: string;
         changes_made: string[];
         new_config: MiniConfig;
         system_type: string;
@@ -37,7 +38,7 @@ class MiniService {
         }
     }
 
-    // MINI API 3: Get Two Matches Preview
+    // MINI API 3: Get Two Matches Preview (no authentication required - shared data)
     async getMatches(): Promise<MiniMatchesResponse> {
         try {
             return await apiClient.get<MiniMatchesResponse>('/api/betting/mini/matches');
@@ -47,7 +48,7 @@ class MiniService {
         }
     }
 
-    // MINI API 4: Execute Mini Bet
+    // MINI API 4: Execute Mini Bet (requires authentication)
     async executeBet(stake: number, acceptOddsChange: boolean = true): Promise<MiniExecuteBetResponse> {
         try {
             const params = {
@@ -62,7 +63,7 @@ class MiniService {
         }
     }
 
-    // MINI API 5: Start Mini Auto Execution
+    // MINI API 5: Start Mini Auto Execution (requires authentication)
     async startAutoExecution(): Promise<MiniAutoExecutionResponse> {
         try {
             return await apiClient.post<MiniAutoExecutionResponse>('/api/betting/mini/auto-execution/start');
@@ -72,7 +73,7 @@ class MiniService {
         }
     }
 
-    // MINI API 6: Stop Mini Auto Execution
+    // MINI API 6: Stop Mini Auto Execution (requires authentication)
     async stopAutoExecution(): Promise<MiniAutoExecutionResponse> {
         try {
             return await apiClient.post<MiniAutoExecutionResponse>('/api/betting/mini/auto-execution/stop');

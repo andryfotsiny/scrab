@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { useMini } from '@/src/features/football/hooks/useMini';
+import { useMini } from '@/src/features/football/context/MiniContext';
 
 // Import des composants réutilisables
 import Button from '@/src/components/atoms/Button';

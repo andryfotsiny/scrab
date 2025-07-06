@@ -1,6 +1,7 @@
-// src/feature/football/types/mini.ts
+// src/features/football/types/mini.ts
 
 export interface MiniConfig {
+    user?: string;
     constraints: {
         min_odds: number;
         max_odds: number;
@@ -12,6 +13,7 @@ export interface MiniConfig {
         default_stake: number;
     };
     system_type: string;
+    source?: string;
     metadata?: {
         created_at?: string;
         updated_at?: string;
@@ -31,6 +33,7 @@ export interface MiniMatch {
 
 export interface MiniMatchesResponse {
     message: string;
+    user?: string | null;
     total_matches: number;
     matches: MiniMatch[];
     summary: {
@@ -49,6 +52,7 @@ export interface MiniMatchesResponse {
 
 export interface MiniExecuteBetResponse {
     message: string;
+    user: string;
     bet_id: number;
     total_matches: number;
     matches: MiniMatch[];
@@ -61,11 +65,13 @@ export interface MiniExecuteBetResponse {
 
 export interface MiniAutoExecutionResponse {
     message: string;
+    user: string;
     execution_time?: string;
     timezone?: string;
     system_type?: string;
     mini_auto_execution_active: boolean;
     was_active?: boolean;
+    started_at?: string;
 }
 
 export interface MiniConfigUpdateRequest {

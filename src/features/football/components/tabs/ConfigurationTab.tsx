@@ -10,10 +10,10 @@ import {
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { useFootball } from '@/src/features/football/hooks/useFootball';
+import { useFootball } from '@/src/features/football/context/FootballContext';
 import { ConfigUpdateRequest } from '@/src/features/football/types';
 
-// Import des composants réutilisables
+
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
 import Text from '@/src/components/atoms/Text';

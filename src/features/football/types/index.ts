@@ -1,6 +1,7 @@
-// src/feature/football/types/index.ts
+// src/features/football/types/index.ts
 
 export interface FootballConfig {
+    user?: string;
     constraints: {
         min_odds: number;
         max_odds: number;
@@ -30,6 +31,7 @@ export interface FootballMatch {
 
 export interface FootballMatchesResponse {
     message: string;
+    user?: string | null;
     total_matches: number;
     matches: FootballMatch[];
     summary: {
@@ -47,6 +49,7 @@ export interface FootballMatchesResponse {
 
 export interface ExecuteBetResponse {
     message: string;
+    user: string;
     bet_id: number;
     total_matches: number;
     matches: FootballMatch[];
@@ -58,10 +61,12 @@ export interface ExecuteBetResponse {
 
 export interface AutoExecutionResponse {
     message: string;
+    user: string;
     execution_time?: string;
     timezone?: string;
     auto_execution_active: boolean;
     was_active?: boolean;
+    started_at?: string;
 }
 
 export interface ConfigUpdateRequest {

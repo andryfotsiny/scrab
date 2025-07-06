@@ -1,5 +1,5 @@
-// MiniScreen.tsx - Refactorisé avec les composants réutilisables
-import React, { useState, useEffect } from 'react';
+// MiniScreen.tsx - Refactorisé avec MiniProvider
+import React, { useState } from 'react';
 import {
     View,
     StyleSheet,
@@ -9,11 +9,13 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/shared/context/ThemeContext';
-import { useMini } from '@/src/features/football/hooks/useMini';
+import { useAuth } from '@/src/shared/context/AuthContext';
+import { MiniProvider } from '@/src/features/football/context/MiniContext';
 
 // Import des composants réutilisables
 import Header from '@/src/components/molecules/Header';
 import TabBar, { TabItem } from '@/src/components/molecules/TabBar';
+import Text from '@/src/components/atoms/Text';
 
 // Import des tabs
 import MiniAutoBetTab from './tabs/MiniAutoBetTab';
@@ -22,15 +24,11 @@ import MiniConfigurationTab from './tabs/MiniConfigurationTab';
 
 type TabType = 'auto' | 'now' | 'config';
 
-export default function MiniScreen() {
+function MiniContent() {
     const { colors, mode } = useTheme();
+    const { isAuthenticated, bet261UserData } = useAuth();
     const insets = useSafeAreaInsets();
     const [activeTab, setActiveTab] = useState<TabType>('auto');
-    const { loadConfig, config } = useMini();
-
-    useEffect(() => {
-        loadConfig().catch(console.error);
-    }, [loadConfig]);
 
     const tabs: TabItem[] = [
         {
@@ -52,6 +50,20 @@ export default function MiniScreen() {
     };
 
     const renderTabContent = () => {
+        // Show message if not authenticated
+        if (!isAuthenticated || !bet261UserData) {
+            return (
+                <View style={styles.notAuthenticatedContainer}>
+                    <Text variant="heading3" color="text" style={{ marginBottom: 16 }}>
+                        Connexion requise
+                    </Text>
+                    <Text variant="body" color="textSecondary" style={{ textAlign: 'center' }}>
+                        Vous devez être connecté avec un compte Bet261 pour accéder aux fonctionnalités de paris Mini (2 matchs).
+                    </Text>
+                </View>
+            );
+        }
+
         switch (activeTab) {
             case 'auto':
                 return <MiniAutoBetTab />;
@@ -106,6 +118,14 @@ export default function MiniScreen() {
     );
 }
 
+export default function MiniScreen() {
+    return (
+        <MiniProvider>
+            <MiniContent />
+        </MiniProvider>
+    );
+}
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -118,5 +138,11 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
+    },
+    notAuthenticatedContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
     },
 });

@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { useFootball } from '@/src/features/football/hooks/useFootball';
+import { useFootball } from '@/src/features/football/context/FootballContext';
 
-// Import des composants réutilisables
+
 import Button from '@/src/components/atoms/Button';
 import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';

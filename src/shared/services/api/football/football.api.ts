@@ -1,4 +1,4 @@
-// src/shared/services/api/football/football.api.ts
+// src/shared/services/api/football/football.api.ts (Updated with AuthContext)
 import { apiClient } from "@/src/shared/services/helpers/apiClient";
 import {
     FootballConfig,
@@ -9,7 +9,7 @@ import {
 } from "@/src/features/football/types";
 
 class FootballService {
-    // API 1: Get Football Config
+    // API 1: Get Football Config (requires authentication)
     async getConfig(): Promise<FootballConfig> {
         try {
             return await apiClient.get<FootballConfig>('/api/betting/football/config');
@@ -19,9 +19,10 @@ class FootballService {
         }
     }
 
-    // API 2: Update Football Config
+    // API 2: Update Football Config (requires authentication)
     async updateConfig(config: ConfigUpdateRequest): Promise<{
         message: string;
+        user: string;
         changes_made: string[];
         new_config: FootballConfig;
         source: string;
@@ -36,7 +37,7 @@ class FootballService {
         }
     }
 
-    // API 3: Get All Football Matches
+    // API 3: Get All Football Matches (no authentication required - shared data)
     async getAllMatches(): Promise<FootballMatchesResponse> {
         try {
             return await apiClient.get<FootballMatchesResponse>('/api/betting/football/matches');
@@ -46,7 +47,7 @@ class FootballService {
         }
     }
 
-    // API 4: Execute Football Bet
+    // API 4: Execute Football Bet (requires authentication)
     async executeBet(stake: number, acceptOddsChange: boolean = true): Promise<ExecuteBetResponse> {
         try {
             const params = {
@@ -61,7 +62,7 @@ class FootballService {
         }
     }
 
-    // API 5: Start Auto Execution
+    // API 5: Start Auto Execution (requires authentication)
     async startAutoExecution(): Promise<AutoExecutionResponse> {
         try {
             return await apiClient.post<AutoExecutionResponse>('/api/betting/football/auto-execution/start');
@@ -71,7 +72,7 @@ class FootballService {
         }
     }
 
-    // API 6: Stop Auto Execution
+    // API 6: Stop Auto Execution (requires authentication)
     async stopAutoExecution(): Promise<AutoExecutionResponse> {
         try {
             return await apiClient.post<AutoExecutionResponse>('/api/betting/football/auto-execution/stop');

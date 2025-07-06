@@ -1,4 +1,4 @@
-// GroloScreen.tsx - Refactorisé avec les composants réutilisables
+// GroloScreen.tsx - Refactorisé avec FootballProvider
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -6,14 +6,17 @@ import {
     StatusBar,
     KeyboardAvoidingView,
     Platform,
+    Alert,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/shared/context/ThemeContext';
-import { useFootball } from '@/src/features/football/hooks/useFootball';
+import { useAuth } from '@/src/shared/context/AuthContext';
+import { FootballProvider } from '@/src/features/football/context/FootballContext';
 
 // Import des composants réutilisables
 import Header from '@/src/components/molecules/Header';
 import TabBar, { TabItem } from '@/src/components/molecules/TabBar';
+import Text from '@/src/components/atoms/Text';
 
 // Import des tabs
 import AutoBetTab from './tabs/AutoBetTab';
@@ -22,15 +25,18 @@ import ConfigurationTab from './tabs/ConfigurationTab';
 
 type TabType = 'auto' | 'now' | 'config';
 
-export default function GroloScreen() {
+function GroloContent() {
     const { colors, mode } = useTheme();
+    const { isAuthenticated, bet261UserData } = useAuth();
     const insets = useSafeAreaInsets();
     const [activeTab, setActiveTab] = useState<TabType>('auto');
-    const { loadConfig, config } = useFootball();
 
+    // Check authentication status
     useEffect(() => {
-        loadConfig().catch(console.error);
-    }, [loadConfig]);
+        if (!isAuthenticated || !bet261UserData) {
+            console.log('⚠️ GroloScreen: User not authenticated, showing warning');
+        }
+    }, [isAuthenticated, bet261UserData]);
 
     const tabs: TabItem[] = [
         {
@@ -52,6 +58,20 @@ export default function GroloScreen() {
     };
 
     const renderTabContent = () => {
+        // Show message if not authenticated
+        if (!isAuthenticated || !bet261UserData) {
+            return (
+                <View style={styles.notAuthenticatedContainer}>
+                    <Text variant="heading3" color="text" style={{ marginBottom: 16 }}>
+                        Connexion requise
+                    </Text>
+                    <Text variant="body" color="textSecondary" style={{ textAlign: 'center' }}>
+                        Vous devez être connecté avec un compte Bet261 pour accéder aux fonctionnalités de paris football.
+                    </Text>
+                </View>
+            );
+        }
+
         switch (activeTab) {
             case 'auto':
                 return <AutoBetTab />;
@@ -106,6 +126,14 @@ export default function GroloScreen() {
     );
 }
 
+export default function GroloScreen() {
+    return (
+        <FootballProvider>
+            <GroloContent />
+        </FootballProvider>
+    );
+}
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -118,5 +146,11 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
+    },
+    notAuthenticatedContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
     },
 });

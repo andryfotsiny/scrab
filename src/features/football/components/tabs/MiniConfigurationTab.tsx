@@ -10,15 +10,14 @@ import {
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { useMini } from '@/src/features/football/hooks/useMini';
-import { MiniConfigUpdateRequest } from '@/src/features/football/types/mini';
+import { useMini } from '@/src/features/football/context/MiniContext';
 
-// Import des composants réutilisables
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
 import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
 import { spacing } from '@/src/styles';
+import {MiniConfigUpdateRequest} from "@/src/features/football/types/mini";
 
 export default function MiniConfigurationTab() {
     const { colors } = useTheme();
