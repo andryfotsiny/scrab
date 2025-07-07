@@ -1,4 +1,4 @@
-// app/(main)/(tabs)/_layout.tsx
+// app/(main)/(tabs)/_layout.tsx - Mise à jour avec les nouveaux écrans
 import { Tabs } from 'expo-router';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,10 +17,10 @@ export default function TabLayout() {
                     backgroundColor: colors.surface,
                     borderTopColor: colors.border || colors.textSecondary,
                     borderTopWidth: 1,
-                    paddingBottom: Math.max(insets.bottom, 8), // Respecte la zone système
+                    paddingBottom: Math.max(insets.bottom, 8),
                     paddingTop: 8,
-                    height: Math.max(70 + insets.bottom, 70), // Hauteur adaptative
-                    position: 'absolute', // Position absolue pour éviter les conflits
+                    height: Math.max(70 + insets.bottom, 70),
+                    position: 'absolute',
                     bottom: 0,
                     left: 0,
                     right: 0,
@@ -63,6 +63,21 @@ export default function TabLayout() {
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="apps-outline" size={size} color={color} />
                     ),
+                }}
+            />
+            {/* Écrans cachés dans les tabs mais accessibles via navigation */}
+            <Tabs.Screen
+                name="grolo"
+                options={{
+                    href: null, // Cache cet onglet de la barre de navigation
+                    title: 'Grolo',
+                }}
+            />
+            <Tabs.Screen
+                name="mini"
+                options={{
+                    href: null, // Cache cet onglet de la barre de navigation
+                    title: 'Mini',
                 }}
             />
         </Tabs>

@@ -88,7 +88,7 @@ function MiniContent() {
                 <SafeAreaView style={styles.safeArea} edges={['top']}>
                     {/* Header réutilisable */}
                     <Header
-                        title="Football Mini (2 matchs)"
+                        title="Football Mini"
                         showBackButton={true}
                         elevated={false}
                     />

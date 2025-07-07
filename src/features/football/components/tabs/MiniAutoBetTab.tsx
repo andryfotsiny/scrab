@@ -108,7 +108,7 @@ export default function MiniAutoBetTab() {
             <View style={styles.firstSection}>
                 <View style={styles.sectionHeader}>
                     <Text variant="heading3" color="text">
-                        Configuration Mini (2 matchs)
+                        Configuration Mini
                     </Text>
                     <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
                         <Text variant="label" style={{ color: '#ffffff' }}>
@@ -236,7 +236,7 @@ export default function MiniAutoBetTab() {
                 <View style={styles.firstSection}>
                     <View style={styles.sectionHeader}>
                         <Text variant="heading3" color="text">
-                            Configuration Mini (2 matchs)
+                            Configuration Mini
                         </Text>
                         <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
                             <Text variant="label" style={{ color: '#ffffff' }}>
