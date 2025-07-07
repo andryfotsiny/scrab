@@ -15,11 +15,17 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    ```bash
    npx expo start
    ```
-
 scrab/
 ├── .expo/
 │   ├── types/
 │   │   └── router.d.ts
+│   ├── web/
+│   │   └── cache/
+│   │       └── production/
+│   │           └── images/
+│   │               └── favicon/
+│   │                   └── favicon-24272cdaeff82cc5facdaccd982a6f05b60c4504704bbf94c19a6388659880bb-contain-transparent/
+│   │                       └── favicon-48.png
 │   ├── README.md
 │   └── devices.json
 ├── .idea/
@@ -39,6 +45,12 @@ scrab/
 │   │   └── login.tsx
 │   ├── (main)/
 │   │   ├── (tabs)/
+│   │   │   ├── _layout.tsx
+│   │   │   ├── football.tsx
+│   │   │   ├── grolo.tsx
+│   │   │   ├── index.tsx
+│   │   │   ├── mini.tsx
+│   │   │   └── other.tsx
 │   │   ├── _layout.tsx
 │   │   └── index.tsx
 │   ├── +not-found.tsx
@@ -49,32 +61,64 @@ scrab/
 │   ├── components/
 │   │   ├── atoms/
 │   │   │   ├── Button.tsx
+│   │   │   ├── Checkbox.tsx
+│   │   │   ├── Input.tsx
 │   │   │   ├── Logo.tsx
+│   │   │   ├── Skeleton.tsx
+│   │   │   ├── Text.tsx
 │   │   │   └── ThemeToggle.tsx
-│   │   ├── templates/
-│   │   │   └── LoginTemplate.tsx
+│   │   ├── molecules/
+│   │   │   ├── Card.tsx
+│   │   │   ├── ConfirmationModal.tsx
+│   │   │   ├── Header.tsx
+│   │   │   ├── SuccessModal.tsx
+│   │   │   └── TabBar.tsx
 │   │   └── index.ts
-│   ├── feature/
-│   │   └── auth/
+│   ├── features/
+│   │   ├── auth/
+│   │   │   ├── components/
+│   │   │   │   ├── LoginScreen.tsx
+│   │   │   │   └── UserInfoScreen.tsx
+│   │   │   ├── hooks/
+│   │   │   │   └── useAuth.ts
+│   │   │   ├── types/
+│   │   │   │   └── index.tsx
+│   │   │   └── index.ts
+│   │   └── football/
 │   │       ├── components/
-│   │       │   ├── LoginScreen.tsx
-│   │       │   └── UserInfoScreen.tsx
-│   │       ├── hooks/
-│   │       │   └── useAuth.ts
-│   │       ├── services/
-│   │       ├── types/
-│   │       │   └── index.tsx
-│   │       └── index.ts
+│   │       │   ├── tabs/
+│   │       │   │   ├── AutoBetTab.tsx
+│   │       │   │   ├── BetNowTab.tsx
+│   │       │   │   ├── ConfigurationTab.tsx
+│   │       │   │   ├── MiniAutoBetTab.tsx
+│   │       │   │   ├── MiniBetNowTab.tsx
+│   │       │   │   └── MiniConfigurationTab.tsx
+│   │       │   ├── GroloScreen.tsx
+│   │       │   └── MiniScreen.tsx
+│   │       ├── context/
+│   │       │   ├── FootballContext.tsx
+│   │       │   └── MiniContext.tsx
+│   │       └── MenuFootball.tsx
 │   ├── shared/
 │   │   ├── context/
+│   │   │   ├── AuthContext.tsx
 │   │   │   └── ThemeContext.tsx
+│   │   ├── hooks/
+│   │   │   └── useSessionManager.ts
 │   │   └── services/
 │   │       ├── api/
 │   │       │   ├── auth/
+│   │       │   │   ├── TokenRefreshManager.ts
 │   │       │   │   └── auth.api.ts
+│   │       │   ├── football/
+│   │       │   │   ├── football.api.ts
+│   │       │   │   └── mini.api.ts
 │   │       │   └── constant-api.ts
-│   │       └── helpers/
-│   │           └── apiClient.ts
+│   │       ├── helpers/
+│   │       │   └── apiClient.ts
+│   │       └── types/
+│   │           ├── grolo.type.ts
+│   │           └── mini.type.ts
 │   └── styles/
 │       └── index.ts
 ├── .env

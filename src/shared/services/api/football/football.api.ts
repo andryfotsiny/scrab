@@ -6,7 +6,7 @@ import {
     ExecuteBetResponse,
     AutoExecutionResponse,
     ConfigUpdateRequest
-} from "../../types";
+} from "@/src/shared/services/types/grolo.type";
 
 class FootballService {
     // API 1: Get Football Config (requires authentication)
