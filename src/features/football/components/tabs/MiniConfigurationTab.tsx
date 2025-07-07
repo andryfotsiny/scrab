@@ -17,7 +17,7 @@ import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
 import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
 import { spacing } from '@/src/styles';
-import { MiniConfigUpdateRequest } from "@/src/features/football/types/mini";
+import { MiniConfigUpdateRequest } from "@/src/shared/services/types/mini";
 
 export default function MiniConfigurationTab() {
     const { colors } = useTheme();

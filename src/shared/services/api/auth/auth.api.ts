@@ -1,6 +1,7 @@
-// src/shared/services/api/auth/auth.api.ts
+// src/shared/services/api/auth/auth.api.ts - ENHANCED avec Auto-Refresh
 import { apiClient } from "@/src/shared/services/helpers/apiClient";
 import { LoginRequest, LoginResponse, LocalUserInfo, Bet261UserData } from "@/src/features/auth/types";
+import { tokenRefreshManager } from '@/src/shared/services/api/auth/TokenRefreshManager';
 
 class AuthService {
     private authToken: string | null = null;
@@ -8,11 +9,16 @@ class AuthService {
     // Set authentication token for subsequent requests
     setAuthToken(token: string) {
         this.authToken = token;
+        // ✅ Synchroniser avec apiClient
+        apiClient.setAuthToken(token);
     }
 
     // Clear authentication token
     clearAuthToken() {
         this.authToken = null;
+        apiClient.clearAuthToken();
+        // ✅ Nettoyer aussi le refresh manager
+        tokenRefreshManager.clearTokenData();
     }
 
     // Get current auth token
@@ -20,49 +26,58 @@ class AuthService {
         return this.authToken;
     }
 
-    // Update apiClient to include auth header
-    private async authenticatedRequest<T>(endpoint: string, method: 'GET' | 'POST' = 'GET', options: any = {}): Promise<T> {
-        const headers = {
-            ...options.headers,
-            ...(this.authToken && { 'Authorization': `Bearer ${this.authToken}` })
-        };
-
-        if (method === 'GET') {
-            return await apiClient.get<T>(endpoint, options.params);
-        } else if (method === 'POST') {
-            return await apiClient.post<T>(endpoint, options.body, options.params);
-        }
-
-        throw new Error('Unsupported HTTP method');
-    }
-
-    // Login with user credentials
+    // ✅ MÉTHODE MODIFIÉE: Login avec initialisation du refresh manager
     async login(loginData: LoginRequest): Promise<LoginResponse> {
         try {
-            console.log('🔐 Attempting login for user:', loginData.bet_login);
-            const response = await apiClient.post<LoginResponse>('/api/login', loginData);
+            console.log('🔐 AuthService: Attempting login for user:', loginData.bet_login);
 
-            // Store the token for subsequent requests
-            if (response.token) {
-                this.setAuthToken(response.token);
+            // ✅ Utiliser la requête normale (pas d'auto-refresh pour le login)
+            const response = await fetch(`${apiClient['baseURL']}/api/login`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(loginData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Login failed: ${response.status} - ${response.statusText}`);
             }
 
-            return response;
+            const loginResponse: LoginResponse = await response.json();
+
+            // ✅ Stocker le token et initialiser le refresh manager
+            if (loginResponse.token) {
+                this.setAuthToken(loginResponse.token);
+
+                // ✅ Initialiser le système de refresh avec les credentials
+                await tokenRefreshManager.initialize(
+                    loginResponse.token,
+                    loginResponse.user_login,
+                    {
+                        betLogin: loginData.bet_login,
+                        betPassword: loginData.bet_password
+                    }
+                );
+
+                console.log('✅ AuthService: Token et refresh manager initialisés');
+            }
+
+            return loginResponse;
         } catch (error) {
-            console.error('❌ Login error:', error);
+            console.error('❌ AuthService: Login error:', error);
             throw error;
         }
     }
 
-    // Get local user info (requires authentication)
+    // ✅ MÉTHODE INCHANGÉE: Get local user info (utilise auto-refresh via apiClient)
     async getUserInfo(): Promise<LocalUserInfo> {
         try {
             if (!this.authToken) {
                 throw new Error('No authentication token available');
             }
 
-            // Sync token with apiClient before making request
-            apiClient.setAuthToken(this.authToken);
             return await apiClient.get<LocalUserInfo>('/api/user-info');
         } catch (error) {
             console.error('❌ Get user info error:', error);
@@ -70,15 +85,13 @@ class AuthService {
         }
     }
 
-    // Get Bet261 user data (requires authentication)
+    // ✅ MÉTHODE INCHANGÉE: Get Bet261 user data (utilise auto-refresh via apiClient)
     async getBet261UserInfo(): Promise<Bet261UserData> {
         try {
             if (!this.authToken) {
                 throw new Error('No authentication token available');
             }
 
-            // Sync token with apiClient before making request
-            apiClient.setAuthToken(this.authToken);
             return await apiClient.get<Bet261UserData>('/api/bet261-user-info');
         } catch (error) {
             console.error('❌ Get Bet261 user info error:', error);
@@ -86,15 +99,13 @@ class AuthService {
         }
     }
 
-    // Get account configuration (requires authentication)
+    // ✅ MÉTHODE INCHANGÉE: Get account configuration (utilise auto-refresh via apiClient)
     async getConfiguration(): Promise<any> {
         try {
             if (!this.authToken) {
                 throw new Error('No authentication token available');
             }
 
-            // Sync token with apiClient before making request
-            apiClient.setAuthToken(this.authToken);
             return await apiClient.get<any>('/api/configuration');
         } catch (error) {
             console.error('❌ Get configuration error:', error);
@@ -102,29 +113,53 @@ class AuthService {
         }
     }
 
-    // Logout user (requires authentication)
+    // ✅ MÉTHODE MODIFIÉE: Logout avec nettoyage du refresh manager
     async logout(): Promise<{ message: string; logged_out_user: string }> {
         try {
             if (!this.authToken) {
                 throw new Error('No authentication token available');
             }
 
-            // Sync token with apiClient before making request
-            apiClient.setAuthToken(this.authToken);
-            const response = await apiClient.post<{ message: string; logged_out_user: string }>('/api/logout');
+            // ✅ Tentative de logout côté serveur (avec auto-refresh si nécessaire)
+            let response;
+            try {
+                response = await apiClient.post<{ message: string; logged_out_user: string }>('/api/logout');
+            } catch (error) {
+                // ✅ Si le logout serveur échoue, continuer avec le nettoyage local
+                console.warn('⚠️ AuthService: Server logout failed, proceeding with local cleanup:', error);
+            }
 
-            // Clear the token after successful logout
+            // ✅ Nettoyer les tokens et le refresh manager
             this.clearAuthToken();
-            apiClient.clearAuthToken();
 
-            return response;
+            return response || {
+                message: 'Déconnexion locale réussie',
+                logged_out_user: 'unknown'
+            };
         } catch (error) {
             console.error('❌ Logout error:', error);
-            // Clear token even if logout fails
+            // ✅ Nettoyer même en cas d'erreur
             this.clearAuthToken();
-            apiClient.clearAuthToken();
             throw error;
         }
+    }
+
+    // ✅ NOUVELLE MÉTHODE: Vérifier si la session est encore valide
+    async isSessionValid(): Promise<boolean> {
+        if (!this.authToken) {
+            return false;
+        }
+
+        return await tokenRefreshManager.ensureValidToken();
+    }
+
+    // ✅ NOUVELLE MÉTHODE: Forcer un refresh manuel
+    async refreshSession(): Promise<boolean> {
+        if (!this.authToken) {
+            return false;
+        }
+
+        return await tokenRefreshManager.handleExpiredToken();
     }
 }
 

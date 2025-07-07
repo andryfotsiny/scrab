@@ -6,7 +6,7 @@ import {
     MiniExecuteBetResponse,
     MiniAutoExecutionResponse,
     MiniConfigUpdateRequest
-} from "@/src/features/football/types/mini";
+} from "@/src/shared/services/types/mini";
 
 class MiniService {
     // MINI API 1: Get Mini Config (requires authentication)

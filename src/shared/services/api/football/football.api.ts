@@ -6,7 +6,7 @@ import {
     ExecuteBetResponse,
     AutoExecutionResponse,
     ConfigUpdateRequest
-} from "@/src/features/football/types";
+} from "../../types";
 
 class FootballService {
     // API 1: Get Football Config (requires authentication)

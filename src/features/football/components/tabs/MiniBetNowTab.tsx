@@ -11,7 +11,7 @@ import {
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useMini } from '@/src/features/football/context/MiniContext';
-import { MiniMatch } from '@/src/features/football/types/mini';
+import { MiniMatch } from '@/src/shared/services/types/mini';
 
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';

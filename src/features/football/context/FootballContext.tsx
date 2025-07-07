@@ -1,4 +1,4 @@
-// src/features/football/context/FootballContext.tsx
+// src/features/football/context/FootballContext.tsx - VERSION SANS BOUCLE
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { footballService } from '@/src/shared/services/api/football/football.api';
 import { useAuth } from '@/src/shared/context/AuthContext';
@@ -8,7 +8,7 @@ import {
     ExecuteBetResponse,
     AutoExecutionResponse,
     ConfigUpdateRequest
-} from '@/src/features/football/types';
+} from '../../../shared/services/types';
 
 interface FootballContextType {
     loading: boolean;
@@ -48,7 +48,10 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isAuthenticated, bet261UserData]);
 
-    // Charger la configuration (requires auth)
+    // ✅ SOLUTION SIMPLE: Supprimer executeWithSessionCheck et laisser apiClient gérer
+    // L'apiClient enhanced gère déjà automatiquement le refresh, pas besoin de double logique
+
+    // ✅ Charger la configuration (version simplifiée)
     const loadConfig = useCallback(async () => {
         try {
             ensureAuthenticated();
@@ -56,6 +59,7 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
             setError(null);
             console.log('🔄 FootballContext: Loading config...');
 
+            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
             const configData = await footballService.getConfig();
             console.log('✅ FootballContext: Config loaded:', configData);
 
@@ -69,9 +73,9 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setLoading(false);
         }
-    }, [ensureAuthenticated]);
+    }, [ensureAuthenticated]); // ✅ Dépendances correctes
 
-    // Mettre à jour la configuration (requires auth)
+    // ✅ Mettre à jour la configuration (version simplifiée)
     const updateConfig = useCallback(async (updates: ConfigUpdateRequest) => {
         try {
             ensureAuthenticated();
@@ -79,6 +83,7 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
             setLoading(true);
             setError(null);
 
+            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
             const response = await footballService.updateConfig(updates);
             console.log('✅ FootballContext: Config updated successfully:', response);
 
@@ -102,7 +107,7 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         }
     }, [ensureAuthenticated]);
 
-    // Charger les matchs (no auth required - shared data)
+    // ✅ Charger les matchs (no auth required - shared data)
     const loadMatches = useCallback(async () => {
         try {
             setLoading(true);
@@ -124,7 +129,7 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    // Exécuter un pari (requires auth)
+    // ✅ Exécuter un pari (version simplifiée)
     const executeBet = useCallback(async (stake: number, acceptOddsChange: boolean = true) => {
         try {
             ensureAuthenticated();
@@ -132,6 +137,7 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
             setLoading(true);
             setError(null);
 
+            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
             const response = await footballService.executeBet(stake, acceptOddsChange);
             console.log('✅ FootballContext: Bet executed successfully:', response);
 
@@ -146,7 +152,7 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         }
     }, [ensureAuthenticated]);
 
-    // Démarrer l'exécution automatique (requires auth)
+    // ✅ Démarrer l'exécution automatique (version simplifiée)
     const startAutoExecution = useCallback(async () => {
         try {
             ensureAuthenticated();
@@ -154,6 +160,7 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
             setError(null);
             console.log('🔄 FootballContext: Starting auto execution...');
 
+            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
             const response = await footballService.startAutoExecution();
             console.log('✅ FootballContext: Auto execution started:', response);
 
@@ -169,7 +176,7 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         }
     }, [ensureAuthenticated]);
 
-    // Arrêter l'exécution automatique (requires auth)
+    // ✅ Arrêter l'exécution automatique (version simplifiée)
     const stopAutoExecution = useCallback(async () => {
         try {
             ensureAuthenticated();
@@ -177,6 +184,7 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
             setError(null);
             console.log('🔄 FootballContext: Stopping auto execution...');
 
+            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
             const response = await footballService.stopAutoExecution();
             console.log('✅ FootballContext: Auto execution stopped:', response);
 
@@ -203,7 +211,10 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isAuthenticated]);
 
-    // Debug effect
+    // ✅ SUPPRIMÉ: sessionManager et useSessionManager pour éviter la boucle
+    // L'apiClient enhanced gère déjà tout automatiquement
+
+    // Debug effect - réduit pour éviter le spam
     useEffect(() => {
         console.log('🔍 FootballContext state changed:', {
             loading,

@@ -11,7 +11,7 @@ import {
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFootball } from '@/src/features/football/context/FootballContext';
-import { FootballMatch } from '@/src/features/football/types';
+import { FootballMatch } from '../../../../shared/services/types';
 
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';

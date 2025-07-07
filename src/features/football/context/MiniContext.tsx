@@ -1,4 +1,4 @@
-// src/features/football/context/MiniContext.tsx
+// src/features/football/context/MiniContext.tsx - VERSION SANS BOUCLE
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { miniService } from '@/src/shared/services/api/football/mini.api';
 import { useAuth } from '@/src/shared/context/AuthContext';
@@ -8,7 +8,7 @@ import {
     MiniExecuteBetResponse,
     MiniAutoExecutionResponse,
     MiniConfigUpdateRequest
-} from '@/src/features/football/types/mini';
+} from '@/src/shared/services/types/mini';
 
 interface MiniContextType {
     loading: boolean;
@@ -49,7 +49,9 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isAuthenticated, bet261UserData]);
 
-    // Charger la configuration (requires auth)
+    // ✅ SOLUTION SIMPLE: Appels directs - l'apiClient gère automatiquement le refresh
+
+    // ✅ Charger la configuration (version simplifiée)
     const loadConfig = useCallback(async () => {
         try {
             ensureAuthenticated();
@@ -57,6 +59,7 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
             setError(null);
             console.log('🔄 MiniContext: Loading config...');
 
+            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
             const configData = await miniService.getConfig();
             console.log('✅ MiniContext: Config loaded:', configData);
 
@@ -70,9 +73,9 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setLoading(false);
         }
-    }, [ensureAuthenticated]);
+    }, [ensureAuthenticated]); // ✅ Dépendances correctes
 
-    // Mettre à jour la configuration (requires auth)
+    // ✅ Mettre à jour la configuration (version simplifiée)
     const updateConfig = useCallback(async (updates: MiniConfigUpdateRequest) => {
         try {
             ensureAuthenticated();
@@ -80,6 +83,7 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
             setLoading(true);
             setError(null);
 
+            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
             const response = await miniService.updateConfig(updates);
             console.log('✅ MiniContext: Config updated successfully:', response);
 
@@ -116,7 +120,7 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         }
     }, [ensureAuthenticated]);
 
-    // Charger les matchs (no auth required - shared data)
+    // ✅ Charger les matchs (no auth required - shared data)
     const loadMatches = useCallback(async () => {
         try {
             setLoading(true);
@@ -138,7 +142,7 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    // Exécuter un pari (requires auth)
+    // ✅ Exécuter un pari (version simplifiée)
     const executeBet = useCallback(async (stake: number, acceptOddsChange: boolean = true) => {
         try {
             ensureAuthenticated();
@@ -146,6 +150,7 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
             setLoading(true);
             setError(null);
 
+            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
             const response = await miniService.executeBet(stake, acceptOddsChange);
             console.log('✅ MiniContext: Bet executed successfully:', response);
 
@@ -160,7 +165,7 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         }
     }, [ensureAuthenticated]);
 
-    // Démarrer l'exécution automatique (requires auth)
+    // ✅ Démarrer l'exécution automatique (version simplifiée)
     const startAutoExecution = useCallback(async () => {
         try {
             ensureAuthenticated();
@@ -168,6 +173,7 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
             setError(null);
             console.log('🔄 MiniContext: Starting auto execution...');
 
+            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
             const response = await miniService.startAutoExecution();
             console.log('✅ MiniContext: Auto execution started:', response);
 
@@ -183,7 +189,7 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         }
     }, [ensureAuthenticated]);
 
-    // Arrêter l'exécution automatique (requires auth)
+    // ✅ Arrêter l'exécution automatique (version simplifiée)
     const stopAutoExecution = useCallback(async () => {
         try {
             ensureAuthenticated();
@@ -191,6 +197,7 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
             setError(null);
             console.log('🔄 MiniContext: Stopping auto execution...');
 
+            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
             const response = await miniService.stopAutoExecution();
             console.log('✅ MiniContext: Auto execution stopped:', response);
 
@@ -217,7 +224,7 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isAuthenticated]);
 
-    // Debug effect
+    // Debug effect - réduit pour éviter le spam
     useEffect(() => {
         console.log('🔍 MiniContext state changed:', {
             loading,
