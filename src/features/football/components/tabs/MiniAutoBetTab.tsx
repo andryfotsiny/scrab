@@ -1,10 +1,11 @@
-// MiniAutoBetTab.tsx - UPDATED avec React Query
-import React, { useState, useCallback } from 'react';
+// MiniAutoBetTab.tsx - VERSION RESPONSIVE
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
     StyleSheet,
     ScrollView,
     RefreshControl,
+    Dimensions,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,10 +18,39 @@ import Skeleton from '@/src/components/atoms/Skeleton';
 import SuccessModal from '@/src/components/molecules/SuccessModal';
 import { spacing } from '@/src/styles';
 
+// Hook pour la responsivité
+const useScreenSize = () => {
+    const [screenSize, setScreenSize] = useState(() => {
+        const { width } = Dimensions.get('window');
+        return {
+            width,
+            isTablet: width >= 768,
+            isDesktop: width >= 1024,
+            isMobile: width < 768,
+        };
+    });
+
+    useEffect(() => {
+        const subscription = Dimensions.addEventListener('change', ({ window }) => {
+            setScreenSize({
+                width: window.width,
+                isTablet: window.width >= 768,
+                isDesktop: window.width >= 1024,
+                isMobile: window.width < 768,
+            });
+        });
+
+        return () => subscription?.remove();
+    }, []);
+
+    return screenSize;
+};
+
 export default function MiniAutoBetTab() {
     const { colors } = useTheme();
+    const screenSize = useScreenSize();
 
-    // ✅ Utilisation directe des hooks React Query + contexte simplifié
+    // Utilisation directe des hooks React Query + contexte simplifié
     const { data: config, isLoading: configLoading, error: configError } = useMiniConfig();
     const { refreshConfig } = useMiniUtils();
     const {
@@ -31,7 +61,7 @@ export default function MiniAutoBetTab() {
         stopAutoExecution,
     } = useMini();
 
-    // ✅ États de chargement dérivés
+    // États de chargement dérivés
     const loading = configLoading || contextLoading;
     const error = configError?.message || contextError;
     const initialLoading = configLoading && !config;
@@ -45,7 +75,7 @@ export default function MiniAutoBetTab() {
         type: 'success' as 'success' | 'info',
     });
 
-    // ✅ React Query gère automatiquement le refresh
+    // React Query gère automatiquement le refresh
     const onRefresh = useCallback(async () => {
         try {
             await refreshConfig();
@@ -91,291 +121,220 @@ export default function MiniAutoBetTab() {
         }).format(amount);
     };
 
-    const renderSkeletonContent = () => (
-        <>
-            {/* Configuration Section Skeleton - SEULEMENT données API */}
-            <View style={styles.firstSection}>
-                <View style={styles.sectionHeader}>
-                    <Text variant="heading3" color="text">
-                        Configuration
+    // Rendu de la configuration Mini pour desktop
+    const renderDesktopConfigSection = () => (
+        <View style={[
+            styles.configSection,
+            screenSize.isDesktop && styles.desktopConfigSection
+        ]}>
+            <View style={styles.sectionHeader}>
+                <Text
+                    variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                    color="text"
+                >
+                    Configuration Mini
+                </Text>
+                <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
+                    <Text variant="label" style={{ color: '#ffffff' }}>
+                        Actif
                     </Text>
-                    <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
-                        <Text variant="label" style={{ color: '#ffffff' }}>
-                            Actif
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.configGrid}>
-                    <View style={styles.configItem}>
-                        <Text variant="caption" color="textSecondary">
-                            Cotes
-                        </Text>
-                        <Skeleton width="70%" height={18} animated={false} />
-                    </View>
-
-                    <View style={styles.configItem}>
-                        <Text variant="caption" color="textSecondary">
-                            Nombre de matchs
-                        </Text>
-                        <Skeleton width="40%" height={18} animated={false} />
-                    </View>
-
-                    <View style={styles.configItem}>
-                        <Text variant="caption" color="textSecondary">
-                            Mise par défaut
-                        </Text>
-                        <Skeleton width="80%" height={18} animated={false} />
-                    </View>
                 </View>
             </View>
 
-            {/* Auto Execution Section - React Query gère l'état */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Exécution Automatique Mini
-                </Text>
-
-                <View style={styles.autoSection}>
-                    <View style={styles.autoInfo}>
-                        <Ionicons
-                            name="flash-outline"
-                            size={24}
-                            color={colors.primary}
-                        />
-                        <View style={styles.autoTextContainer}>
-                            <Text variant="body" weight="bold" color="text">
-                                Pari automatique mini à 00h00
-                            </Text>
-                            <Text variant="caption" color="textSecondary">
-                                Système: 2 matchs sélectionnés automatiquement
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.statusContainer}>
-                        <Skeleton width={12} height={12} borderRadius={6} animated={false} />
-                        <Skeleton width="30%" height={14} animated={false} />
-                    </View>
+            <View style={[
+                styles.configGrid,
+                screenSize.isDesktop && styles.desktopConfigGrid
+            ]}>
+                <View style={[styles.configItem, screenSize.isDesktop && styles.desktopConfigItem]}>
+                    <Text variant="caption" color="textSecondary">
+                        Cotes
+                    </Text>
+                    {config ? (
+                        <Text
+                            variant={screenSize.isDesktop ? "heading3" : "body"}
+                            weight="bold"
+                            color="text"
+                        >
+                            {config.constraints.min_odds} - {config.constraints.max_odds}
+                        </Text>
+                    ) : (
+                        <Skeleton width="70%" height={screenSize.isDesktop ? 24 : 18} animated={false} />
+                    )}
                 </View>
 
-                <Button
-                    title="Chargement..."
-                    onPress={() => {}}
-                    variant="outline"
-                    size="sm"
-                    disabled={true}
-                    style={{
-                        borderColor: colors.textSecondary,
-                        paddingVertical: spacing.xs,
-                        paddingHorizontal: spacing.xs,
-                    }}
-                    textStyle={{
-                        color: colors.textSecondary,
-                    }}
-                />
-            </View>
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Information Section - Textes statiques */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Informations Mini
-                </Text>
-
-                <View style={styles.infoList}>
-                    <View style={styles.infoItem}>
-                        <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Le système Mini sélectionne automatiquement exactement 2 matchs
+                <View style={[styles.configItem, screenSize.isDesktop && styles.desktopConfigItem]}>
+                    <Text variant="caption" color="textSecondary">
+                        Nombre de matchs
+                    </Text>
+                    {config ? (
+                        <Text
+                            variant={screenSize.isDesktop ? "heading3" : "body"}
+                            weight="bold"
+                            color="text"
+                        >
+                            {config.constraints.max_matches} matchs
                         </Text>
-                    </View>
+                    ) : (
+                        <Skeleton width="40%" height={screenSize.isDesktop ? 24 : 18} animated={false} />
+                    )}
+                </View>
 
-                    <View style={styles.infoItem}>
-                        <Ionicons name="checkmark-circle-outline" size={16} color={colors.success} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Cotes optimisées pour des gains réguliers avec risque réduit
+                <View style={[styles.configItem, screenSize.isDesktop && styles.desktopConfigItem]}>
+                    <Text variant="caption" color="textSecondary">
+                        Mise par défaut
+                    </Text>
+                    {config ? (
+                        <Text
+                            variant={screenSize.isDesktop ? "heading3" : "body"}
+                            weight="bold"
+                            color="primary"
+                        >
+                            {formatCurrency(config.settings.default_stake)}
                         </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Exécution quotidienne à minuit (Madagascar) - Cache intelligent
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="server-outline" size={16} color={colors.success} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Cette application s'exécute toujours même si votre téléphone n'a pas de connexion internet
-                        </Text>
-                    </View>
+                    ) : (
+                        <Skeleton width="80%" height={screenSize.isDesktop ? 24 : 18} animated={false} />
+                    )}
                 </View>
             </View>
-        </>
+        </View>
     );
 
-    const renderContent = () => (
-        <>
-            {/* Configuration Section */}
-            {config && (
-                <View style={styles.firstSection}>
-                    <View style={styles.sectionHeader}>
-                        <Text variant="heading3" color="text">
-                            Configuration Mini
-                        </Text>
-                        <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
-                            <Text variant="label" style={{ color: '#ffffff' }}>
-                                Actif
-                            </Text>
-                        </View>
-                    </View>
+    // Rendu de la section d'exécution automatique Mini
+    const renderAutoExecutionSection = () => (
+        <View style={[
+            styles.section,
+            screenSize.isDesktop && styles.desktopSection
+        ]}>
+            <Text
+                variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                color="text"
+            >
+                Exécution Automatique Mini
+            </Text>
 
-                    <View style={styles.configGrid}>
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Cotes
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {config.constraints.min_odds} - {config.constraints.max_odds}
-                            </Text>
-                        </View>
-
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Nombre de matchs
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {config.constraints.max_matches} matchs
-                            </Text>
-                        </View>
-
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Mise par défaut
-                            </Text>
-                            <Text variant="body" weight="bold" color="primary">
-                                {formatCurrency(config.settings.default_stake)}
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-            )}
-
-            {/* Auto Execution Section */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Exécution Automatique Mini
-                </Text>
-
-                <View style={styles.autoSection}>
-                    <View style={styles.autoInfo}>
-                        <Ionicons
-                            name="flash-outline"
-                            size={24}
-                            color={colors.primary}
-                        />
-                        <View style={styles.autoTextContainer}>
-                            <Text variant="body" weight="bold" color="text">
-                                Pari automatique mini à 00h00
-                            </Text>
-                            <Text variant="caption" color="textSecondary">
-                                Système: 2 matchs sélectionnés automatiquement
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.statusContainer}>
-                        <View style={[
-                            styles.statusIndicator,
-                            { backgroundColor: miniAutoExecutionActive ? colors.success : colors.error }
-                        ]} />
+            <View style={[
+                styles.autoSection,
+                screenSize.isDesktop && styles.desktopAutoSection
+            ]}>
+                <View style={styles.autoInfo}>
+                    <Ionicons
+                        name="flash-outline"
+                        size={screenSize.isDesktop ? 28 : 24}
+                        color={colors.primary}
+                    />
+                    <View style={styles.autoTextContainer}>
                         <Text
-                            variant="caption"
+                            variant={screenSize.isDesktop ? "heading3" : "body"}
                             weight="bold"
-                            style={{ color: miniAutoExecutionActive ? colors.success : colors.error }}
+                            color="text"
                         >
-                            {miniAutoExecutionActive ? 'Actif' : 'Inactif'}
+                            Pari automatique mini à 00h00
+                        </Text>
+                        <Text variant="caption" color="textSecondary">
+                            Système: 2 matchs sélectionnés automatiquement
                         </Text>
                     </View>
                 </View>
 
-                <Button
-                    title={loading
-                        ? 'Traitement...'
-                        : miniAutoExecutionActive
-                            ? 'Arrêter'
-                            : 'Démarrer'
-                    }
-                    onPress={handleToggleAutoExecution}
-                    variant="outline"
-                    size="sm"
-                    disabled={loading}
-                    loading={loading}
-                    style={{
-                        borderColor: miniAutoExecutionActive ? colors.error : colors.success,
-                        paddingVertical: spacing.xs,
-                        paddingHorizontal: spacing.xs,
-                    }}
-                    textStyle={{
-                        color: miniAutoExecutionActive ? colors.error : colors.success,
-                    }}
-                />
-            </View>
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Information Section */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Informations Mini
-                </Text>
-
-                <View style={styles.infoList}>
-                    <View style={styles.infoItem}>
-                        <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Le système Mini sélectionne automatiquement exactement 2 matchs
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="checkmark-circle-outline" size={16} color={colors.success} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Cotes optimisées pour des gains réguliers avec risque réduit
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Exécution quotidienne à minuit (Madagascar) - Cache intelligent
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="server-outline" size={16} color={colors.success} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Cette application s'exécute toujours même si votre téléphone n'a pas de connexion internet
-                        </Text>
-                    </View>
+                <View style={styles.statusContainer}>
+                    <View style={[
+                        styles.statusIndicator,
+                        { backgroundColor: miniAutoExecutionActive ? colors.success : colors.error }
+                    ]} />
+                    <Text
+                        variant="caption"
+                        weight="bold"
+                        style={{ color: miniAutoExecutionActive ? colors.success : colors.error }}
+                    >
+                        {miniAutoExecutionActive ? 'Actif' : 'Inactif'}
+                    </Text>
                 </View>
             </View>
-        </>
+
+            <Button
+                title={loading
+                    ? 'Traitement...'
+                    : miniAutoExecutionActive
+                        ? 'Arrêter'
+                        : 'Démarrer'
+                }
+                onPress={handleToggleAutoExecution}
+                variant="outline"
+                size={screenSize.isDesktop ? "md" : "sm"}
+                disabled={loading}
+                loading={loading}
+                style={{
+                    borderColor: miniAutoExecutionActive ? colors.error : colors.success,
+                    paddingVertical: spacing.xs,
+                    paddingHorizontal: spacing.xs,
+                    ...(screenSize.isDesktop && { minWidth: 200 })
+                }}
+                textStyle={{
+                    color: miniAutoExecutionActive ? colors.error : colors.success,
+                }}
+            />
+        </View>
+    );
+
+    // Rendu de la section d'informations Mini
+    const renderInformationSection = () => (
+        <View style={[
+            styles.section,
+            screenSize.isDesktop && styles.desktopSection
+        ]}>
+            <Text
+                variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                color="text"
+            >
+                Informations Mini
+            </Text>
+
+            <View style={[
+                styles.infoList,
+                screenSize.isDesktop && styles.desktopInfoList
+            ]}>
+                <View style={[styles.infoItem, screenSize.isDesktop && styles.desktopInfoItem]}>
+                    <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
+                    <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                        Le système Mini sélectionne automatiquement exactement 2 matchs
+                    </Text>
+                </View>
+
+                <View style={[styles.infoItem, screenSize.isDesktop && styles.desktopInfoItem]}>
+                    <Ionicons name="checkmark-circle-outline" size={16} color={colors.success} />
+                    <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                        Cotes optimisées pour des gains réguliers avec risque réduit
+                    </Text>
+                </View>
+
+                <View style={[styles.infoItem, screenSize.isDesktop && styles.desktopInfoItem]}>
+                    <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
+                    <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                        Exécution quotidienne à minuit (Madagascar) - Cache intelligent
+                    </Text>
+                </View>
+
+                <View style={[styles.infoItem, screenSize.isDesktop && styles.desktopInfoItem]}>
+                    <Ionicons name="server-outline" size={16} color={colors.success} />
+                    <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                        Cette application s'exécute toujours même si votre téléphone n'a pas de connexion internet
+                    </Text>
+                </View>
+            </View>
+        </View>
     );
 
     return (
         <>
             <ScrollView
                 style={styles.container}
-                contentContainerStyle={styles.content}
+                contentContainerStyle={[
+                    styles.content,
+                    screenSize.isDesktop && styles.desktopContent
+                ]}
                 refreshControl={
                     <RefreshControl
-                        refreshing={loading && !!config} // Only show refresh si on a déjà des données
+                        refreshing={loading && !!config}
                         onRefresh={onRefresh}
                         tintColor={colors.primary}
                         colors={[colors.primary]}
@@ -383,7 +342,33 @@ export default function MiniAutoBetTab() {
                 }
                 showsVerticalScrollIndicator={false}
             >
-                {initialLoading ? renderSkeletonContent() : renderContent()}
+                {screenSize.isDesktop ? (
+                    // Layout desktop avec colonnes
+                    <View style={styles.desktopLayout}>
+                        <View style={styles.desktopLeftColumn}>
+                            {renderDesktopConfigSection()}
+                            {renderAutoExecutionSection()}
+                        </View>
+                        <View style={styles.desktopRightColumn}>
+                            {renderInformationSection()}
+                        </View>
+                    </View>
+                ) : (
+                    // Layout mobile/tablette
+                    <>
+                        {renderDesktopConfigSection()}
+
+                        {/* Ligne de séparation */}
+                        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+                        {renderAutoExecutionSection()}
+
+                        {/* Ligne de séparation */}
+                        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+                        {renderInformationSection()}
+                    </>
+                )}
             </ScrollView>
 
             {/* Modals */}
@@ -414,7 +399,9 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingTop: spacing.xs,
     },
-    firstSection: {
+
+    // Styles communs
+    configSection: {
         paddingBottom: spacing.lg,
     },
     section: {
@@ -435,6 +422,8 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.xs,
         borderRadius: 20,
     },
+
+    // Configuration Mini
     configGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -444,6 +433,8 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: '45%',
     },
+
+    // Auto execution Mini
     autoSection: {
         marginBottom: spacing.lg,
     },
@@ -466,6 +457,8 @@ const styles = StyleSheet.create({
         height: 12,
         borderRadius: 6,
     },
+
+    // Informations Mini
     infoList: {
         gap: spacing.sm,
     },
@@ -477,5 +470,75 @@ const styles = StyleSheet.create({
     infoText: {
         flex: 1,
         lineHeight: 20,
+    },
+
+    // Styles desktop
+    desktopContent: {
+        padding: spacing.xl,
+        maxWidth: 1400,
+        alignSelf: 'center',
+        width: '100%',
+    },
+
+    desktopLayout: {
+        flexDirection: 'row',
+        gap: spacing.xl * 2,
+    },
+
+    desktopLeftColumn: {
+        flex: 2,
+        gap: spacing.xl,
+    },
+
+    desktopRightColumn: {
+        flex: 1,
+        gap: spacing.xl,
+    },
+
+    desktopConfigSection: {
+        padding: spacing.xl,
+        backgroundColor: 'rgba(255, 152, 0, 0.05)', // Nuance orange légère pour Mini
+        borderRadius: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: '#FF9800', // Bordure orange pour identifier Mini
+    },
+
+    desktopConfigGrid: {
+        gap: spacing.xl,
+    },
+
+    desktopConfigItem: {
+        minWidth: 200,
+        padding: spacing.lg,
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        borderLeftWidth: 3,
+        borderLeftColor: '#FF9800', // Accent orange Mini
+    },
+
+    desktopSection: {
+        padding: spacing.xl,
+        backgroundColor: 'rgba(255, 152, 0, 0.05)', // Nuance orange légère
+        borderRadius: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: '#FF9800',
+    },
+
+    desktopAutoSection: {
+        padding: spacing.lg,
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+    },
+
+    desktopInfoList: {
+        gap: spacing.md,
+    },
+
+    desktopInfoItem: {
+        padding: spacing.md,
+        backgroundColor: '#ffffff',
+        borderRadius: 8,
+        borderLeftWidth: 3,
+        borderLeftColor: '#FF9800', // Accent orange Mini
     },
 });

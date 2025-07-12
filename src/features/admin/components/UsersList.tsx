@@ -1,11 +1,12 @@
-// src/features/admin/components/UsersList.tsx
-import React, { useState, useCallback, useMemo } from 'react';
+// src/features/admin/components/UsersList.tsx - Version Corrigée
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
     View,
     StyleSheet,
     FlatList,
     TouchableOpacity,
     RefreshControl,
+    Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/src/shared/context/ThemeContext';
@@ -47,6 +48,34 @@ interface SuccessState {
     message: string;
 }
 
+// Hook pour la responsivité
+const useScreenSize = () => {
+    const [screenSize, setScreenSize] = useState(() => {
+        const { width } = Dimensions.get('window');
+        return {
+            width,
+            isTablet: width >= 768,
+            isDesktop: width >= 1024,
+            isMobile: width < 768,
+        };
+    });
+
+    useEffect(() => {
+        const subscription = Dimensions.addEventListener('change', ({ window }) => {
+            setScreenSize({
+                width: window.width,
+                isTablet: window.width >= 768,
+                isDesktop: window.width >= 1024,
+                isMobile: window.width < 768,
+            });
+        });
+
+        return () => subscription?.remove();
+    }, []);
+
+    return screenSize;
+};
+
 export default function UsersList({
                                       onUserSelect,
                                       showActions = true,
@@ -58,6 +87,7 @@ export default function UsersList({
     const { data: usersData, isLoading, error, refetch } = useAllUsers();
     const { promoteUser, demoteUser, isLoading: actionLoading } = useAdminActions();
     const permissions = useAdminPermissions();
+    const screenSize = useScreenSize();
 
     // États locaux
     const [searchQuery, setSearchQuery] = useState('');
@@ -121,7 +151,6 @@ export default function UsersList({
 
         let filtered = usersData.users;
 
-        // Filtre par recherche
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             filtered = filtered.filter(user =>
@@ -129,7 +158,6 @@ export default function UsersList({
             );
         }
 
-        // Filtre par rôle
         if (roleFilter !== 'all') {
             filtered = filtered.filter(user => user.role === roleFilter);
         }
@@ -147,7 +175,7 @@ export default function UsersList({
         }
     }, [refetch]);
 
-    // Actions sur les utilisateurs
+    // 🔧 CORRECTION: Fonction handlePromoteUser corrigée
     const handlePromoteUser = useCallback(async (user: UserWithRole) => {
         if (!permissions.canPromote) {
             showErrorModal('Erreur', 'Vous n\'avez pas les permissions pour promouvoir un utilisateur');
@@ -162,6 +190,7 @@ export default function UsersList({
                 setConfirmationModal(prev => ({ ...prev, loading: true }));
 
                 try {
+                    // 🔧 CORRECTION: Utiliser promoteUser et non demoteUser
                     await promoteUser(user.bet_login.toString(), 'Promu via interface admin');
                     hideConfirmationModal();
                     showSuccessModal({
@@ -177,6 +206,7 @@ export default function UsersList({
         });
     }, [permissions.canPromote, promoteUser, showConfirmationModal, hideConfirmationModal, showSuccessModal, showErrorModal]);
 
+    // 🔧 CORRECTION: Fonction handleDemoteUser ajoutée et corrigée
     const handleDemoteUser = useCallback(async (user: UserWithRole) => {
         if (!permissions.canDemote) {
             showErrorModal('Erreur', 'Vous n\'avez pas les permissions pour rétrograder un utilisateur');
@@ -218,8 +248,85 @@ export default function UsersList({
         });
     }, [permissions.canDemote, demoteUser, currentUserLogin, showConfirmationModal, hideConfirmationModal, showSuccessModal, showErrorModal]);
 
-    // Rendu d'un utilisateur
-    const renderUser = useCallback(({ item: user }: { item: UserWithRole }) => {
+    // Rendu d'un utilisateur pour desktop (format tableau)
+    const renderDesktopUserRow = useCallback(({ item: user }: { item: UserWithRole }) => {
+        const isCurrentUser = user.bet_login.toString() === currentUserLogin;
+        const canPromote = !user.is_admin && permissions.canPromote;
+        const canDemote = user.is_admin && !user.is_super_admin && !isCurrentUser && permissions.canDemote;
+
+        return (
+            <View style={[styles.desktopUserRow, { borderBottomColor: colors.border }]}>
+                <View style={styles.desktopUserCell}>
+                    <View style={styles.desktopUserInfo}>
+                        <Text variant="body" weight="bold" color="text">
+                            {user.bet_login}
+                        </Text>
+                        {isCurrentUser && (
+                            <View style={[styles.currentUserBadge, { backgroundColor: colors.primary }]}>
+                                <Text style={styles.currentUserText}>Vous</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+
+                <View style={styles.desktopUserCell}>
+                    <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user.role, colors) }]}>
+                        <Text style={styles.roleText}>
+                            {getRoleLabel(user.role)}
+                        </Text>
+                    </View>
+                </View>
+
+                <View style={styles.desktopUserCell}>
+                    <Text variant="body" color="textSecondary">
+                        {new Date(user.created_at).toLocaleDateString('fr-FR')}
+                    </Text>
+                </View>
+
+                <View style={styles.desktopUserCell}>
+                    <View style={styles.statusInfo}>
+                        <Ionicons
+                            name={user.status_payant ? "diamond" : "gift-outline"}
+                            size={16}
+                            color={user.status_payant ? colors.warning : colors.textSecondary}
+                        />
+                        <Text variant="body" color="textSecondary">
+                            {user.status_payant ? 'Payant' : `Gratuit (${user.dure_gratuit}j)`}
+                        </Text>
+                    </View>
+                </View>
+
+                {showActions && (
+                    <View style={styles.desktopUserCell}>
+                        <View style={styles.desktopActionButtons}>
+                            {canPromote && (
+                                <Button
+                                    title="Promouvoir"
+                                    onPress={() => handlePromoteUser(user)}
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={actionLoading}
+                                />
+                            )}
+
+                            {canDemote && (
+                                <Button
+                                    title="Rétrograder"
+                                    onPress={() => handleDemoteUser(user)}
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={actionLoading}
+                                />
+                            )}
+                        </View>
+                    </View>
+                )}
+            </View>
+        );
+    }, [colors, currentUserLogin, permissions, showActions, actionLoading, handlePromoteUser, handleDemoteUser]);
+
+    // Rendu d'un utilisateur pour mobile (format carte)
+    const renderMobileUser = useCallback(({ item: user }: { item: UserWithRole }) => {
         const isCurrentUser = user.bet_login.toString() === currentUserLogin;
         const canPromote = !user.is_admin && permissions.canPromote;
         const canDemote = user.is_admin && !user.is_super_admin && !isCurrentUser && permissions.canDemote;
@@ -301,8 +408,31 @@ export default function UsersList({
         );
     }, [colors, currentUserLogin, permissions, showActions, actionLoading, onUserSelect, handlePromoteUser, handleDemoteUser]);
 
-    // Rendu du skeleton
-    const renderSkeleton = useCallback(() => (
+    // Rendu du skeleton pour desktop
+    const renderDesktopSkeleton = useCallback(() => (
+        <View style={[styles.desktopUserRow, { borderBottomColor: colors.border }]}>
+            <View style={styles.desktopUserCell}>
+                <Skeleton width="70%" height={18} />
+            </View>
+            <View style={styles.desktopUserCell}>
+                <Skeleton width={60} height={24} borderRadius={12} />
+            </View>
+            <View style={styles.desktopUserCell}>
+                <Skeleton width="60%" height={16} />
+            </View>
+            <View style={styles.desktopUserCell}>
+                <Skeleton width="80%" height={16} />
+            </View>
+            {showActions && (
+                <View style={styles.desktopUserCell}>
+                    <Skeleton width={80} height={32} borderRadius={6} />
+                </View>
+            )}
+        </View>
+    ), [colors, showActions]);
+
+    // Rendu du skeleton pour mobile
+    const renderMobileSkeleton = useCallback(() => (
         <View style={[styles.userCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.userHeader}>
                 <Skeleton width="30%" height={18} />
@@ -315,46 +445,83 @@ export default function UsersList({
         </View>
     ), [colors]);
 
-    // Rendu des filtres
+    // Rendu des filtres responsifs
     const renderFilters = () => (
-        <View style={styles.filtersContainer}>
-            <Input
-                placeholder="Rechercher par numéro..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                containerStyle={styles.searchInput}
-            />
+        <View style={StyleSheet.flatten([
+            styles.filtersContainer,
+            screenSize.isDesktop && styles.desktopFiltersContainer
+        ])}>
+            <View style={StyleSheet.flatten([
+                styles.filtersRow,
+                screenSize.isDesktop && styles.desktopFiltersRow
+            ])}>
+                <Input
+                    placeholder="Rechercher par numéro..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    containerStyle={StyleSheet.flatten([
+                        styles.searchInput,
+                        screenSize.isDesktop && styles.desktopSearchInput
+                    ])}
+                />
 
-            <View style={styles.roleFilters}>
-                {(['all', 'user', 'admin', 'super_admin'] as const).map((role) => (
-                    <TouchableOpacity
-                        key={role}
-                        style={[
-                            styles.filterChip,
-                            {
-                                backgroundColor: roleFilter === role ? colors.primary : colors.surface,
-                                borderColor: roleFilter === role ? colors.primary : colors.border,
-                            }
-                        ]}
-                        onPress={() => setRoleFilter(role)}
-                    >
-                        <Text
-                            variant="caption"
-                            color={roleFilter === role ? "primary" : "text"}
-                            weight={roleFilter === role ? "bold" : "regular"}
-                            style={roleFilter === role ? { color: colors.surface } : undefined}
+                <View style={styles.roleFilters}>
+                    {(['all', 'user', 'admin', 'super_admin'] as const).map((role) => (
+                        <TouchableOpacity
+                            key={role}
+                            style={[
+                                styles.filterChip,
+                                {
+                                    backgroundColor: roleFilter === role ? colors.primary : colors.surface,
+                                    borderColor: roleFilter === role ? colors.primary : colors.border,
+                                }
+                            ]}
+                            onPress={() => setRoleFilter(role)}
                         >
-                            {role === 'all' ? 'Tous' : getRoleLabel(role)}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+                            <Text
+                                variant="caption"
+                                color={roleFilter === role ? "primary" : "text"}
+                                weight={roleFilter === role ? "bold" : "regular"}
+                                style={roleFilter === role ? { color: colors.surface } : undefined}
+                            >
+                                {role === 'all' ? 'Tous' : getRoleLabel(role)}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
             </View>
+        </View>
+    );
+
+    // Rendu de l'en-tête du tableau desktop
+    const renderDesktopTableHeader = () => (
+        <View style={[styles.desktopTableHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+            <View style={styles.desktopHeaderCell}>
+                <Text variant="body" weight="bold" color="text">Utilisateur</Text>
+            </View>
+            <View style={styles.desktopHeaderCell}>
+                <Text variant="body" weight="bold" color="text">Rôle</Text>
+            </View>
+            <View style={styles.desktopHeaderCell}>
+                <Text variant="body" weight="bold" color="text">Date création</Text>
+            </View>
+            <View style={styles.desktopHeaderCell}>
+                <Text variant="body" weight="bold" color="text">Statut</Text>
+            </View>
+            {showActions && (
+                <View style={styles.desktopHeaderCell}>
+                    <Text variant="body" weight="bold" color="text">Actions</Text>
+                </View>
+            )}
         </View>
     );
 
     if (error) {
         return (
-            <View style={styles.errorContainer}>
+            <View style={StyleSheet.flatten([
+                styles.errorContainer,
+                screenSize.isDesktop && styles.desktopErrorContainer
+            ])}>
                 <Ionicons name="alert-circle" size={48} color={colors.error} />
                 <Text variant="body" color="error" style={{ textAlign: 'center', marginTop: spacing.md }}>
                     Erreur lors du chargement des utilisateurs
@@ -374,40 +541,78 @@ export default function UsersList({
         <View style={styles.container}>
             {renderFilters()}
 
-            <View style={styles.statsContainer}>
+            <View style={StyleSheet.flatten([
+                styles.statsContainer,
+                screenSize.isDesktop && styles.desktopStatsContainer
+            ])}>
                 <Text variant="caption" color="textSecondary">
                     {filteredUsers.length} utilisateur{filteredUsers.length !== 1 ? 's' : ''} trouvé{filteredUsers.length !== 1 ? 's' : ''}
                     {usersData && ` sur ${usersData.total_users} total`}
                 </Text>
             </View>
 
-            <FlatList
-                data={isLoading ? Array(5).fill(null) : filteredUsers}
-                renderItem={isLoading ? renderSkeleton : renderUser}
-                keyExtractor={(item, index) =>
-                    isLoading ? `skeleton-${index}` : item.bet_login.toString()
-                }
-                contentContainerStyle={styles.listContainer}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        tintColor={colors.primary}
-                        colors={[colors.primary]}
+            {screenSize.isDesktop ? (
+                // Vue desktop - Format tableau
+                <View style={styles.desktopTableContainer}>
+                    {renderDesktopTableHeader()}
+                    <FlatList
+                        data={isLoading ? Array(5).fill(null) : filteredUsers}
+                        renderItem={isLoading ? renderDesktopSkeleton : renderDesktopUserRow}
+                        keyExtractor={(item, index) =>
+                            isLoading ? `skeleton-${index}` : item.bet_login.toString()
+                        }
+                        contentContainerStyle={styles.desktopListContainer}
+                        showsVerticalScrollIndicator={false}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                                tintColor={colors.primary}
+                                colors={[colors.primary]}
+                            />
+                        }
+                        ListEmptyComponent={
+                            !isLoading ? (
+                                <View style={styles.emptyContainer}>
+                                    <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
+                                    <Text variant="body" color="textSecondary" style={{ textAlign: 'center' }}>
+                                        Aucun utilisateur trouvé
+                                    </Text>
+                                </View>
+                            ) : null
+                        }
                     />
-                }
-                ListEmptyComponent={
-                    !isLoading ? (
-                        <View style={styles.emptyContainer}>
-                            <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
-                            <Text variant="body" color="textSecondary" style={{ textAlign: 'center' }}>
-                                Aucun utilisateur trouvé
-                            </Text>
-                        </View>
-                    ) : null
-                }
-            />
+                </View>
+            ) : (
+                // Vue mobile - Format cartes
+                <FlatList
+                    data={isLoading ? Array(5).fill(null) : filteredUsers}
+                    renderItem={isLoading ? renderMobileSkeleton : renderMobileUser}
+                    keyExtractor={(item, index) =>
+                        isLoading ? `skeleton-${index}` : item.bet_login.toString()
+                    }
+                    contentContainerStyle={styles.listContainer}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={colors.primary}
+                            colors={[colors.primary]}
+                        />
+                    }
+                    ListEmptyComponent={
+                        !isLoading ? (
+                            <View style={styles.emptyContainer}>
+                                <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
+                                <Text variant="body" color="textSecondary" style={{ textAlign: 'center' }}>
+                                    Aucun utilisateur trouvé
+                                </Text>
+                            </View>
+                        ) : null
+                    }
+                />
+            )}
 
             {/* Modales de confirmation et succès */}
             <ConfirmationModal
@@ -455,8 +660,13 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+
+    // Styles communs
     filtersContainer: {
         padding: spacing.lg,
+        gap: spacing.md,
+    },
+    filtersRow: {
         gap: spacing.md,
     },
     searchInput: {
@@ -477,6 +687,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         paddingBottom: spacing.sm,
     },
+
+    // Styles mobile - Format cartes
     listContainer: {
         padding: spacing.lg,
         paddingTop: 0,
@@ -531,11 +743,83 @@ const styles = StyleSheet.create({
         gap: spacing.sm,
         marginTop: spacing.sm,
     },
+
+    // Styles desktop - Format tableau
+    desktopFiltersContainer: {
+        backgroundColor: 'transparent',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.1)',
+    },
+    desktopFiltersRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    desktopSearchInput: {
+        flex: 1,
+        maxWidth: 300,
+        marginBottom: 0,
+        marginRight: spacing.lg,
+    },
+    desktopStatsContainer: {
+        paddingVertical: spacing.md,
+        backgroundColor: 'transparent',
+    },
+    desktopTableContainer: {
+        flex: 1,
+        backgroundColor: 'transparent',
+    },
+    desktopTableHeader: {
+        flexDirection: 'row',
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.lg,
+        borderBottomWidth: 2,
+    },
+    desktopHeaderCell: {
+        flex: 1,
+        paddingHorizontal: spacing.sm,
+    },
+    desktopListContainer: {
+        paddingBottom: spacing.lg,
+    },
+    desktopUserRow: {
+        flexDirection: 'row',
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.lg,
+        borderBottomWidth: 1,
+        alignItems: 'center',
+        minHeight: 60,
+    },
+    desktopUserCell: {
+        flex: 1,
+        paddingHorizontal: spacing.sm,
+        justifyContent: 'center',
+    },
+    desktopUserInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+    },
+    statusInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.xs,
+    },
+    desktopActionButtons: {
+        flexDirection: 'row',
+        gap: spacing.xs,
+    },
+
+    // Styles communs
     errorContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         padding: spacing.lg,
+    },
+    desktopErrorContainer: {
+        maxWidth: 600,
+        alignSelf: 'center',
     },
     emptyContainer: {
         justifyContent: 'center',

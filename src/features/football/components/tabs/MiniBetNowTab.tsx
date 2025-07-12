@@ -1,4 +1,4 @@
-// MiniBetNowTab.tsx - UPDATED avec React Query
+// MiniBetNowTab.tsx - VERSION RESPONSIVE
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -7,6 +7,8 @@ import {
     TouchableOpacity,
     RefreshControl,
     Keyboard,
+    Dimensions,
+    FlatList,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,10 +24,39 @@ import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
 import SuccessModal from '@/src/components/molecules/SuccessModal';
 import { spacing } from '@/src/styles';
 
+// Hook pour la responsivité
+const useScreenSize = () => {
+    const [screenSize, setScreenSize] = useState(() => {
+        const { width } = Dimensions.get('window');
+        return {
+            width,
+            isTablet: width >= 768,
+            isDesktop: width >= 1024,
+            isMobile: width < 768,
+        };
+    });
+
+    useEffect(() => {
+        const subscription = Dimensions.addEventListener('change', ({ window }) => {
+            setScreenSize({
+                width: window.width,
+                isTablet: window.width >= 768,
+                isDesktop: window.width >= 1024,
+                isMobile: window.width < 768,
+            });
+        });
+
+        return () => subscription?.remove();
+    }, []);
+
+    return screenSize;
+};
+
 export default function MiniBetNowTab() {
     const { colors } = useTheme();
+    const screenSize = useScreenSize();
 
-    // ✅ React Query hooks directs + contexte simplifié
+    // React Query hooks directs + contexte simplifié
     const { data: config, isLoading: configLoading, error: configError } = useMiniConfig();
     const { data: matches, isLoading: matchesLoading, error: matchesError, refetch: refetchMatches } = useMiniMatches();
     const { refreshConfig, refreshMatches } = useMiniUtils();
@@ -35,7 +66,7 @@ export default function MiniBetNowTab() {
         executeBet,
     } = useMini();
 
-    // ✅ États de chargement dérivés
+    // États de chargement dérivés
     const loading = configLoading || matchesLoading || contextLoading;
     const error = configError?.message || matchesError?.message || contextError;
     const initialLoading = (configLoading || matchesLoading) && !(config && matches);
@@ -59,7 +90,7 @@ export default function MiniBetNowTab() {
         }
     }, [config]);
 
-    // ✅ React Query gère automatiquement le refresh
+    // React Query gère automatiquement le refresh
     const onRefresh = useCallback(async () => {
         try {
             await Promise.all([refreshConfig(), refreshMatches()]);
@@ -70,7 +101,6 @@ export default function MiniBetNowTab() {
     }, [refreshConfig, refreshMatches]);
 
     const handleExecuteBet = async () => {
-        // Fermer le clavier d'abord
         Keyboard.dismiss();
 
         if (!matches?.matches.length) {
@@ -109,7 +139,6 @@ export default function MiniBetNowTab() {
             });
             setShowSuccessModal(true);
 
-            // ✅ React Query va automatiquement invalider et recharger les données nécessaires
             await refetchMatches();
         } catch (err) {
             setModalData({
@@ -137,13 +166,14 @@ export default function MiniBetNowTab() {
         });
     };
 
-    const renderMatch = (match: MiniMatch, index: number) => (
+    // Rendu d'un match Mini pour mobile
+    const renderMobileMatch = (match: MiniMatch, index: number) => (
         <View key={index} style={[styles.matchCard, { backgroundColor: colors.background }]}>
             <View style={styles.matchHeader}>
                 <Text variant="caption" weight="bold" color="text" style={styles.matchTitle}>
                     {match.home_team} vs {match.away_team}
                 </Text>
-                <View style={[styles.oddsBadge, { backgroundColor: colors.primary }]}>
+                <View style={[styles.oddsBadge, styles.miniOddsBadge]}>
                     <Text variant="label" style={{ color: '#ffffff' }}>{match.odds}</Text>
                 </View>
             </View>
@@ -161,263 +191,334 @@ export default function MiniBetNowTab() {
         </View>
     );
 
-    const renderSkeletonContent = () => (
-        <>
-            {/* Configuration Summary Skeleton - SEULEMENT données API */}
-            <View style={styles.firstSection}>
-                <Text variant="heading3" color="text">
+    // Rendu d'un match Mini pour desktop (format tableau)
+    const renderDesktopMatch = ({ item: match, index }: { item: MiniMatch, index: number }) => (
+        <View style={[styles.desktopMatchRow, { borderBottomColor: colors.border }]}>
+            <View style={styles.desktopMatchCell}>
+                <Text variant="body" weight="bold" color="text">
+                    {match.home_team} vs {match.away_team}
+                </Text>
+            </View>
+
+            <View style={styles.desktopMatchCell}>
+                <Text variant="body" color="textSecondary">
+                    {match.bet}
+                </Text>
+            </View>
+
+            <View style={styles.desktopMatchCell}>
+                <View style={[styles.oddsBadge, styles.miniOddsBadge]}>
+                    <Text variant="label" style={{ color: '#ffffff' }}>{match.odds}</Text>
+                </View>
+            </View>
+
+            <View style={styles.desktopMatchCell}>
+                <Text variant="body" color="textSecondary">
+                    {formatDate(match.expected_start)}
+                </Text>
+            </View>
+        </View>
+    );
+
+    // Rendu de la section configuration Mini
+    const renderConfigSection = () => (
+        config && (
+            <View style={[
+                styles.configSection,
+                screenSize.isDesktop && styles.desktopConfigSection
+            ]}>
+                <Text
+                    variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                    color="text"
+                >
                     Configuration Mini
                 </Text>
 
-                <View style={styles.configRow}>
+                <View style={[
+                    styles.configRow,
+                    screenSize.isDesktop && styles.desktopConfigRow
+                ]}>
                     <Text variant="caption" color="textSecondary">
-                        Plage de cotes:
+                        Plage de cotes: {config.constraints.min_odds} - {config.constraints.max_odds}
                     </Text>
-                    <Skeleton width="25%" height={14} animated={false} />
                     <Text variant="caption" color="textSecondary">
-                        Système:
+                        Système: {config.constraints.max_matches} matchs exactement
                     </Text>
-                    <Skeleton width="35%" height={14} animated={false} />
                     <Text variant="caption" color="textSecondary">
-                        Mise (MGA):
+                        Mise (MGA): {formatCurrency(config.settings.default_stake)} • Entre 100 et 50 000 MGA
                     </Text>
-                    <Skeleton width="30%" height={14} animated={false} />
                 </View>
             </View>
+        )
+    );
 
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Matches Summary Skeleton - SEULEMENT données API */}
-            <View style={styles.section}>
+    // Rendu de la section résumé Mini
+    const renderSummarySection = () => (
+        matches && (
+            <View style={[
+                styles.section,
+                screenSize.isDesktop && styles.desktopSection
+            ]}>
                 <View style={styles.summaryHeader}>
-                    <Text variant="heading3" color="text">
-                        Mini
+                    <Text
+                        variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                        color="text"
+                    >
+                        Mini - {matches.total_matches} matchs sélectionnés
                     </Text>
-                    <Skeleton width={60} height={28} borderRadius={14} animated={false} />
+                    <View style={[
+                        styles.statusBadge,
+                        { backgroundColor: matches.validation_status === 'valid_and_ready' ? colors.success : '#FF9800' }
+                    ]}>
+                        <Text variant="label" style={{ color: '#ffffff' }}>
+                            {matches.validation_status === 'valid_and_ready' ? 'Prêt' : 'Mini'}
+                        </Text>
+                    </View>
                 </View>
 
-                <View style={styles.summaryStats}>
-                    <View style={styles.statItem}>
+                <View style={[
+                    styles.summaryStats,
+                    screenSize.isDesktop && styles.desktopSummaryStats
+                ]}>
+                    <View style={[styles.statItem, screenSize.isDesktop && styles.desktopStatItem]}>
                         <Text variant="caption" color="textSecondary">
                             Cote totale
                         </Text>
-                        <Skeleton width="50%" height={24} animated={false} />
+                        <Text
+                            variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                            style={{ color: '#FF9800' }}
+                        >
+                            {matches.summary.total_odds.toFixed(2)}
+                        </Text>
                     </View>
 
-                    <View style={styles.statItem}>
+                    <View style={[styles.statItem, screenSize.isDesktop && styles.desktopStatItem]}>
                         <Text variant="caption" color="textSecondary">
                             Gain estimé
                         </Text>
-                        <Skeleton width="80%" height={24} animated={false} />
+                        <Text
+                            variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                            color="success"
+                        >
+                            {formatCurrency(matches.summary.estimated_payout)}
+                        </Text>
                     </View>
                 </View>
             </View>
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Bet Configuration - Plus d'input, juste checkbox et bouton */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Configuration du Pari Mini
-                </Text>
-
-                <View style={styles.checkboxContainer}>
-                    <View style={[
-                        styles.checkbox,
-                        {
-                            borderColor: colors.textSecondary,
-                            backgroundColor: colors.textSecondary,
-                        },
-                    ]}>
-                        <Ionicons name="checkmark" size={16} color="#ffffff" />
-                    </View>
-                    <Text variant="caption" color="textSecondary" style={styles.checkboxLabel}>
-                        Accepter les changements de cotes
-                    </Text>
-                </View>
-
-                <Button
-                    title="Chargement..."
-                    onPress={() => {}}
-                    variant="outline"
-                    disabled={true}
-                    style={{
-                        borderColor: colors.textSecondary,
-                    }}
-                    textStyle={{
-                        color: colors.textSecondary,
-                    }}
-                />
-            </View>
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Matches List Skeleton */}
-            <View style={styles.section}>
-                <View style={styles.emptyState}>
-                    <Ionicons name="flash-outline" size={48} color={colors.textSecondary} />
-                    <Text variant="heading3" color="text" style={{ marginTop: spacing.md }}>
-                        Sélection en cours
-                    </Text>
-                    <Text variant="body" color="textSecondary" align="center" style={{ marginTop: spacing.xs }}>
-                        Le système Mini sélectionne automatiquement 2 matchs optimaux via React Query
-                    </Text>
-                </View>
-            </View>
-        </>
+        )
     );
 
-    const renderContent = () => (
-        <>
-            {/* Configuration Summary */}
-            {config && (
-                <View style={styles.firstSection}>
-                    <Text variant="heading3" color="text">
-                        Configuration Mini
-                    </Text>
+    // Rendu de la section pari Mini
+    const renderBetSection = () => (
+        <View style={[
+            styles.section,
+            screenSize.isDesktop && styles.desktopSection
+        ]}>
+            <Text
+                variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                color="text"
+            >
+                Configuration du Pari Mini
+            </Text>
 
-                    <View style={styles.configRow}>
-                        <Text variant="caption" color="textSecondary">
-                            Plage de cotes: {config.constraints.min_odds} - {config.constraints.max_odds}
-                        </Text>
-                        <Text variant="caption" color="textSecondary">
-                            Système: {config.constraints.max_matches} matchs exactement
-                        </Text>
-                        <Text variant="caption" color="textSecondary">
-                            Mise (MGA): {formatCurrency(config.settings.default_stake)} • Entre 100 et 50 000 MGA
-                        </Text>
-                    </View>
+            <View style={styles.checkboxContainer}>
+                <View style={[
+                    styles.checkbox,
+                    {
+                        borderColor: colors.textSecondary,
+                        backgroundColor: colors.textSecondary,
+                    },
+                ]}>
+                    <Ionicons name="checkmark" size={16} color="#ffffff" />
                 </View>
-            )}
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Matches Summary */}
-            {matches && (
-                <View style={styles.section}>
-                    <View style={styles.summaryHeader}>
-                        <Text variant="heading3" color="text">
-                            Mini - {matches.total_matches} matchs sélectionnés
-                        </Text>
-                        <View style={[
-                            styles.statusBadge,
-                            { backgroundColor: matches.validation_status === 'valid_and_ready' ? colors.success : colors.warning }
-                        ]}>
-                            <Text variant="label" style={{ color: '#ffffff' }}>
-                                {matches.validation_status === 'valid_and_ready' ? 'Prêt' : 'En attente'}
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.summaryStats}>
-                        <View style={styles.statItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Cote totale
-                            </Text>
-                            <Text variant="heading3" color="primary">
-                                {matches.summary.total_odds.toFixed(2)}
-                            </Text>
-                        </View>
-
-                        <View style={styles.statItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Gain estimé
-                            </Text>
-                            <Text variant="heading3" color="success">
-                                {formatCurrency(matches.summary.estimated_payout)}
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-            )}
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Bet Configuration */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Configuration du Pari Mini
+                <Text variant="caption" color="textSecondary" style={styles.checkboxLabel}>
+                    Accepter les changements de cotes
                 </Text>
-
-                <View style={styles.checkboxContainer}>
-                    <View style={[
-                        styles.checkbox,
-                        {
-                            borderColor: colors.textSecondary,
-                            backgroundColor: colors.textSecondary,
-                        },
-                    ]}>
-                        <Ionicons name="checkmark" size={16} color="#ffffff" />
-                    </View>
-                    <Text variant="caption" color="textSecondary" style={styles.checkboxLabel}>
-                        Accepter les changements de cotes
-                    </Text>
-                </View>
-
-                <Button
-                    title={loading ? 'Exécution...' : `Parier maintenant `}
-                    onPress={handleExecuteBet}
-                    variant="outline"
-                    disabled={loading || matches?.total_matches !== 2}
-                    loading={loading}
-                    style={{
-                        borderColor: matches?.total_matches === 2 ? colors.success : colors.textSecondary,
-                    }}
-                    textStyle={{
-                        color: matches?.total_matches === 2 ? colors.success : colors.textSecondary,
-                    }}
-                />
             </View>
 
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+            <Button
+                title={loading ? 'Exécution...' : `Parier maintenant`}
+                onPress={handleExecuteBet}
+                variant="outline"
+                size={screenSize.isDesktop ? "md" : "sm"}
+                disabled={loading || matches?.total_matches !== 2}
+                loading={loading}
+                style={{
+                    borderColor: matches?.total_matches === 2 ? '#FF9800' : colors.textSecondary,
+                    ...(screenSize.isDesktop && { minWidth: 200 })
+                }}
+                textStyle={{
+                    color: matches?.total_matches === 2 ? '#FF9800' : colors.textSecondary,
+                }}
+            />
+        </View>
+    );
 
-            {/* Matches List */}
-            {matches?.matches.length === 2 ? (
-                <View style={styles.section}>
-                    <Text variant="heading3" color="text">
-                        2 Matchs Mini sélectionnés
-                    </Text>
-
-                    <View style={styles.matchesList}>
-                        {matches.matches.map((match: MiniMatch, index: number) => renderMatch(match, index))}
-                    </View>
-                </View>
-            ) : (
-                <View style={styles.section}>
+    // Rendu de la section matchs Mini
+    const renderMatchesSection = () => {
+        if (matches?.matches.length !== 2) {
+            return (
+                <View style={[
+                    styles.section,
+                    screenSize.isDesktop && styles.desktopSection
+                ]}>
                     <View style={styles.emptyState}>
-                        <Ionicons name="flash-outline" size={48} color={colors.textSecondary} />
-                        <Text variant="heading3" color="text" style={{ marginTop: spacing.md }}>
+                        <Ionicons name="flash-outline" size={48} color="#FF9800" />
+                        <Text
+                            variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                            color="text"
+                            style={{ marginTop: spacing.md }}
+                        >
                             Sélection en cours
                         </Text>
-                        <Text variant="body" color="textSecondary" align="center" style={{ marginTop: spacing.xs }}>
+                        <Text variant="body" color="textSecondary" style={{ textAlign: 'center', marginTop: spacing.xs }}>
                             Le système Mini sélectionne automatiquement 2 matchs optimaux via React Query
                         </Text>
                     </View>
                 </View>
+            );
+        }
+
+        return (
+            <View style={[
+                styles.section,
+                screenSize.isDesktop && styles.desktopSection
+            ]}>
+                <Text
+                    variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                    color="text"
+                >
+                    2 Matchs Mini sélectionnés
+                </Text>
+
+                {screenSize.isDesktop ? (
+                    // Vue desktop - Format tableau
+                    <View style={styles.desktopMatchesContainer}>
+                        {/* En-tête du tableau */}
+                        <View style={[styles.desktopMatchHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+                            <View style={styles.desktopHeaderCell}>
+                                <Text variant="body" weight="bold" color="text">Match</Text>
+                            </View>
+                            <View style={styles.desktopHeaderCell}>
+                                <Text variant="body" weight="bold" color="text">Pari</Text>
+                            </View>
+                            <View style={styles.desktopHeaderCell}>
+                                <Text variant="body" weight="bold" color="text">Cote</Text>
+                            </View>
+                            <View style={styles.desktopHeaderCell}>
+                                <Text variant="body" weight="bold" color="text">Date/Heure</Text>
+                            </View>
+                        </View>
+
+                        {/* Liste des matchs */}
+                        <FlatList
+                            data={matches.matches}
+                            renderItem={renderDesktopMatch}
+                            keyExtractor={(item, index) => `mini-match-${index}`}
+                            scrollEnabled={false}
+                        />
+                    </View>
+                ) : (
+                    // Vue mobile - Format cartes
+                    <View style={styles.matchesList}>
+                        {matches.matches.map((match, index) => renderMobileMatch(match, index))}
+                    </View>
+                )}
+            </View>
+        );
+    };
+
+    const renderSkeletonContent = () => (
+        <View style={[
+            styles.content,
+            screenSize.isDesktop && styles.desktopContent
+        ]}>
+            {/* Configuration Mini Skeleton */}
+            <View style={[
+                styles.configSection,
+                screenSize.isDesktop && styles.desktopConfigSection
+            ]}>
+                <Text
+                    variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                    color="text"
+                >
+                    Configuration Mini
+                </Text>
+                <View style={styles.configRow}>
+                    <Skeleton width="25%" height={14} animated={false} />
+                    <Skeleton width="35%" height={14} animated={false} />
+                    <Skeleton width="30%" height={14} animated={false} />
+                </View>
+            </View>
+
+            {/* Résumé Mini Skeleton */}
+            {!screenSize.isDesktop && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
+
+            <View style={[
+                styles.section,
+                screenSize.isDesktop && styles.desktopSection
+            ]}>
+                <View style={styles.summaryHeader}>
+                    <Skeleton width="60%" height={24} animated={false} />
+                    <Skeleton width={60} height={28} borderRadius={14} animated={false} />
+                </View>
+                <View style={styles.summaryStats}>
+                    <View style={styles.statItem}>
+                        <Text variant="caption" color="textSecondary">Cote totale</Text>
+                        <Skeleton width="50%" height={24} animated={false} />
+                    </View>
+                    <View style={styles.statItem}>
+                        <Text variant="caption" color="textSecondary">Gain estimé</Text>
+                        <Skeleton width="80%" height={24} animated={false} />
+                    </View>
+                </View>
+            </View>
+        </View>
+    );
+
+    const renderContent = () => (
+        <View style={[
+            styles.content,
+            screenSize.isDesktop && styles.desktopContent
+        ]}>
+            {screenSize.isDesktop ? (
+                // Layout desktop avec colonnes
+                <View style={styles.desktopLayout}>
+                    <View style={styles.desktopLeftColumn}>
+                        {renderConfigSection()}
+                        {renderSummarySection()}
+                        {renderBetSection()}
+                    </View>
+                    <View style={styles.desktopRightColumn}>
+                        {renderMatchesSection()}
+                    </View>
+                </View>
+            ) : (
+                // Layout mobile/tablette
+                <>
+                    {renderConfigSection()}
+                    <View style={[styles.separator, { backgroundColor: colors.border }]} />
+                    {renderSummarySection()}
+                    <View style={[styles.separator, { backgroundColor: colors.border }]} />
+                    {renderBetSection()}
+                    <View style={[styles.separator, { backgroundColor: colors.border }]} />
+                    {renderMatchesSection()}
+                </>
             )}
-        </>
+        </View>
     );
 
     return (
         <>
             <ScrollView
                 style={styles.container}
-                contentContainerStyle={[
-                    styles.content,
-                    { paddingBottom: 50 }
-                ]}
+                contentContainerStyle={{ paddingBottom: 50 }}
                 refreshControl={
                     <RefreshControl
-                        refreshing={loading && !!(config && matches)} // Only show refresh si on a déjà des données
+                        refreshing={loading && !!(config && matches)}
                         onRefresh={onRefresh}
-                        tintColor={colors.primary}
-                        colors={[colors.primary]}
+                        tintColor="#FF9800"
+                        colors={["#FF9800"]}
                     />
                 }
                 showsVerticalScrollIndicator={false}
@@ -430,7 +531,7 @@ export default function MiniBetNowTab() {
             <ConfirmationModal
                 visible={showConfirmModal}
                 onClose={() => setShowConfirmModal(false)}
-                title="Confirmer le pari Mini "
+                title="Confirmer le pari Mini"
                 message={`Êtes-vous sûr de vouloir parier ${formatCurrency(parseInt(customStake) || 0)} sur ${matches?.total_matches || 0} matchs ?\n\nGain potentiel: ${formatCurrency((matches?.summary.total_odds || 0) * (parseInt(customStake) || 0))}\n\nLe cache sera automatiquement mis à jour.`}
                 confirmText="Confirmer"
                 cancelText="Annuler"
@@ -443,7 +544,7 @@ export default function MiniBetNowTab() {
             <SuccessModal
                 visible={showSuccessModal}
                 onClose={() => setShowSuccessModal(false)}
-                title="Pari Mini exécuté ! "
+                title="Pari Mini exécuté !"
                 betId={modalData.betId}
                 potentialPayout={modalData.potentialPayout}
                 customMessage="Votre pari mini a été placé avec succès. React Query a automatiquement mis à jour le cache."
@@ -471,7 +572,9 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingTop: spacing.xs,
     },
-    firstSection: {
+
+    // Styles communs
+    configSection: {
         paddingBottom: spacing.lg,
     },
     section: {
@@ -519,6 +622,8 @@ const styles = StyleSheet.create({
     checkboxLabel: {
         flex: 1,
     },
+
+    // Mobile matches Mini
     matchesList: {
         gap: spacing.sm,
     },
@@ -526,7 +631,9 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: spacing.md,
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)',
+        borderColor: 'rgba(255, 152, 0, 0.3)', // Bordure orange pour Mini
+        borderLeftWidth: 3,
+        borderLeftColor: '#FF9800',
     },
     matchHeader: {
         flexDirection: 'row',
@@ -542,6 +649,9 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.xs,
         borderRadius: 12,
     },
+    miniOddsBadge: {
+        backgroundColor: '#FF9800', // Orange pour Mini
+    },
     matchDetails: {
         gap: spacing.xs,
     },
@@ -553,5 +663,100 @@ const styles = StyleSheet.create({
     emptyState: {
         alignItems: 'center',
         paddingVertical: spacing.xxl,
+    },
+
+    // Styles desktop
+    desktopContent: {
+        padding: spacing.xl,
+        maxWidth: 1400,
+        alignSelf: 'center',
+        width: '100%',
+    },
+
+    desktopLayout: {
+        flexDirection: 'row',
+        gap: spacing.xl * 2,
+    },
+
+    desktopLeftColumn: {
+        flex: 1,
+        gap: spacing.xl,
+    },
+
+    desktopRightColumn: {
+        flex: 1,
+        gap: spacing.xl,
+    },
+
+    desktopConfigSection: {
+        padding: spacing.xl,
+        backgroundColor: 'rgba(255, 152, 0, 0.05)', // Fond orange Mini
+        borderRadius: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: '#FF9800',
+    },
+
+    desktopConfigRow: {
+        gap: spacing.md,
+    },
+
+    desktopSection: {
+        padding: spacing.xl,
+        backgroundColor: 'rgba(255, 152, 0, 0.05)', // Fond orange Mini
+        borderRadius: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: '#FF9800',
+    },
+
+    desktopSummaryStats: {
+        gap: spacing.xl,
+    },
+
+    desktopStatItem: {
+        padding: spacing.lg,
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        alignItems: 'center',
+        borderLeftWidth: 3,
+        borderLeftColor: '#FF9800', // Accent orange Mini
+    },
+
+    // Desktop matches table Mini
+    desktopMatchesContainer: {
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderLeftWidth: 4,
+        borderLeftColor: '#FF9800', // Bordure orange Mini
+        borderWidth: 1,
+        borderColor: 'rgba(255, 152, 0, 0.3)',
+    },
+
+    desktopMatchHeader: {
+        flexDirection: 'row',
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.lg,
+        borderBottomWidth: 2,
+        borderBottomColor: '#FF9800', // Bordure orange pour header
+    },
+
+    desktopHeaderCell: {
+        flex: 1,
+        paddingHorizontal: spacing.sm,
+    },
+
+    desktopMatchRow: {
+        flexDirection: 'row',
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.lg,
+        borderBottomWidth: 1,
+        alignItems: 'center',
+        minHeight: 60,
+    },
+
+    desktopMatchCell: {
+        flex: 1,
+        paddingHorizontal: spacing.sm,
+        justifyContent: 'center',
     },
 });

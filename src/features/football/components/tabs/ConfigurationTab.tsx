@@ -1,4 +1,4 @@
-// ConfigurationTab.tsx - UPDATED avec contrôle d'accès admin
+// ConfigurationTab.tsx - VERSION RESPONSIVE
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -6,6 +6,7 @@ import {
     ScrollView,
     RefreshControl,
     Keyboard,
+    Dimensions,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,8 +22,37 @@ import Skeleton from '@/src/components/atoms/Skeleton';
 import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
 import { spacing } from '@/src/styles';
 
+// Hook pour la responsivité
+const useScreenSize = () => {
+    const [screenSize, setScreenSize] = useState(() => {
+        const { width } = Dimensions.get('window');
+        return {
+            width,
+            isTablet: width >= 768,
+            isDesktop: width >= 1024,
+            isMobile: width < 768,
+        };
+    });
+
+    useEffect(() => {
+        const subscription = Dimensions.addEventListener('change', ({ window }) => {
+            setScreenSize({
+                width: window.width,
+                isTablet: window.width >= 768,
+                isDesktop: window.width >= 1024,
+                isMobile: window.width < 768,
+            });
+        });
+
+        return () => subscription?.remove();
+    }, []);
+
+    return screenSize;
+};
+
 export default function ConfigurationTab() {
     const { colors } = useTheme();
+    const screenSize = useScreenSize();
 
     // React Query hooks + vérification admin
     const { data: config, isLoading: configLoading, error: configError } = useGroloConfig();
@@ -157,8 +187,6 @@ export default function ConfigurationTab() {
 
     const handleSave = async () => {
         console.log('🚀 handleSave called with formData:', formData);
-
-        // Fermer le clavier d'abord
         Keyboard.dismiss();
 
         const validationError = validateForm();
@@ -189,11 +217,9 @@ export default function ConfigurationTab() {
         setShowConfirmModal(false);
 
         try {
-            // Utiliser la mutation React Query
             const result = await updateConfigMutation.mutateAsync(formData);
             console.log('🎉 Config update successful:', result);
 
-            // Mettre à jour le temps de dernière modification
             if (result.metadata && result.metadata.updated_at) {
                 setLastUpdateTime(result.metadata.updated_at);
             }
@@ -223,7 +249,6 @@ export default function ConfigurationTab() {
     };
 
     const handleReset = () => {
-        // Fermer le clavier d'abord
         Keyboard.dismiss();
 
         if (config) {
@@ -249,11 +274,353 @@ export default function ConfigurationTab() {
         }).format(amount);
     };
 
+    // Rendu de la configuration actuelle
+    const renderCurrentConfigSection = () => (
+        config && (
+            <View style={[
+                styles.configSection,
+                screenSize.isDesktop && styles.desktopConfigSection
+            ]}>
+                <Text
+                    variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                    color="text"
+                >
+                    Configuration Actuelle
+                </Text>
+
+                <View style={[
+                    styles.currentConfigGrid,
+                    screenSize.isDesktop && styles.desktopCurrentConfigGrid
+                ]}>
+                    <View style={[styles.configItem, screenSize.isDesktop && styles.desktopConfigItem]}>
+                        <Text variant="caption" color="textSecondary">
+                            Cotes
+                        </Text>
+                        <Text
+                            variant={screenSize.isDesktop ? "heading3" : "body"}
+                            weight="bold"
+                            color="text"
+                        >
+                            {config.constraints.min_odds} - {config.constraints.max_odds}
+                        </Text>
+                    </View>
+
+                    {canEditConfig && (
+                        <>
+                            <View style={[styles.configItem, screenSize.isDesktop && styles.desktopConfigItem]}>
+                                <Text variant="caption" color="textSecondary">
+                                    Max Matchs
+                                </Text>
+                                <Text
+                                    variant={screenSize.isDesktop ? "heading3" : "body"}
+                                    weight="bold"
+                                    color="text"
+                                >
+                                    {config.constraints.max_matches}
+                                </Text>
+                            </View>
+
+                            <View style={[styles.configItem, screenSize.isDesktop && styles.desktopConfigItem]}>
+                                <Text variant="caption" color="textSecondary">
+                                    Cote totale max
+                                </Text>
+                                <Text
+                                    variant={screenSize.isDesktop ? "heading3" : "body"}
+                                    weight="bold"
+                                    color="text"
+                                >
+                                    {config.constraints.max_total_odds.toLocaleString()}
+                                </Text>
+                            </View>
+                        </>
+                    )}
+
+                    <View style={[styles.configItem, screenSize.isDesktop && styles.desktopConfigItem]}>
+                        <Text variant="caption" color="textSecondary">
+                            Mise par défaut
+                        </Text>
+                        <Text
+                            variant={screenSize.isDesktop ? "heading3" : "body"}
+                            weight="bold"
+                            color="primary"
+                        >
+                            {formatCurrency(config.settings.default_stake)}
+                        </Text>
+                    </View>
+                </View>
+
+                <View style={styles.metadataContainer}>
+                    <Text variant="caption" color="textSecondary">
+                        Dernière mise à jour: {lastUpdateTime
+                        ? new Date(lastUpdateTime).toLocaleString('fr-FR')
+                        : (config.metadata?.updated_at
+                                ? new Date(config.metadata.updated_at).toLocaleString('fr-FR')
+                                : 'Information non disponible'
+                        )
+                    }
+                    </Text>
+                </View>
+            </View>
+        )
+    );
+
+    // Rendu du formulaire de configuration
+    const renderConfigFormSection = () => (
+        <View style={[
+            styles.section,
+            screenSize.isDesktop && styles.desktopSection
+        ]}>
+            <Text
+                variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                color="text"
+            >
+                {canEditConfig ? 'Modifier la Configuration' : 'Paramètres Personnels'}
+            </Text>
+
+            {screenSize.isDesktop && canEditConfig ? (
+                // Layout desktop en colonnes pour admin
+                <View style={styles.desktopFormLayout}>
+                    <View style={styles.desktopFormColumn}>
+                        {/* Cotes Section */}
+                        <View style={[styles.formSection, styles.desktopFormCard]}>
+                            <Text variant="body" weight="bold" color="text">
+                                Contraintes de Cotes
+                            </Text>
+
+                            <Input
+                                label="Cote minimale"
+                                value={formData.min_odds?.toString() || ''}
+                                onChangeText={(value) => handleInputChange('min_odds', value)}
+                                keyboardType="decimal-pad"
+                                placeholder="1.2"
+                                helperText="Entre 1.0 et 3.0"
+                                returnKeyType="done"
+                                onSubmitEditing={Keyboard.dismiss}
+                            />
+
+                            <Input
+                                label="Cote maximale"
+                                value={formData.max_odds?.toString() || ''}
+                                onChangeText={(value) => handleInputChange('max_odds', value)}
+                                keyboardType="decimal-pad"
+                                placeholder="1.5"
+                                helperText="Entre 1.0 et 5.0"
+                                returnKeyType="done"
+                                onSubmitEditing={Keyboard.dismiss}
+                            />
+                        </View>
+                    </View>
+
+                    <View style={styles.desktopFormColumn}>
+                        {/* Limites Section */}
+                        <View style={[styles.formSection, styles.desktopFormCard]}>
+                            <Text variant="body" weight="bold" color="text">
+                                Limites
+                            </Text>
+
+                            <Input
+                                label="Nombre maximum de matchs"
+                                value={formData.max_matches?.toString() || ''}
+                                onChangeText={(value) => handleInputChange('max_matches', value)}
+                                keyboardType="numeric"
+                                placeholder="40"
+                                helperText="Entre 1 et 50 matchs"
+                                returnKeyType="done"
+                                onSubmitEditing={Keyboard.dismiss}
+                            />
+
+                            <Input
+                                label="Cote totale maximum"
+                                value={formData.max_total_odds?.toString() || ''}
+                                onChangeText={(value) => handleInputChange('max_total_odds', value)}
+                                keyboardType="numeric"
+                                placeholder="70000"
+                                helperText="Entre 1 000 et 100 000"
+                                returnKeyType="done"
+                                onSubmitEditing={Keyboard.dismiss}
+                            />
+                        </View>
+                    </View>
+                </View>
+            ) : (
+                // Layout mobile ou utilisateur normal
+                <>
+                    {/* Cotes Section - Admin mobile seulement */}
+                    {canEditConfig && (
+                        <View style={styles.formSection}>
+                            <Text variant="body" weight="bold" color="text">
+                                Contraintes de Cotes
+                            </Text>
+
+                            <Input
+                                label="Cote minimale"
+                                value={formData.min_odds?.toString() || ''}
+                                onChangeText={(value) => handleInputChange('min_odds', value)}
+                                keyboardType="decimal-pad"
+                                placeholder="1.2"
+                                helperText="Entre 1.0 et 3.0"
+                                returnKeyType="done"
+                                onSubmitEditing={Keyboard.dismiss}
+                            />
+
+                            <Input
+                                label="Cote maximale"
+                                value={formData.max_odds?.toString() || ''}
+                                onChangeText={(value) => handleInputChange('max_odds', value)}
+                                keyboardType="decimal-pad"
+                                placeholder="1.5"
+                                helperText="Entre 1.0 et 5.0"
+                                returnKeyType="done"
+                                onSubmitEditing={Keyboard.dismiss}
+                            />
+                        </View>
+                    )}
+
+                    {/* Limits Section - Admin mobile seulement */}
+                    {canEditConfig && (
+                        <View style={styles.formSection}>
+                            <Text variant="body" weight="bold" color="text">
+                                Limites
+                            </Text>
+
+                            <Input
+                                label="Nombre maximum de matchs"
+                                value={formData.max_matches?.toString() || ''}
+                                onChangeText={(value) => handleInputChange('max_matches', value)}
+                                keyboardType="numeric"
+                                placeholder="40"
+                                helperText="Entre 1 et 50 matchs"
+                                returnKeyType="done"
+                                onSubmitEditing={Keyboard.dismiss}
+                            />
+
+                            <Input
+                                label="Cote totale maximum"
+                                value={formData.max_total_odds?.toString() || ''}
+                                onChangeText={(value) => handleInputChange('max_total_odds', value)}
+                                keyboardType="numeric"
+                                placeholder="70000"
+                                helperText="Entre 1 000 et 100 000"
+                                returnKeyType="done"
+                                onSubmitEditing={Keyboard.dismiss}
+                            />
+                        </View>
+                    )}
+                </>
+            )}
+
+            {/* Settings Section - Toujours visible */}
+            <View style={[
+                styles.formSection,
+                screenSize.isDesktop && styles.desktopFormCard
+            ]}>
+                <Text variant="body" weight="bold" color="text">
+                    Paramètres
+                </Text>
+
+                <Input
+                    label="Mise par défaut (MGA)"
+                    value={formData.default_stake?.toString() || ''}
+                    onChangeText={(value) => handleInputChange('default_stake', value)}
+                    keyboardType="numeric"
+                    placeholder="400"
+                    helperText="Entre 100 et 100 000 MGA"
+                    returnKeyType="done"
+                    onSubmitEditing={Keyboard.dismiss}
+                    required
+                />
+            </View>
+
+            {/* Action Buttons */}
+            <View style={[
+                styles.actionButtons,
+                screenSize.isDesktop && styles.desktopActionButtons
+            ]}>
+                <Button
+                    title="Réinitialiser"
+                    onPress={handleReset}
+                    variant="outline"
+                    size={screenSize.isDesktop ? "md" : "sm"}
+                    disabled={!hasChanges || loading}
+                    style={screenSize.isDesktop ? { minWidth: 150 } : { flex: 1 }}
+                />
+
+                <Button
+                    title={loading ? 'Sauvegarde...' : 'Sauvegarder'}
+                    onPress={handleSave}
+                    variant="outline"
+                    size={screenSize.isDesktop ? "md" : "sm"}
+                    disabled={!hasChanges || loading}
+                    loading={loading}
+                    style={{
+                        borderColor: hasChanges ? colors.success : colors.textSecondary,
+                        ...(screenSize.isDesktop ? { minWidth: 150 } : { flex: 1 })
+                    }}
+                    textStyle={{
+                        color: hasChanges ? colors.success : colors.textSecondary,
+                    }}
+                />
+            </View>
+        </View>
+    );
+
+    // Rendu des informations
+    const renderInformationSection = () => (
+        canEditConfig && (
+            <View style={[
+                styles.section,
+                screenSize.isDesktop && styles.desktopSection
+            ]}>
+                <Text
+                    variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                    color="text"
+                >
+                    Informations importantes
+                </Text>
+
+                <View style={[
+                    styles.infoList,
+                    screenSize.isDesktop && styles.desktopInfoList
+                ]}>
+                    <View style={[styles.infoItem, screenSize.isDesktop && styles.desktopInfoItem]}>
+                        <Ionicons name="warning-outline" size={16} color={colors.warning} />
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                            Les modifications prendront effet immédiatement après la sauvegarde
+                        </Text>
+                    </View>
+
+                    <View style={[styles.infoItem, screenSize.isDesktop && styles.desktopInfoItem]}>
+                        <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                            La cote minimale doit toujours être inférieure à la cote maximale
+                        </Text>
+                    </View>
+
+                    <View style={[styles.infoItem, screenSize.isDesktop && styles.desktopInfoItem]}>
+                        <Ionicons name="shield-checkmark-outline" size={16} color={colors.success} />
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                            Les paris automatiques respecteront ces nouvelles contraintes
+                        </Text>
+                    </View>
+                </View>
+            </View>
+        )
+    );
+
     const renderSkeletonContent = () => (
-        <>
-            {/* Current Configuration Display Skeleton */}
-            <View style={styles.firstSection}>
-                <Text variant="heading3" color="text">
+        <View style={[
+            styles.content,
+            screenSize.isDesktop && styles.desktopContent
+        ]}>
+            {/* Configuration Actuelle Skeleton */}
+            <View style={[
+                styles.configSection,
+                screenSize.isDesktop && styles.desktopConfigSection
+            ]}>
+                <Text
+                    variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                    color="text"
+                >
                     Configuration Actuelle
                 </Text>
 
@@ -261,417 +628,71 @@ export default function ConfigurationTab() {
                     {canEditConfig && (
                         <>
                             <View style={styles.configItem}>
-                                <Text variant="caption" color="textSecondary">
-                                    Cotes
-                                </Text>
+                                <Text variant="caption" color="textSecondary">Cotes</Text>
                                 <Skeleton width="60%" height={18} animated={false} />
                             </View>
-
                             <View style={styles.configItem}>
-                                <Text variant="caption" color="textSecondary">
-                                    Max Matchs
-                                </Text>
+                                <Text variant="caption" color="textSecondary">Max Matchs</Text>
                                 <Skeleton width="30%" height={18} animated={false} />
                             </View>
-
                             <View style={styles.configItem}>
-                                <Text variant="caption" color="textSecondary">
-                                    Cote totale max
-                                </Text>
+                                <Text variant="caption" color="textSecondary">Cote totale max</Text>
                                 <Skeleton width="45%" height={18} animated={false} />
                             </View>
                         </>
                     )}
-
                     <View style={styles.configItem}>
-                        <Text variant="caption" color="textSecondary">
-                            Mise par défaut
-                        </Text>
+                        <Text variant="caption" color="textSecondary">Mise par défaut</Text>
                         <Skeleton width="75%" height={18} animated={false} />
                     </View>
                 </View>
 
                 <View style={styles.metadataContainer}>
-                    <Text variant="caption" color="textSecondary">
-                        Dernière mise à jour:
-                    </Text>
+                    <Text variant="caption" color="textSecondary">Dernière mise à jour:</Text>
                     <Skeleton width="60%" height={14} animated={false} />
                 </View>
             </View>
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Configuration Form */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    {canEditConfig ? 'Modifier la Configuration' : 'Paramètres Personnels'}
-                </Text>
-
-                {/* Cotes Section - Admin seulement */}
-                {canEditConfig && (
-                    <View style={styles.formSection}>
-                        <Text variant="body" weight="bold" color="text">
-                            Contraintes de Cotes
-                        </Text>
-
-                        <Input
-                            label="Cote minimale"
-                            value=""
-                            onChangeText={() => {}}
-                            keyboardType="decimal-pad"
-                            placeholder="1.2"
-                            helperText="Entre 1.0 et 3.0"
-                            editable={false}
-                        />
-
-                        <Input
-                            label="Cote maximale"
-                            value=""
-                            onChangeText={() => {}}
-                            keyboardType="decimal-pad"
-                            placeholder="1.5"
-                            helperText="Entre 1.0 et 5.0"
-                            editable={false}
-                        />
-                    </View>
-                )}
-
-                {/* Limits Section - Admin seulement */}
-                {canEditConfig && (
-                    <View style={styles.formSection}>
-                        <Text variant="body" weight="bold" color="text">
-                            Limites
-                        </Text>
-
-                        <Input
-                            label="Nombre maximum de matchs"
-                            value=""
-                            onChangeText={() => {}}
-                            keyboardType="numeric"
-                            placeholder="40"
-                            helperText="Entre 1 et 50 matchs"
-                            editable={false}
-                        />
-
-                        <Input
-                            label="Cote totale maximum"
-                            value=""
-                            onChangeText={() => {}}
-                            keyboardType="numeric"
-                            placeholder="70000"
-                            helperText="Entre 1 000 et 100 000"
-                            editable={false}
-                        />
-                    </View>
-                )}
-
-                {/* Settings Section - Toujours visible */}
-                <View style={styles.formSection}>
-                    <Text variant="body" weight="bold" color="text">
-                        Paramètres
-                    </Text>
-
-                    <Input
-                        label="Mise par défaut (MGA)"
-                        value=""
-                        onChangeText={() => {}}
-                        keyboardType="numeric"
-                        placeholder="400"
-                        helperText="Entre 100 et 100 000 MGA"
-                        editable={false}
-                        required
-                    />
-                </View>
-
-                {/* Action Buttons - Désactivés */}
-                <View style={styles.actionButtons}>
-                    <Button
-                        title="Réinitialiser"
-                        onPress={() => {}}
-                        variant="outline"
-                        size="sm"
-                        disabled={true}
-                        style={{ flex: 1 }}
-                    />
-
-                    <Button
-                        title="Sauvegarder"
-                        onPress={() => {}}
-                        variant="outline"
-                        size="sm"
-                        disabled={true}
-                        style={{ flex: 1 }}
-                    />
-                </View>
-            </View>
-
-            {/* Informations - Admin vs Utilisateur */}
-            {canEditConfig && (
-                <>
-                    <View style={[styles.separator, { backgroundColor: colors.border }]} />
-                    <View style={styles.section}>
-                        <Text variant="heading3" color="text">
-                            Informations importantes
-                        </Text>
-
-                        <View style={styles.infoList}>
-                            <View style={styles.infoItem}>
-                                <Ionicons name="warning-outline" size={16} color={colors.warning} />
-                                <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                                    Les modifications prendront effet immédiatement après la sauvegarde
-                                </Text>
-                            </View>
-
-                            <View style={styles.infoItem}>
-                                <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-                                <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                                    La cote minimale doit toujours être inférieure à la cote maximale
-                                </Text>
-                            </View>
-
-                            <View style={styles.infoItem}>
-                                <Ionicons name="shield-checkmark-outline" size={16} color={colors.success} />
-                                <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                                    Les paris automatiques respecteront ces nouvelles contraintes
-                                </Text>
-                            </View>
-                        </View>
-                    </View>
-                </>
-            )}
-        </>
+        </View>
     );
 
     const renderContent = () => (
-        <>
-            {/* Current Configuration Display */}
-            {config && (
-                <View style={styles.firstSection}>
-                    <Text variant="heading3" color="text">
-                        Configuration Actuelle
-                    </Text>
-
-                    <View style={styles.currentConfigGrid}>
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Cotes
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {config.constraints.min_odds} - {config.constraints.max_odds}
-                            </Text>
-                        </View>
-
-                        {canEditConfig && (
-                            <>
-                                <View style={styles.configItem}>
-                                    <Text variant="caption" color="textSecondary">
-                                        Max Matchs
-                                    </Text>
-                                    <Text variant="body" weight="bold" color="text">
-                                        {config.constraints.max_matches}
-                                    </Text>
-                                </View>
-
-                                <View style={styles.configItem}>
-                                    <Text variant="caption" color="textSecondary">
-                                        Cote totale max
-                                    </Text>
-                                    <Text variant="body" weight="bold" color="text">
-                                        {config.constraints.max_total_odds.toLocaleString()}
-                                    </Text>
-                                </View>
-                            </>
-                        )}
-
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Mise par défaut
-                            </Text>
-                            <Text variant="body" weight="bold" color="primary">
-                                {formatCurrency(config.settings.default_stake)}
-                            </Text>
-                        </View>
+        <View style={[
+            styles.content,
+            screenSize.isDesktop && styles.desktopContent
+        ]}>
+            {screenSize.isDesktop ? (
+                // Layout desktop avec colonnes
+                <View style={styles.desktopLayout}>
+                    <View style={styles.desktopLeftColumn}>
+                        {renderCurrentConfigSection()}
+                        {renderConfigFormSection()}
                     </View>
-
-                    <View style={styles.metadataContainer}>
-                        <Text variant="caption" color="textSecondary">
-                            Dernière mise à jour: {lastUpdateTime
-                            ? new Date(lastUpdateTime).toLocaleString('fr-FR')
-                            : (config.metadata?.updated_at
-                                    ? new Date(config.metadata.updated_at).toLocaleString('fr-FR')
-                                    : 'Information non disponible'
-                            )
-                        }
-                        </Text>
+                    <View style={styles.desktopRightColumn}>
+                        {renderInformationSection()}
                     </View>
                 </View>
-            )}
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Configuration Form */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    {canEditConfig ? 'Modifier la Configuration' : 'Paramètres Personnels'}
-                </Text>
-
-                {/* Cotes Section - Admin seulement */}
-                {canEditConfig && (
-                    <View style={styles.formSection}>
-                        <Text variant="body" weight="bold" color="text">
-                            Contraintes de Cotes
-                        </Text>
-
-                        <Input
-                            label="Cote minimale"
-                            value={formData.min_odds?.toString() || ''}
-                            onChangeText={(value) => handleInputChange('min_odds', value)}
-                            keyboardType="decimal-pad"
-                            placeholder="1.2"
-                            helperText="Entre 1.0 et 3.0"
-                            returnKeyType="done"
-                            onSubmitEditing={Keyboard.dismiss}
-                        />
-
-                        <Input
-                            label="Cote maximale"
-                            value={formData.max_odds?.toString() || ''}
-                            onChangeText={(value) => handleInputChange('max_odds', value)}
-                            keyboardType="decimal-pad"
-                            placeholder="1.5"
-                            helperText="Entre 1.0 et 5.0"
-                            returnKeyType="done"
-                            onSubmitEditing={Keyboard.dismiss}
-                        />
-                    </View>
-                )}
-
-                {/* Limits Section - Admin seulement */}
-                {canEditConfig && (
-                    <View style={styles.formSection}>
-                        <Text variant="body" weight="bold" color="text">
-                            Limites
-                        </Text>
-
-                        <Input
-                            label="Nombre maximum de matchs"
-                            value={formData.max_matches?.toString() || ''}
-                            onChangeText={(value) => handleInputChange('max_matches', value)}
-                            keyboardType="numeric"
-                            placeholder="40"
-                            helperText="Entre 1 et 50 matchs"
-                            returnKeyType="done"
-                            onSubmitEditing={Keyboard.dismiss}
-                        />
-
-                        <Input
-                            label="Cote totale maximum"
-                            value={formData.max_total_odds?.toString() || ''}
-                            onChangeText={(value) => handleInputChange('max_total_odds', value)}
-                            keyboardType="numeric"
-                            placeholder="70000"
-                            helperText="Entre 1 000 et 100 000"
-                            returnKeyType="done"
-                            onSubmitEditing={Keyboard.dismiss}
-                        />
-                    </View>
-                )}
-
-                {/* Settings Section - Toujours visible */}
-                <View style={styles.formSection}>
-                    <Text variant="body" weight="bold" color="text">
-                        Paramètres
-                    </Text>
-
-                    <Input
-                        label="Mise par défaut (MGA)"
-                        value={formData.default_stake?.toString() || ''}
-                        onChangeText={(value) => handleInputChange('default_stake', value)}
-                        keyboardType="numeric"
-                        placeholder="400"
-                        helperText="Entre 100 et 100 000 MGA"
-                        returnKeyType="done"
-                        onSubmitEditing={Keyboard.dismiss}
-                        required
-                    />
-                </View>
-
-                {/* Action Buttons */}
-                <View style={styles.actionButtons}>
-                    <Button
-                        title="Réinitialiser"
-                        onPress={handleReset}
-                        variant="outline"
-                        size="sm"
-                        disabled={!hasChanges || loading}
-                        style={{ flex: 1 }}
-                    />
-
-                    <Button
-                        title={loading ? 'Sauvegarde...' : 'Sauvegarder'}
-                        onPress={handleSave}
-                        variant="outline"
-                        size="sm"
-                        disabled={!hasChanges || loading}
-                        loading={loading}
-                        style={{
-                            flex: 1,
-                            borderColor: hasChanges ? colors.success : colors.textSecondary,
-                        }}
-                        textStyle={{
-                            color: hasChanges ? colors.success : colors.textSecondary,
-                        }}
-                    />
-                </View>
-            </View>
-
-            {/* Information Section - Admin seulement */}
-            {canEditConfig && (
+            ) : (
+                // Layout mobile/tablette
                 <>
+                    {renderCurrentConfigSection()}
                     <View style={[styles.separator, { backgroundColor: colors.border }]} />
-                    <View style={styles.section}>
-                        <Text variant="heading3" color="text">
-                            Informations importantes
-                        </Text>
-
-                        <View style={styles.infoList}>
-                            <View style={styles.infoItem}>
-                                <Ionicons name="warning-outline" size={16} color={colors.warning} />
-                                <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                                    Les modifications prendront effet immédiatement après la sauvegarde
-                                </Text>
-                            </View>
-
-                            <View style={styles.infoItem}>
-                                <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-                                <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                                    La cote minimale doit toujours être inférieure à la cote maximale
-                                </Text>
-                            </View>
-
-                            <View style={styles.infoItem}>
-                                <Ionicons name="shield-checkmark-outline" size={16} color={colors.success} />
-                                <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                                    Les paris automatiques respecteront ces nouvelles contraintes
-                                </Text>
-                            </View>
-                        </View>
-                    </View>
+                    {renderConfigFormSection()}
+                    {canEditConfig && (
+                        <>
+                            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+                            {renderInformationSection()}
+                        </>
+                    )}
                 </>
             )}
-        </>
+        </View>
     );
 
     return (
         <>
             <ScrollView
                 style={styles.container}
-                contentContainerStyle={[
-                    styles.content,
-                    { paddingBottom: 50 }
-                ]}
+                contentContainerStyle={{ paddingBottom: 50 }}
                 refreshControl={
                     <RefreshControl
                         refreshing={loading && !!config}
@@ -729,7 +750,9 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingTop: spacing.xs,
     },
-    firstSection: {
+
+    // Styles communs
+    configSection: {
         paddingBottom: spacing.lg,
     },
     section: {
@@ -754,40 +777,6 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: 'rgba(0,0,0,0.1)',
     },
-    roleNotice: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: spacing.sm,
-        padding: spacing.md,
-        borderRadius: 8,
-        borderWidth: 1,
-        marginBottom: spacing.lg,
-    },
-    roleNoticeText: {
-        flex: 1,
-        lineHeight: 18,
-    },
-    restrictedBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.xs,
-        padding: spacing.sm,
-        borderRadius: 6,
-        borderWidth: 1,
-        marginBottom: spacing.md,
-    },
-    userStatusBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.sm,
-        padding: spacing.md,
-        borderRadius: 8,
-        borderWidth: 1,
-        marginBottom: spacing.lg,
-    },
-    bannerContent: {
-        flex: 1,
-    },
     formSection: {
         marginBottom: spacing.lg,
     },
@@ -807,5 +796,98 @@ const styles = StyleSheet.create({
     infoText: {
         flex: 1,
         lineHeight: 20,
+    },
+
+    // Styles desktop
+    desktopContent: {
+        padding: spacing.xl,
+        maxWidth: 1400,
+        alignSelf: 'center',
+        width: '100%',
+    },
+
+    desktopLayout: {
+        flexDirection: 'row',
+        gap: spacing.xl * 2,
+    },
+
+    desktopLeftColumn: {
+        flex: 2,
+        gap: spacing.xl,
+    },
+
+    desktopRightColumn: {
+        flex: 1,
+        gap: spacing.xl,
+    },
+
+    desktopConfigSection: {
+        padding: spacing.xl,
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        borderRadius: 16,
+    },
+
+    desktopCurrentConfigGrid: {
+        gap: spacing.xl,
+    },
+
+    desktopConfigItem: {
+        minWidth: 200,
+        padding: spacing.lg,
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+
+    desktopSection: {
+        padding: spacing.xl,
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        borderRadius: 16,
+    },
+
+    desktopFormLayout: {
+        flexDirection: 'row',
+        gap: spacing.xl,
+    },
+
+    desktopFormColumn: {
+        flex: 1,
+    },
+
+    desktopFormCard: {
+        padding: spacing.xl,
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+
+    desktopActionButtons: {
+        flexDirection: 'row',
+        gap: spacing.lg,
+        justifyContent: 'flex-end',
+        marginTop: spacing.lg,
+    },
+
+    desktopInfoList: {
+        gap: spacing.md,
+    },
+
+    desktopInfoItem: {
+        padding: spacing.md,
+        backgroundColor: '#ffffff',
+        borderRadius: 8,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
     },
 });

@@ -1,10 +1,11 @@
-// AutoBetTab.tsx - VERSION COMPLÈTE RECONSTRUITE
-import React, { useState, useCallback } from 'react';
+// AutoBetTab.tsx - VERSION RESPONSIVE
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
     StyleSheet,
     ScrollView,
     RefreshControl,
+    Dimensions,
 } from 'react-native';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,8 +18,37 @@ import Skeleton from '@/src/components/atoms/Skeleton';
 import SuccessModal from '@/src/components/molecules/SuccessModal';
 import { spacing } from '@/src/styles';
 
+// Hook pour la responsivité
+const useScreenSize = () => {
+    const [screenSize, setScreenSize] = useState(() => {
+        const { width } = Dimensions.get('window');
+        return {
+            width,
+            isTablet: width >= 768,
+            isDesktop: width >= 1024,
+            isMobile: width < 768,
+        };
+    });
+
+    useEffect(() => {
+        const subscription = Dimensions.addEventListener('change', ({ window }) => {
+            setScreenSize({
+                width: window.width,
+                isTablet: window.width >= 768,
+                isDesktop: window.width >= 1024,
+                isMobile: window.width < 768,
+            });
+        });
+
+        return () => subscription?.remove();
+    }, []);
+
+    return screenSize;
+};
+
 export default function AutoBetTab() {
     const { colors } = useTheme();
+    const screenSize = useScreenSize();
 
     // React Query hooks directs + contexte simplifié
     const { data: config, isLoading: configLoading, error: configError } = useGroloConfig();
@@ -97,288 +127,216 @@ export default function AutoBetTab() {
         }).format(amount);
     };
 
-    const renderSkeletonContent = () => (
-        <>
-            {/* Configuration Section Skeleton */}
-            <View style={styles.firstSection}>
-                <View style={styles.sectionHeader}>
-                    <Text variant="heading3" color="text">
-                        Configuration Actuelle
+    // Rendu de la configuration pour desktop
+    const renderDesktopConfigSection = () => (
+        <View style={[
+            styles.configSection,
+            screenSize.isDesktop && styles.desktopConfigSection
+        ]}>
+            <View style={styles.sectionHeader}>
+                <Text
+                    variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                    color="text"
+                >
+                    Configuration Actuelle
+                </Text>
+                <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
+                    <Text variant="label" style={{ color: '#ffffff' }}>
+                        Actif
                     </Text>
-                    <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
-                        <Text variant="label" style={{ color: '#ffffff' }}>
-                            Actif
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.configGrid}>
-                    <View style={styles.configItem}>
-                        <Text variant="caption" color="textSecondary">
-                            Cotes
-                        </Text>
-                        <Skeleton width="70%" height={18} animated={false} />
-                    </View>
-
-                    <View style={styles.configItem}>
-                        <Text variant="caption" color="textSecondary">
-                            Max Matchs
-                        </Text>
-                        <Skeleton width="30%" height={18} animated={false} />
-                    </View>
-
-                    <View style={styles.configItem}>
-                        <Text variant="caption" color="textSecondary">
-                            Mise par défaut
-                        </Text>
-                        <Skeleton width="80%" height={18} animated={false} />
-                    </View>
                 </View>
             </View>
 
-            {/* Auto Execution Section */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Exécution Automatique
-                </Text>
-
-                <View style={styles.autoSection}>
-                    <View style={styles.autoInfo}>
-                        <Ionicons
-                            name="time-outline"
-                            size={24}
-                            color={colors.primary}
-                        />
-                        <View style={styles.autoTextContainer}>
-                            <Text variant="body" weight="bold" color="text">
-                                Pari automatique à 00h00
-                            </Text>
-                            <Text variant="caption" color="textSecondary">
-                                Fuseau horaire: Madagascar (Indian/Antananarivo)
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.statusContainer}>
-                        <Skeleton width={12} height={12} borderRadius={6} animated={false} />
-                        <Skeleton width="30%" height={14} animated={false} />
-                    </View>
+            <View style={[
+                styles.configGrid,
+                screenSize.isDesktop && styles.desktopConfigGrid
+            ]}>
+                <View style={[styles.configItem, screenSize.isDesktop && styles.desktopConfigItem]}>
+                    <Text variant="caption" color="textSecondary">
+                        Cotes
+                    </Text>
+                    {config ? (
+                        <Text
+                            variant={screenSize.isDesktop ? "heading3" : "body"}
+                            weight="bold"
+                            color="text"
+                        >
+                            {config.constraints.min_odds} - {config.constraints.max_odds}
+                        </Text>
+                    ) : (
+                        <Skeleton width="70%" height={screenSize.isDesktop ? 24 : 18} animated={false} />
+                    )}
                 </View>
 
-                <Button
-                    title="Chargement..."
-                    onPress={() => {}}
-                    variant="outline"
-                    size="sm"
-                    disabled={true}
-                    style={{
-                        borderColor: colors.textSecondary,
-                        paddingVertical: spacing.xs,
-                        paddingHorizontal: spacing.xs,
-                    }}
-                    textStyle={{
-                        color: colors.textSecondary,
-                    }}
-                />
-            </View>
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Information Section */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Informations
-                </Text>
-
-                <View style={styles.infoList}>
-                    <View style={styles.infoItem}>
-                        <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            L'exécution automatique se déclenche tous les jours à minuit (Madagascar)
+                <View style={[styles.configItem, screenSize.isDesktop && styles.desktopConfigItem]}>
+                    <Text variant="caption" color="textSecondary">
+                        Max Matchs
+                    </Text>
+                    {config ? (
+                        <Text
+                            variant={screenSize.isDesktop ? "heading3" : "body"}
+                            weight="bold"
+                            color="text"
+                        >
+                            {config.constraints.max_matches}
                         </Text>
-                    </View>
+                    ) : (
+                        <Skeleton width="30%" height={screenSize.isDesktop ? 24 : 18} animated={false} />
+                    )}
+                </View>
 
-                    <View style={styles.infoItem}>
-                        <Ionicons name="checkmark-circle-outline" size={16} color={colors.success} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Seuls les matchs validés selon la configuration seront pariés
+                <View style={[styles.configItem, screenSize.isDesktop && styles.desktopConfigItem]}>
+                    <Text variant="caption" color="textSecondary">
+                        Mise par défaut
+                    </Text>
+                    {config ? (
+                        <Text
+                            variant={screenSize.isDesktop ? "heading3" : "body"}
+                            weight="bold"
+                            color="primary"
+                        >
+                            {formatCurrency(config.settings.default_stake)}
                         </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Vous pouvez arrêter l'exécution automatique à tout moment
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="server-outline" size={16} color={colors.success} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Cette application s'exécute toujours même si votre téléphone n'a pas de connexion internet
-                        </Text>
-                    </View>
+                    ) : (
+                        <Skeleton width="80%" height={screenSize.isDesktop ? 24 : 18} animated={false} />
+                    )}
                 </View>
             </View>
-        </>
+        </View>
     );
 
-    const renderContent = () => (
-        <>
-            {/* Configuration Section */}
-            {config && (
-                <View style={styles.firstSection}>
-                    <View style={styles.sectionHeader}>
-                        <Text variant="heading3" color="text">
-                            Configuration Actuelle
-                        </Text>
-                        <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
-                            <Text variant="label" style={{ color: '#ffffff' }}>
-                                Actif
-                            </Text>
-                        </View>
-                    </View>
+    // Rendu de la section d'exécution automatique
+    const renderAutoExecutionSection = () => (
+        <View style={[
+            styles.section,
+            screenSize.isDesktop && styles.desktopSection
+        ]}>
+            <Text
+                variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                color="text"
+            >
+                Exécution Automatique
+            </Text>
 
-                    <View style={styles.configGrid}>
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Cotes
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {config.constraints.min_odds} - {config.constraints.max_odds}
-                            </Text>
-                        </View>
-
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Max Matchs
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {config.constraints.max_matches}
-                            </Text>
-                        </View>
-
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Mise par défaut
-                            </Text>
-                            <Text variant="body" weight="bold" color="primary">
-                                {formatCurrency(config.settings.default_stake)}
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-            )}
-
-            {/* Auto Execution Section */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Exécution Automatique
-                </Text>
-
-                <View style={styles.autoSection}>
-                    <View style={styles.autoInfo}>
-                        <Ionicons
-                            name="time-outline"
-                            size={24}
-                            color={colors.primary}
-                        />
-                        <View style={styles.autoTextContainer}>
-                            <Text variant="body" weight="bold" color="text">
-                                Pari automatique à 00h00
-                            </Text>
-                            <Text variant="caption" color="textSecondary">
-                                Fuseau horaire: Madagascar (Indian/Antananarivo)
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.statusContainer}>
-                        <View style={[
-                            styles.statusIndicator,
-                            { backgroundColor: localAutoActive ? colors.success : colors.error }
-                        ]} />
+            <View style={[
+                styles.autoSection,
+                screenSize.isDesktop && styles.desktopAutoSection
+            ]}>
+                <View style={styles.autoInfo}>
+                    <Ionicons
+                        name="time-outline"
+                        size={screenSize.isDesktop ? 28 : 24}
+                        color={colors.primary}
+                    />
+                    <View style={styles.autoTextContainer}>
                         <Text
-                            variant="caption"
+                            variant={screenSize.isDesktop ? "heading3" : "body"}
                             weight="bold"
-                            style={{ color: localAutoActive ? colors.success : colors.error }}
+                            color="text"
                         >
-                            {localAutoActive ? 'Actif' : 'Inactif'}
+                            Pari automatique à 00h00
+                        </Text>
+                        <Text variant="caption" color="textSecondary">
+                            Fuseau horaire: Madagascar (Indian/Antananarivo)
                         </Text>
                     </View>
                 </View>
 
-                <Button
-                    title={loading
-                        ? 'Traitement...'
-                        : localAutoActive
-                            ? 'Arrêter l\'exécution automatique'
-                            : 'Démarrer l\'exécution automatique'
-                    }
-                    onPress={handleToggleAutoExecution}
-                    variant="outline"
-                    size="sm"
-                    disabled={loading}
-                    loading={loading}
-                    style={{
-                        borderColor: localAutoActive ? colors.error : colors.success,
-                        paddingVertical: spacing.xs,
-                        paddingHorizontal: spacing.xs,
-                    }}
-                    textStyle={{
-                        color: localAutoActive ? colors.error : colors.success,
-                    }}
-                />
-            </View>
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Information Section */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Informations
-                </Text>
-
-                <View style={styles.infoList}>
-                    <View style={styles.infoItem}>
-                        <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            L'exécution automatique se déclenche tous les jours à minuit (Madagascar)
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="checkmark-circle-outline" size={16} color={colors.success} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Seuls les matchs validés selon la configuration seront pariés
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Vous pouvez arrêter l'exécution automatique à tout moment
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="server-outline" size={16} color={colors.success} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Cette application s'exécute toujours même si votre téléphone n'a pas de connexion internet
-                        </Text>
-                    </View>
+                <View style={styles.statusContainer}>
+                    <View style={[
+                        styles.statusIndicator,
+                        { backgroundColor: localAutoActive ? colors.success : colors.error }
+                    ]} />
+                    <Text
+                        variant="caption"
+                        weight="bold"
+                        style={{ color: localAutoActive ? colors.success : colors.error }}
+                    >
+                        {localAutoActive ? 'Actif' : 'Inactif'}
+                    </Text>
                 </View>
             </View>
-        </>
+
+            <Button
+                title={loading
+                    ? 'Traitement...'
+                    : localAutoActive
+                        ? 'Arrêter l\'exécution automatique'
+                        : 'Démarrer l\'exécution automatique'
+                }
+                onPress={handleToggleAutoExecution}
+                variant="outline"
+                size={screenSize.isDesktop ? "md" : "sm"}
+                disabled={loading}
+                loading={loading}
+                style={{
+                    borderColor: localAutoActive ? colors.error : colors.success,
+                    paddingVertical: spacing.xs,
+                    paddingHorizontal: spacing.xs,
+                }}
+                textStyle={{
+                    color: localAutoActive ? colors.error : colors.success,
+                }}
+            />
+        </View>
+    );
+
+    // Rendu de la section d'informations
+    const renderInformationSection = () => (
+        <View style={[
+            styles.section,
+            screenSize.isDesktop && styles.desktopSection
+        ]}>
+            <Text
+                variant={screenSize.isDesktop ? "heading2" : "heading3"}
+                color="text"
+            >
+                Informations
+            </Text>
+
+            <View style={[
+                styles.infoList,
+                screenSize.isDesktop && styles.desktopInfoList
+            ]}>
+                <View style={[styles.infoItem, screenSize.isDesktop && styles.desktopInfoItem]}>
+                    <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
+                    <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                        L'exécution automatique se déclenche tous les jours à minuit (Madagascar)
+                    </Text>
+                </View>
+
+                <View style={[styles.infoItem, screenSize.isDesktop && styles.desktopInfoItem]}>
+                    <Ionicons name="checkmark-circle-outline" size={16} color={colors.success} />
+                    <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                        Seuls les matchs validés selon la configuration seront pariés
+                    </Text>
+                </View>
+
+                <View style={[styles.infoItem, screenSize.isDesktop && styles.desktopInfoItem]}>
+                    <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
+                    <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                        Vous pouvez arrêter l'exécution automatique à tout moment
+                    </Text>
+                </View>
+
+                <View style={[styles.infoItem, screenSize.isDesktop && styles.desktopInfoItem]}>
+                    <Ionicons name="server-outline" size={16} color={colors.success} />
+                    <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                        Cette application s'exécute toujours même si votre téléphone n'a pas de connexion internet
+                    </Text>
+                </View>
+            </View>
+        </View>
     );
 
     return (
         <>
             <ScrollView
                 style={styles.container}
-                contentContainerStyle={styles.content}
+                contentContainerStyle={[
+                    styles.content,
+                    screenSize.isDesktop && styles.desktopContent
+                ]}
                 refreshControl={
                     <RefreshControl
                         refreshing={loading && !!config}
@@ -389,7 +347,33 @@ export default function AutoBetTab() {
                 }
                 showsVerticalScrollIndicator={false}
             >
-                {initialLoading ? renderSkeletonContent() : renderContent()}
+                {screenSize.isDesktop ? (
+                    // Layout desktop avec colonnes
+                    <View style={styles.desktopLayout}>
+                        <View style={styles.desktopLeftColumn}>
+                            {renderDesktopConfigSection()}
+                            {renderAutoExecutionSection()}
+                        </View>
+                        <View style={styles.desktopRightColumn}>
+                            {renderInformationSection()}
+                        </View>
+                    </View>
+                ) : (
+                    // Layout mobile/tablette
+                    <>
+                        {renderDesktopConfigSection()}
+
+                        {/* Ligne de séparation */}
+                        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+                        {renderAutoExecutionSection()}
+
+                        {/* Ligne de séparation */}
+                        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+                        {renderInformationSection()}
+                    </>
+                )}
             </ScrollView>
 
             {/* Modals */}
@@ -419,7 +403,9 @@ const styles = StyleSheet.create({
     content: {
         padding: spacing.lg,
     },
-    firstSection: {
+
+    // Styles communs
+    configSection: {
         paddingBottom: spacing.lg,
     },
     section: {
@@ -440,6 +426,8 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.xs,
         borderRadius: 20,
     },
+
+    // Configuration
     configGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -449,6 +437,8 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: '45%',
     },
+
+    // Auto execution
     autoSection: {
         marginBottom: spacing.lg,
     },
@@ -471,6 +461,8 @@ const styles = StyleSheet.create({
         height: 12,
         borderRadius: 6,
     },
+
+    // Informations
     infoList: {
         gap: spacing.sm,
     },
@@ -482,5 +474,82 @@ const styles = StyleSheet.create({
     infoText: {
         flex: 1,
         lineHeight: 20,
+    },
+
+    // Styles desktop
+    desktopContent: {
+        padding: spacing.xl,
+        maxWidth: 1400,
+        alignSelf: 'center',
+        width: '100%',
+    },
+
+    desktopLayout: {
+        flexDirection: 'row',
+        gap: spacing.xl * 2,
+    },
+
+    desktopLeftColumn: {
+        flex: 2,
+        gap: spacing.xl,
+    },
+
+    desktopRightColumn: {
+        flex: 1,
+        gap: spacing.xl,
+    },
+
+    desktopConfigSection: {
+        padding: spacing.xl,
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        borderRadius: 16,
+    },
+
+    desktopConfigGrid: {
+        gap: spacing.xl,
+    },
+
+    desktopConfigItem: {
+        minWidth: 200,
+        padding: spacing.lg,
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+
+    desktopSection: {
+        padding: spacing.xl,
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        borderRadius: 16,
+    },
+
+    desktopAutoSection: {
+        padding: spacing.lg,
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+
+    desktopInfoList: {
+        gap: spacing.md,
+    },
+
+    desktopInfoItem: {
+        padding: spacing.md,
+        backgroundColor: '#ffffff',
+        borderRadius: 8,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
     },
 });

@@ -1,4 +1,4 @@
-// src/features/admin/components/AdminScreen.tsx
+// src/features/admin/components/AdminScreen.tsx - Version simplifiée avec hook responsive
 import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { useAuth } from '@/src/shared/context/AuthContext';
 import { useAdminPermissions, useMyRole } from '@/src/shared/hooks/admin/useAdminQueries';
+import { useResponsive, getLayoutConfig } from '@/src/shared/utils/responsive.utils';
 import Header from '@/src/components/molecules/Header';
 import Text from '@/src/components/atoms/Text';
 import Button from '@/src/components/atoms/Button';
@@ -38,6 +39,19 @@ export default function AdminScreen() {
     const { isAuthenticated, userRole, isAdmin, currentUserLogin } = useAuth();
     const permissions = useAdminPermissions();
     const { data: myRole, isLoading: roleLoading } = useMyRole();
+
+    // Hook responsive personnalisé
+    const screen = useResponsive();
+    const layout = getLayoutConfig(screen.device);
+
+    // Fonction utilitaire pour créer des styles conditionnels sûrs
+    const createConditionalStyle = () => {
+        const baseStyle = styles.desktopMainContent;
+        if (layout.contentMaxWidth === '100%') {
+            return baseStyle;
+        }
+        return [baseStyle, { maxWidth: layout.contentMaxWidth as number }];
+    };
 
     // État local
     const [activeTab, setActiveTab] = useState<AdminTab>('users');
@@ -75,6 +89,151 @@ export default function AdminScreen() {
         }
     }, [permissions.canViewAdminPanel, roleLoading, showModal, hideModal]);
 
+    // Composant sidebar pour desktop
+    const DesktopSidebar = () => (
+        <View style={[
+            styles.sidebar,
+            {
+                width: layout.sidebarWidth,
+                backgroundColor: colors.surface,
+                borderRightColor: colors.border
+            }
+        ]}>
+            {/* Header */}
+            <View style={[styles.sidebarHeader, { borderBottomColor: colors.border }]}>
+                <Text variant="heading2" color="text" weight="bold">
+                    Administration
+                </Text>
+                <ThemeToggle />
+            </View>
+
+            {/* Informations admin */}
+            <View style={[styles.adminInfo, { backgroundColor: colors.background }]}>
+                <View style={styles.adminDetails}>
+                    <Text variant="body" color="text" weight="bold">
+                        {currentUserLogin}
+                    </Text>
+                    <View style={[styles.roleBadge, { backgroundColor: getRoleColor(userRole, colors) }]}>
+                        <Text style={styles.roleText}>
+                            {getRoleLabel(userRole)}
+                        </Text>
+                    </View>
+                </View>
+
+                <View style={styles.permissionsInfo}>
+                    <View style={styles.permissionItem}>
+                        <Ionicons
+                            name={permissions.canPromote ? "checkmark-circle" : "close-circle"}
+                            size={14}
+                            color={permissions.canPromote ? colors.success : colors.textSecondary}
+                        />
+                        <Text variant="caption" color="textSecondary">Promotion</Text>
+                    </View>
+                    <View style={styles.permissionItem}>
+                        <Ionicons
+                            name={permissions.canDemote ? "checkmark-circle" : "close-circle"}
+                            size={14}
+                            color={permissions.canDemote ? colors.success : colors.textSecondary}
+                        />
+                        <Text variant="caption" color="textSecondary">Rétrogradation</Text>
+                    </View>
+                </View>
+            </View>
+
+            {/* Navigation */}
+            <View style={styles.navigation}>
+                {[
+                    { key: 'users', icon: 'people-outline', label: 'Utilisateurs' },
+                    { key: 'status', icon: 'analytics-outline', label: 'Système' }
+                ].map(({ key, icon, label }) => (
+                    <TouchableOpacity
+                        key={key}
+                        style={[
+                            styles.navItem,
+                            {
+                                backgroundColor: activeTab === key ? colors.primary + '15' : 'transparent',
+                                borderLeftColor: activeTab === key ? colors.primary : 'transparent',
+                            }
+                        ]}
+                        onPress={() => setActiveTab(key as AdminTab)}
+                    >
+                        <Ionicons
+                            name={icon as any}
+                            size={20}
+                            color={activeTab === key ? colors.primary : colors.textSecondary}
+                        />
+                        <Text
+                            variant="body"
+                            color={activeTab === key ? "primary" : "textSecondary"}
+                            weight={activeTab === key ? "bold" : "regular"}
+                        >
+                            {label}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+
+            {/* Actions */}
+            <View style={[styles.sidebarActions, { borderTopColor: colors.border }]}>
+                <Button
+                    title="Retour"
+                    onPress={() => router.back()}
+                    variant="outline"
+                    size="sm"
+                />
+            </View>
+        </View>
+    );
+
+    // Composant onglets pour mobile/tablette
+    const MobileTabs = () => (
+        <View style={[styles.tabsContainer, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+            {[
+                { key: 'users', icon: 'people-outline', label: 'Utilisateurs' },
+                { key: 'status', icon: 'analytics-outline', label: 'Système' }
+            ].map(({ key, icon, label }) => (
+                <TouchableOpacity
+                    key={key}
+                    style={[
+                        styles.tabButton,
+                        {
+                            backgroundColor: activeTab === key ? colors.primary : 'transparent',
+                            borderColor: colors.border,
+                        }
+                    ]}
+                    onPress={() => setActiveTab(key as AdminTab)}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons
+                        name={icon as any}
+                        size={20}
+                        color={activeTab === key ? colors.surface : colors.textSecondary}
+                    />
+                    <Text
+                        variant="body"
+                        color={activeTab === key ? "primary" : "textSecondary"}
+                        weight={activeTab === key ? "bold" : "regular"}
+                        style={activeTab === key ? { color: colors.surface } : undefined}
+                    >
+                        {label}
+                    </Text>
+                </TouchableOpacity>
+            ))}
+        </View>
+    );
+
+    // Composant contenu principal
+    const MainContent = () => {
+        switch (activeTab) {
+            case 'users':
+                return <UsersList showModal={showModal} hideModal={hideModal} />;
+            case 'status':
+                return <SystemStatus />;
+            default:
+                return null;
+        }
+    };
+
     // Protection de la route - affichage conditionnel
     if (!isAuthenticated) {
         return (
@@ -84,7 +243,10 @@ export default function AdminScreen() {
                     backgroundColor={colors.background}
                 />
 
-                <View style={styles.unauthorizedContainer}>
+                <View style={[
+                    styles.centeredContainer,
+                    screen.isDesktop && styles.desktopCenteredContainer
+                ]}>
                     <Ionicons name="lock-closed" size={64} color={colors.textSecondary} />
                     <Text variant="heading2" color="text" style={{ marginTop: spacing.lg }}>
                         Authentification requise
@@ -112,7 +274,10 @@ export default function AdminScreen() {
                     backgroundColor={colors.background}
                 />
 
-                <View style={styles.loadingContainer}>
+                <View style={[
+                    styles.centeredContainer,
+                    screen.isDesktop && styles.desktopCenteredContainer
+                ]}>
                     <Text variant="body" color="textSecondary">
                         Vérification des permissions...
                     </Text>
@@ -129,7 +294,10 @@ export default function AdminScreen() {
                     backgroundColor={colors.background}
                 />
 
-                <View style={styles.unauthorizedContainer}>
+                <View style={[
+                    styles.centeredContainer,
+                    screen.isDesktop && styles.desktopCenteredContainer
+                ]}>
                     <Ionicons name="shield-outline" size={64} color={colors.error} />
                     <Text variant="heading2" color="text" style={{ marginTop: spacing.lg }}>
                         Accès refusé
@@ -149,7 +317,6 @@ export default function AdminScreen() {
                     />
                 </View>
 
-                {/* Modal de confirmation globale */}
                 <ConfirmationModal
                     visible={modal.visible}
                     onClose={hideModal}
@@ -164,46 +331,7 @@ export default function AdminScreen() {
         );
     }
 
-    // Rendu des onglets
-    const renderTabButton = (tab: AdminTab, icon: string, label: string) => (
-        <TouchableOpacity
-            style={[
-                styles.tabButton,
-                {
-                    backgroundColor: activeTab === tab ? colors.primary : 'transparent',
-                    borderColor: colors.border,
-                }
-            ]}
-            onPress={() => setActiveTab(tab)}
-            activeOpacity={0.7}
-        >
-            <Ionicons
-                name={icon as any}
-                size={20}
-                color={activeTab === tab ? colors.surface : colors.textSecondary}
-            />
-            <Text
-                variant="body"
-                color={activeTab === tab ? "primary" : "textSecondary"}
-                weight={activeTab === tab ? "bold" : "regular"}
-                style={activeTab === tab ? { color: colors.surface } : undefined}
-            >
-                {label}
-            </Text>
-        </TouchableOpacity>
-    );
-
-    const renderTabContent = () => {
-        switch (activeTab) {
-            case 'users':
-                return <UsersList showModal={showModal} hideModal={hideModal} />;
-            case 'status':
-                return <SystemStatus />;
-            default:
-                return null;
-        }
-    };
-
+    // Rendu principal en fonction de la taille d'écran
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <StatusBar
@@ -211,64 +339,91 @@ export default function AdminScreen() {
                 backgroundColor={colors.background}
             />
 
-            {/* Header avec informations admin */}
-            <Header
-                title="Administration"
-                showBackButton={true}
-                rightComponent={<ThemeToggle />}
-                elevated={true}
-            />
+            {screen.isDesktop ? (
+                // Layout Desktop avec sidebar
+                <View style={styles.desktopLayout}>
+                    <DesktopSidebar />
 
-            {/* Informations de l'administrateur connecté */}
-            <View style={[styles.adminInfoContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-                <View style={styles.adminInfo}>
-                    <View style={styles.adminDetails}>
-                        <Text variant="body" color="text" weight="bold">
-                            {currentUserLogin}
-                        </Text>
-                        <View style={[styles.roleBadge, { backgroundColor: getRoleColor(userRole, colors) }]}>
-                            <Text style={styles.roleText}>
-                                {getRoleLabel(userRole)}
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.permissionsInfo}>
-                        <View style={styles.permissionItem}>
-                            <Ionicons
-                                name={permissions.canPromote ? "checkmark-circle" : "close-circle"}
-                                size={14}
-                                color={permissions.canPromote ? colors.success : colors.textSecondary}
-                            />
-                            <Text variant="caption" color="textSecondary">
-                                Promotion
+                    <View style={styles.desktopContent}>
+                        {/* Header desktop */}
+                        <View style={[
+                            styles.desktopHeader,
+                            {
+                                backgroundColor: colors.surface,
+                                borderBottomColor: colors.border,
+                                height: layout.headerHeight
+                            }
+                        ]}>
+                            <Text variant="heading3" color="text" weight="bold">
+                                {activeTab === 'users' ? 'Gestion des Utilisateurs' : 'Statut du Système'}
                             </Text>
                         </View>
 
-                        <View style={styles.permissionItem}>
-                            <Ionicons
-                                name={permissions.canDemote ? "checkmark-circle" : "close-circle"}
-                                size={14}
-                                color={permissions.canDemote ? colors.success : colors.textSecondary}
-                            />
-                            <Text variant="caption" color="textSecondary">
-                                Rétrogradation
-                            </Text>
+                        {/* Contenu principal */}
+                        <View style={createConditionalStyle()}>
+                            <MainContent />
                         </View>
                     </View>
                 </View>
-            </View>
+            ) : (
+                // Layout Mobile/Tablette
+                <>
+                    {/* Header mobile avec informations admin */}
+                    <Header
+                        title="Administration"
+                        showBackButton={true}
+                        rightComponent={<ThemeToggle />}
+                        elevated={true}
+                    />
 
-            {/* Navigation par onglets */}
-            <View style={[styles.tabsContainer, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-                {renderTabButton('users', 'people-outline', 'Utilisateurs')}
-                {renderTabButton('status', 'analytics-outline', 'Système')}
-            </View>
+                    {/* Informations admin mobile */}
+                    <View style={[
+                        styles.mobileAdminInfo,
+                        {
+                            backgroundColor: colors.surface,
+                            borderBottomColor: colors.border
+                        }
+                    ]}>
+                        <View style={styles.adminDetails}>
+                            <Text variant="body" color="text" weight="bold">
+                                {currentUserLogin}
+                            </Text>
+                            <View style={[styles.roleBadge, { backgroundColor: getRoleColor(userRole, colors) }]}>
+                                <Text style={styles.roleText}>
+                                    {getRoleLabel(userRole)}
+                                </Text>
+                            </View>
+                        </View>
 
-            {/* Contenu de l'onglet actif */}
-            <View style={styles.contentContainer}>
-                {renderTabContent()}
-            </View>
+                        <View style={styles.permissionsInfo}>
+                            <View style={styles.permissionItem}>
+                                <Ionicons
+                                    name={permissions.canPromote ? "checkmark-circle" : "close-circle"}
+                                    size={14}
+                                    color={permissions.canPromote ? colors.success : colors.textSecondary}
+                                />
+                                <Text variant="caption" color="textSecondary">Promotion</Text>
+                            </View>
+                            <View style={styles.permissionItem}>
+                                <Ionicons
+                                    name={permissions.canDemote ? "checkmark-circle" : "close-circle"}
+                                    size={14}
+                                    color={permissions.canDemote ? colors.success : colors.textSecondary}
+                                />
+                                <Text variant="caption" color="textSecondary">Rétrogradation</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Onglets mobiles */}
+                    <MobileTabs />
+
+                    {/* Contenu principal */}
+                    <View style={styles.mobileContent}>
+                        <MainContent />
+                    </View>
+                </>
+            )}
 
             {/* Modal de confirmation globale */}
             <ConfirmationModal
@@ -306,24 +461,66 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    unauthorizedContainer: {
+
+    // Styles communs
+    centeredContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         padding: spacing.xl,
     },
-    loadingContainer: {
+    desktopCenteredContainer: {
+        maxWidth: 600,
+        alignSelf: 'center',
+    },
+
+    // Layout Desktop
+    desktopLayout: {
         flex: 1,
-        justifyContent: 'center',
+        flexDirection: 'row',
+    },
+
+    // Sidebar Desktop
+    sidebar: {
+        borderRightWidth: 1,
+        flexDirection: 'column',
+    },
+    sidebarHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
         padding: spacing.xl,
+        borderBottomWidth: 1,
     },
-    adminInfoContainer: {
+
+    // Contenu Desktop
+    desktopContent: {
+        flex: 1,
+        flexDirection: 'column',
+    },
+    desktopHeader: {
+        paddingHorizontal: spacing.xl,
+        paddingVertical: spacing.lg,
+        borderBottomWidth: 1,
+        justifyContent: 'center',
+    },
+    desktopMainContent: {
+        flex: 1,
+        alignSelf: 'center',
+        width: '100%',
+    },
+
+    // Informations Admin
+    adminInfo: {
+        padding: spacing.lg,
+        margin: spacing.lg,
+        borderRadius: 12,
+        gap: spacing.md,
+    },
+    mobileAdminInfo: {
         borderBottomWidth: 1,
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.md,
-    },
-    adminInfo: {
         gap: spacing.sm,
     },
     adminDetails: {
@@ -350,6 +547,26 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: spacing.xs,
     },
+
+    // Navigation
+    navigation: {
+        flex: 1,
+        paddingVertical: spacing.lg,
+    },
+    navItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+        padding: spacing.lg,
+        paddingLeft: spacing.xl,
+        borderLeftWidth: 3,
+    },
+    sidebarActions: {
+        padding: spacing.lg,
+        borderTopWidth: 1,
+    },
+
+    // Onglets Mobile
     tabsContainer: {
         flexDirection: 'row',
         paddingHorizontal: spacing.lg,
@@ -368,7 +585,9 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         borderWidth: 1,
     },
-    contentContainer: {
+
+    // Contenu Mobile
+    mobileContent: {
         flex: 1,
     },
 });
