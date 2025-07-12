@@ -1,7 +1,7 @@
-// src/shared/context/AuthContext.tsx - SIMPLIFIED avec React Query
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+// src/shared/context/AuthContext.tsx - UPDATED avec rôles admin
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { authService } from '@/src/shared/services/api/auth/auth.api';
-import { LoginRequest, LocalUserInfo, Bet261UserData } from '@/src/features/auth/types';
+import { LoginRequest, LocalUserInfo, Bet261UserData, AuthContextType } from '@/src/features/auth/types';
 import {
     useLogin,
     useLogout,
@@ -11,22 +11,6 @@ import {
     useSwitchUser,
     useAuthUtils
 } from '@/src/shared/hooks/auth/useAuthQueries';
-
-interface AuthContextType {
-    // ✅ États simplifiés - React Query gère le cache
-    loading: boolean;
-    localUserInfo: LocalUserInfo | null;
-    bet261UserData: Bet261UserData | null;
-    isAuthenticated: boolean;
-    error: string | null;
-    currentUserLogin: string | null;
-
-    // ✅ Actions - utilise React Query hooks
-    login: (credentials: LoginRequest) => Promise<{ success: boolean; error?: string; localUser?: LocalUserInfo; bet261User?: Bet261UserData; loginResponse?: any }>;
-    logout: () => Promise<void>;
-    refreshUserInfo: () => Promise<{ localUser: LocalUserInfo; bet261User: Bet261UserData }>;
-    switchUser: (credentials: LoginRequest) => Promise<{ success: boolean; error?: string; localUser?: LocalUserInfo; bet261User?: Bet261UserData; loginResponse?: any }>;
-}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -56,7 +40,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const bet261UserData = bet261DataQuery.data || null;
     const isAuthenticated = !!authService.getAuthToken() && !!(localUserInfo && bet261UserData);
 
-    // ✅ Wrapper pour login
+    // 🆕 Propriétés de rôle dérivées des données utilisateur
+    const userRole = useMemo(() => {
+        if (!localUserInfo?.role_info) return 'user' as const;
+        return localUserInfo.role_info.role;
+    }, [localUserInfo]);
+
+    const isAdmin = useMemo(() => {
+        if (!localUserInfo?.role_info) return false;
+        return localUserInfo.role_info.is_admin;
+    }, [localUserInfo]);
+
+    const isSuperAdmin = useMemo(() => {
+        if (!localUserInfo?.role_info) return false;
+        return localUserInfo.role_info.is_super_admin;
+    }, [localUserInfo]);
+
+    // 🆕 Méthodes utilitaires pour les rôles
+    const hasAdminAccess = useCallback(() => {
+        return isAdmin || isSuperAdmin;
+    }, [isAdmin, isSuperAdmin]);
+
+    const canAccessAdminPanel = useCallback(() => {
+        return isAuthenticated && hasAdminAccess();
+    }, [isAuthenticated, hasAdminAccess]);
+
+    const getUserRole = useCallback(() => {
+        return userRole;
+    }, [userRole]);
+
+    // ✅ Wrapper pour login avec gestion des rôles
     const login = useCallback(async (credentials: LoginRequest) => {
         try {
             setError(null);
@@ -71,6 +84,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 userInfoQuery.refetch(),
                 bet261DataQuery.refetch(),
             ]);
+
+            // 🆕 Log des informations de rôle après connexion
+            const userData = userInfoQuery.data;
+            if (userData?.role_info) {
+                console.log('👤 AuthContext: User role info:', {
+                    user: credentials.bet_login,
+                    role: userData.role_info.role,
+                    isAdmin: userData.role_info.is_admin,
+                    isSuperAdmin: userData.role_info.is_super_admin
+                });
+            }
 
             console.log('🎉 AuthContext: Authentication completed successfully');
 
@@ -121,6 +145,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             const result = await refreshMutation.mutateAsync();
 
+            // 🆕 Log des informations de rôle après refresh
+            if (result.localUser.role_info) {
+                console.log('👤 AuthContext: Refreshed user role info:', {
+                    user: currentUserLogin,
+                    role: result.localUser.role_info.role,
+                    isAdmin: result.localUser.role_info.is_admin,
+                    isSuperAdmin: result.localUser.role_info.is_super_admin
+                });
+            }
+
             console.log('🔄 AuthContext: User info refreshed successfully');
 
             return result;
@@ -130,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('❌ AuthContext: Refresh user info error:', err);
             throw err;
         }
-    }, [refreshMutation, isAuthenticated]);
+    }, [refreshMutation, isAuthenticated, currentUserLogin]);
 
     // ✅ Wrapper pour switch user
     const switchUser = useCallback(async (credentials: LoginRequest) => {
@@ -182,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshMutation.error, switchUserMutation.error
     ]);
 
-    // ✅ Debug effect - réduit pour éviter le spam
+    // ✅ Debug effect - avec infos de rôle
     useEffect(() => {
         console.log('🔍 AuthContext state changed:', {
             isAuthenticated,
@@ -190,21 +224,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             hasBet261UserData: !!bet261UserData,
             loading,
             currentUserLogin,
+            userRole,
+            isAdmin,
+            isSuperAdmin,
+            canAccessAdminPanel: canAccessAdminPanel(),
             error
         });
-    }, [isAuthenticated, localUserInfo, bet261UserData, loading, currentUserLogin, error]);
+    }, [isAuthenticated, localUserInfo, bet261UserData, loading, currentUserLogin, userRole, isAdmin, isSuperAdmin, canAccessAdminPanel, error]);
 
     const value: AuthContextType = {
+        // États de base
         loading,
         localUserInfo,
         bet261UserData,
         isAuthenticated,
         error,
         currentUserLogin,
+
+        // 🆕 Propriétés de rôle
+        userRole,
+        isAdmin,
+        isSuperAdmin,
+
+        // Actions de base
         login,
         logout,
         refreshUserInfo,
         switchUser,
+
+        // 🆕 Méthodes utilitaires pour les rôles
+        hasAdminAccess,
+        canAccessAdminPanel,
+        getUserRole,
     };
 
     return (

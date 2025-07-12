@@ -1,12 +1,14 @@
-// app/(main)/(tabs)/_layout.tsx - Mise à jour avec les nouveaux écrans
+// app/(main)/(tabs)/_layout.tsx - UPDATED avec onglet admin protégé
 import { Tabs } from 'expo-router';
 import { useTheme } from '@/src/shared/context/ThemeContext';
+import { useAuth } from '@/src/shared/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
     const { colors, mode } = useTheme();
+    const { canAccessAdminPanel } = useAuth();
     const insets = useSafeAreaInsets();
 
     return (
@@ -56,6 +58,31 @@ export default function TabLayout() {
                     ),
                 }}
             />
+
+            {/* 🆕 Onglet Admin - Visible seulement aux administrateurs */}
+            <Tabs.Screen
+                name="admin"
+                options={{
+                    // 🔐 Protection: onglet visible seulement si l'utilisateur est admin
+                    href: canAccessAdminPanel() ? '/admin' : null,
+                    title: 'Admin',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="shield-outline" size={size} color={color} />
+                    ),
+                    // Badge pour indiquer le statut admin
+                    tabBarBadge: canAccessAdminPanel() ? '●' : undefined,
+                    tabBarBadgeStyle: {
+                        backgroundColor: colors.warning,
+                        color: 'transparent',
+                        fontSize: 8,
+                        minWidth: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        marginTop: -2,
+                    },
+                }}
+            />
+
             <Tabs.Screen
                 name="other"
                 options={{
@@ -65,6 +92,7 @@ export default function TabLayout() {
                     ),
                 }}
             />
+
             {/* Écrans cachés dans les tabs mais accessibles via navigation */}
             <Tabs.Screen
                 name="grolo"
