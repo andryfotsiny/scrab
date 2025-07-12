@@ -1,4 +1,4 @@
-// src/features/auth/components/LoginScreen.tsx (Updated for Context)
+// src/features/auth/components/LoginScreen.tsx - UPDATED avec React Query
 import React, { useState, useCallback } from 'react';
 import {
     View,
@@ -22,7 +22,7 @@ import { spacing } from '@/src/styles';
 
 export default function LoginScreen() {
     const { colors, mode } = useTheme();
-    const { login, loading } = useAuth();
+    const { login, loading } = useAuth(); // ✅ Utilise maintenant React Query sous le capot
 
     const [formData, setFormData] = useState({
         bet_login: '',
@@ -75,21 +75,21 @@ export default function LoginScreen() {
         }
 
         try {
-            console.log('🚀 LoginScreen: Starting login with:', {
-                bet_login: formData.bet_login,
-                bet_password: '[HIDDEN]'
-            });
+            console.log('🚀 LoginScreen: Starting login with React Query...');
 
+            // ✅ Le login utilise maintenant React Query sous le capot
             const result = await login({
                 bet_login: formData.bet_login.trim(),
                 bet_password: formData.bet_password.trim(),
             });
 
             if (result.success) {
-                console.log('✅ LoginScreen: Login successful, navigating to main screen');
+                console.log('✅ LoginScreen: Login successful (React Query cache populated)');
 
                 // Clear form data
                 setFormData({ bet_login: '', bet_password: '' });
+
+                // ✅ React Query a automatiquement mis en cache les données utilisateur
                 // Navigate directly to main screen
                 router.replace('/(main)');
             } else {
@@ -220,7 +220,7 @@ export default function LoginScreen() {
                         {/* Helper Text */}
                         <View style={styles.helperContainer}>
                             <Text variant="caption" color="textSecondary" style={styles.helperText}>
-                                Utilisez vos identifiants Bet261 pour vous connecter.
+                                ✅ Données mises en cache automatiquement avec React Query.
                                 L'application se connectera automatiquement à votre compte.
                             </Text>
                         </View>
@@ -230,13 +230,14 @@ export default function LoginScreen() {
                 {/* Footer */}
                 <View style={styles.footer}>
                     <Text variant="caption" color="textSecondary">
-                        Version 1.0.0
+                        Version 1.0.0 - Powered by React Query 🚀
                     </Text>
                 </View>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: {

@@ -1,4 +1,4 @@
-// MiniConfigurationTab.tsx - Refactorisé avec ConfirmationModal seulement
+// MiniConfigurationTab.tsx - UPDATED avec React Query
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -10,6 +10,7 @@ import {
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useMini } from '@/src/features/football/context/MiniContext';
+import { useMiniConfig, useUpdateMiniConfig, useMiniUtils } from '@/src/shared/hooks/mini/useMiniQueries';
 
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
@@ -21,19 +22,25 @@ import { MiniConfigUpdateRequest } from "@/src/shared/services/types/mini.type";
 
 export default function MiniConfigurationTab() {
     const { colors } = useTheme();
+
+    // ✅ React Query hooks directs + contexte simplifié
+    const { data: config, isLoading: configLoading, error: configError } = useMiniConfig();
+    const updateConfigMutation = useUpdateMiniConfig();
+    const { refreshConfig } = useMiniUtils();
     const {
-        loading,
-        config,
-        error,
-        loadConfig,
-        updateConfig,
+        loading: contextLoading,
+        error: contextError,
     } = useMini();
+
+    // ✅ États de chargement dérivés
+    const loading = configLoading || contextLoading || updateConfigMutation.isPending;
+    const error = configError?.message || contextError;
+    const initialLoading = configLoading && !config;
 
     // Form state
     const [formData, setFormData] = useState<MiniConfigUpdateRequest>({});
     const [hasChanges, setHasChanges] = useState(false);
     const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
-    const [initialLoading, setInitialLoading] = useState(true);
 
     // Modal states
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -45,20 +52,6 @@ export default function MiniConfigurationTab() {
         confirmText: '',
         onConfirm: () => {},
     });
-
-    useEffect(() => {
-        const initializeData = async () => {
-            try {
-                await loadConfig();
-            } catch (err) {
-                console.error('Initialize error:', err);
-            } finally {
-                setInitialLoading(false);
-            }
-        };
-
-        initializeData();
-    }, [loadConfig]);
 
     useEffect(() => {
         if (config) {
@@ -73,13 +66,15 @@ export default function MiniConfigurationTab() {
         }
     }, [config]);
 
+    // ✅ React Query gère automatiquement le refresh
     const onRefresh = useCallback(async () => {
         try {
-            await loadConfig();
+            await refreshConfig();
+            console.log('🔄 MiniConfigurationTab: Config refreshed via React Query');
         } catch (err) {
             console.error('Refresh error:', err);
         }
-    }, [loadConfig]);
+    }, [refreshConfig]);
 
     const handleInputChange = (field: keyof MiniConfigUpdateRequest, value: string) => {
         const numericValue = parseFloat(value) || 0;
@@ -142,8 +137,8 @@ export default function MiniConfigurationTab() {
         }
 
         setModalData({
-            title: 'Confirmer les modifications',
-            message: 'Êtes-vous sûr de vouloir sauvegarder ces modifications pour le système Mini ?',
+            title: 'Confirmer les modifications ',
+            message: 'Êtes-vous sûr de vouloir sauvegarder ces modifications pour le système Mini ? Le cache sera automatiquement mis à jour.',
             confirmText: 'Sauvegarder',
             onConfirm: handleConfirmSave,
         });
@@ -155,7 +150,8 @@ export default function MiniConfigurationTab() {
         setShowConfirmModal(false);
 
         try {
-            const result = await updateConfig(formData);
+            // ✅ Utiliser la mutation React Query
+            const result = await updateConfigMutation.mutateAsync(formData);
             console.log('🎉 Mini config update successful:', result);
 
             // Mettre à jour le temps de dernière modification
@@ -164,8 +160,8 @@ export default function MiniConfigurationTab() {
             }
 
             setModalData({
-                title: 'Configuration Mini mise à jour',
-                message: `Modifications sauvegardées avec succès !\n\nChangements:\n${result.changes_made.join('\n')}`,
+                title: 'Configuration Mini mise à jour ',
+                message: `Modifications sauvegardées avec succès via React Query !\n\nChangements:\n${result.changes_made.join('\n')}\n\nLe cache a été automatiquement mis à jour.`,
                 confirmText: 'Parfait !',
                 onConfirm: () => setShowSuccessModal(false),
             });
@@ -373,7 +369,7 @@ export default function MiniConfigurationTab() {
                     <View style={styles.infoItem}>
                         <Ionicons name="shield-checkmark-outline" size={16} color={colors.success} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Système idéal pour des gains réguliers avec une mise plus sûre
+                            Système idéal pour des gains réguliers avec une mise plus sûre - Cache automatique
                         </Text>
                     </View>
                 </View>
@@ -438,8 +434,7 @@ export default function MiniConfigurationTab() {
                             : (config.metadata?.updated_at
                                     ? new Date(config.metadata.updated_at).toLocaleString('fr-FR')
                                     : 'Information non disponible'
-                            )
-                        }
+                            )} (Cache React Query)
                         </Text>
                     </View>
                 </View>
@@ -574,7 +569,7 @@ export default function MiniConfigurationTab() {
                     <View style={styles.infoItem}>
                         <Ionicons name="shield-checkmark-outline" size={16} color={colors.success} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Système idéal pour des gains réguliers avec une mise plus sûre
+                            Système idéal pour des gains réguliers avec une mise plus sûre - Cache automatique
                         </Text>
                     </View>
                 </View>
@@ -592,7 +587,7 @@ export default function MiniConfigurationTab() {
                 ]}
                 refreshControl={
                     <RefreshControl
-                        refreshing={loading && !!config} // Only show refresh si on a déjà des données
+                        refreshing={loading && !!config}
                         onRefresh={onRefresh}
                         tintColor={colors.primary}
                         colors={[colors.primary]}
@@ -601,7 +596,7 @@ export default function MiniConfigurationTab() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
+                {initialLoading ? renderSkeletonContent() : renderContent()}
             </ScrollView>
 
             {/* Modals */}

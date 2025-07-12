@@ -1,5 +1,5 @@
-// src/features/auth/components/UserProfileScreen.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+// src/features/auth/components/UserProfileScreen.tsx - UPDATED avec React Query
+import React, { useState, useCallback } from 'react';
 import {
     View,
     StyleSheet,
@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { useAuth } from '@/src/shared/context/AuthContext';
+import { useUserInfo, useBet261UserData, useRefreshUserInfo } from '@/src/shared/hooks/auth/useAuthQueries';
 import ThemeToggle from '@/src/components/atoms/ThemeToggle';
 import Button from '@/src/components/atoms/Button';
 import Text from '@/src/components/atoms/Text';
@@ -24,16 +25,29 @@ export default function UserProfileScreen() {
     const { colors, mode } = useTheme();
     const insets = useSafeAreaInsets();
     const {
-        loading,
-        localUserInfo,
-        bet261UserData,
         isAuthenticated,
         currentUserLogin,
-        refreshUserInfo,
         logout
     } = useAuth();
 
-    const [initialLoading, setInitialLoading] = useState(true);
+    // ✅ React Query hooks pour les données
+    const {
+        data: localUserInfo,
+        isLoading: localUserLoading,
+        error: localUserError
+    } = useUserInfo();
+
+    const {
+        data: bet261UserData,
+        isLoading: bet261Loading,
+        error: bet261Error
+    } = useBet261UserData();
+
+    const refreshMutation = useRefreshUserInfo();
+
+    // ✅ États de chargement dérivés
+    const loading = localUserLoading || bet261Loading || refreshMutation.isPending;
+    const initialLoading = (localUserLoading || bet261Loading) && !localUserInfo && !bet261UserData;
 
     // Modal states
     const [showRefreshErrorModal, setShowRefreshErrorModal] = useState(false);
@@ -46,41 +60,8 @@ export default function UserProfileScreen() {
         type: 'info' as 'success' | 'info',
     });
 
-    // Debug logs
-    useEffect(() => {
-        console.log('🔍 UserProfileScreen state:', {
-            isAuthenticated,
-            hasLocalUserInfo: !!localUserInfo,
-            hasBet261UserData: !!bet261UserData,
-            loading,
-            currentUserLogin
-        });
-    }, [isAuthenticated, localUserInfo, bet261UserData, loading, currentUserLogin]);
-
-    useEffect(() => {
-        // Initial loading is done when we have data or after first render
-        if (localUserInfo && bet261UserData) {
-            setInitialLoading(false);
-        } else if (!loading && isAuthenticated) {
-            // If authenticated but no data, try to refresh
-            const loadData = async () => {
-                try {
-                    await refreshUserInfo();
-                } catch (err) {
-                    console.error('Failed to load user data:', err);
-                } finally {
-                    setInitialLoading(false);
-                }
-            };
-            loadData();
-        } else if (!loading) {
-            // If not loading and no data, probably not authenticated
-            setInitialLoading(false);
-        }
-    }, [localUserInfo, bet261UserData, loading, isAuthenticated, refreshUserInfo]);
-
     const onRefresh = useCallback(async () => {
-        // Try to refresh even if isAuthenticated is false but we have user data
+        // ✅ React Query gère automatiquement l'état d'authentification
         if (!isAuthenticated && !localUserInfo && !bet261UserData) {
             setModalData({
                 title: 'Erreur',
@@ -92,10 +73,12 @@ export default function UserProfileScreen() {
         }
 
         try {
-            await refreshUserInfo();
+            // ✅ Utiliser la mutation React Query pour refresh
+            await refreshMutation.mutateAsync();
+
             setModalData({
                 title: 'Données actualisées',
-                message: 'Vos informations ont été mises à jour avec succès.',
+                message: 'Vos informations ont été mises à jour avec succès grâce au cache React Query.',
                 type: 'success',
             });
             setShowSuccessModal(true);
@@ -108,7 +91,7 @@ export default function UserProfileScreen() {
             });
             setShowRefreshErrorModal(true);
         }
-    }, [isAuthenticated, localUserInfo, bet261UserData, refreshUserInfo]);
+    }, [isAuthenticated, localUserInfo, bet261UserData, refreshMutation]);
 
     const handleLogout = useCallback(async () => {
         setShowLogoutModal(true);
@@ -117,6 +100,7 @@ export default function UserProfileScreen() {
     const handleConfirmLogout = useCallback(async () => {
         setShowLogoutModal(false);
         try {
+            // ✅ React Query nettoiera automatiquement le cache
             await logout();
             router.replace('/(auth)/login');
         } catch (error) {
@@ -133,6 +117,7 @@ export default function UserProfileScreen() {
     const handleConfirmSwitchUser = useCallback(async () => {
         setShowSwitchUserModal(false);
         try {
+            // ✅ React Query nettoiera automatiquement le cache
             await logout();
             router.replace('/(auth)/login');
         } catch (error) {
@@ -222,9 +207,6 @@ export default function UserProfileScreen() {
                 </View>
             </View>
 
-            {/* Separator */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
             {/* Actions Section */}
             <View style={styles.section}>
                 <Skeleton width="30%" height={24} style={{ marginBottom: spacing.lg }} />
@@ -247,15 +229,6 @@ export default function UserProfileScreen() {
                         style={{ flex: 1 }}
                     />
                 </View>
-
-                <Button
-                    title="Se déconnecter"
-                    onPress={() => {}}
-                    variant="outline"
-                    size="sm"
-                    disabled={true}
-                    style={{ marginTop: spacing.sm }}
-                />
             </View>
         </>
     );
@@ -507,6 +480,7 @@ export default function UserProfileScreen() {
                 <View style={styles.currentUserInfo}>
                     <Text variant="caption" color="textSecondary">
                         Connecté en tant que: {currentUserLogin}
+                        {isAuthenticated && " aa"}
                     </Text>
                 </View>
             )}
@@ -590,10 +564,7 @@ export default function UserProfileScreen() {
                         }
                         showsVerticalScrollIndicator={false}
                     >
-                        {(initialLoading || (loading && !localUserInfo && !bet261UserData)) ?
-                            renderSkeletonContent() :
-                            renderContent()
-                        }
+                        {initialLoading ? renderSkeletonContent() : renderContent()}
                     </ScrollView>
                 </SafeAreaView>
 
@@ -612,7 +583,7 @@ export default function UserProfileScreen() {
                     visible={showLogoutModal}
                     onClose={() => setShowLogoutModal(false)}
                     title="Déconnexion"
-                    message="Êtes-vous sûr de vouloir vous déconnecter ?"
+                    message="Êtes-vous sûr de vouloir vous déconnecter ? Le cache React Query sera nettoyé."
                     confirmText="Déconnecter"
                     cancelText="Annuler"
                     onConfirm={handleConfirmLogout}
@@ -624,7 +595,7 @@ export default function UserProfileScreen() {
                     visible={showSwitchUserModal}
                     onClose={() => setShowSwitchUserModal(false)}
                     title="Changer d'utilisateur"
-                    message="Voulez-vous vous connecter avec un autre compte ?"
+                    message="Voulez-vous vous connecter avec un autre compte ? Le cache sera nettoyé."
                     confirmText="Changer"
                     cancelText="Annuler"
                     onConfirm={handleConfirmSwitchUser}

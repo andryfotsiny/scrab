@@ -1,4 +1,4 @@
-// MiniBetNowTab.tsx - Refactorisé avec les modals personnalisées
+// MiniBetNowTab.tsx - UPDATED avec React Query
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -11,6 +11,7 @@ import {
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useMini } from '@/src/features/football/context/MiniContext';
+import { useMiniConfig, useMiniMatches, useMiniUtils } from '@/src/shared/hooks/mini/useMiniQueries';
 import { MiniMatch } from '@/src/shared/services/types/mini.type';
 
 import Button from '@/src/components/atoms/Button';
@@ -23,19 +24,24 @@ import { spacing } from '@/src/styles';
 
 export default function MiniBetNowTab() {
     const { colors } = useTheme();
+
+    // ✅ React Query hooks directs + contexte simplifié
+    const { data: config, isLoading: configLoading, error: configError } = useMiniConfig();
+    const { data: matches, isLoading: matchesLoading, error: matchesError, refetch: refetchMatches } = useMiniMatches();
+    const { refreshConfig, refreshMatches } = useMiniUtils();
     const {
-        loading,
-        config,
-        matches,
-        error,
-        loadConfig,
-        loadMatches,
+        loading: contextLoading,
+        error: contextError,
         executeBet,
     } = useMini();
 
+    // ✅ États de chargement dérivés
+    const loading = configLoading || matchesLoading || contextLoading;
+    const error = configError?.message || matchesError?.message || contextError;
+    const initialLoading = (configLoading || matchesLoading) && !(config && matches);
+
     const [customStake, setCustomStake] = useState('');
     const [acceptOddsChange, setAcceptOddsChange] = useState(true);
-    const [initialLoading, setInitialLoading] = useState(true);
 
     // Modal states
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -48,32 +54,20 @@ export default function MiniBetNowTab() {
     });
 
     useEffect(() => {
-        const initializeData = async () => {
-            try {
-                await Promise.all([loadConfig(), loadMatches()]);
-            } catch (err) {
-                console.error('Initialize error:', err);
-            } finally {
-                setInitialLoading(false);
-            }
-        };
-
-        initializeData();
-    }, [loadConfig, loadMatches]);
-
-    useEffect(() => {
         if (config?.settings.default_stake) {
             setCustomStake(config.settings.default_stake.toString());
         }
     }, [config]);
 
+    // ✅ React Query gère automatiquement le refresh
     const onRefresh = useCallback(async () => {
         try {
-            await Promise.all([loadConfig(), loadMatches()]);
+            await Promise.all([refreshConfig(), refreshMatches()]);
+            console.log('🔄 MiniBetNowTab: Data refreshed via React Query');
         } catch (err) {
             console.error('Refresh error:', err);
         }
-    }, [loadConfig, loadMatches]);
+    }, [refreshConfig, refreshMatches]);
 
     const handleExecuteBet = async () => {
         // Fermer le clavier d'abord
@@ -115,8 +109,8 @@ export default function MiniBetNowTab() {
             });
             setShowSuccessModal(true);
 
-            // Recharger les données après exécution
-            await loadMatches();
+            // ✅ React Query va automatiquement invalider et recharger les données nécessaires
+            await refetchMatches();
         } catch (err) {
             setModalData({
                 ...modalData,
@@ -194,11 +188,7 @@ export default function MiniBetNowTab() {
             <View style={styles.section}>
                 <View style={styles.summaryHeader}>
                     <Text variant="heading3" color="text">
-                        Mini -
-                    </Text>
-                    <Skeleton width="15%" height={24} animated={false} />
-                    <Text variant="heading3" color="text">
-                        matchs sélectionnés
+                        Mini
                     </Text>
                     <Skeleton width={60} height={28} borderRadius={14} animated={false} />
                 </View>
@@ -277,7 +267,7 @@ export default function MiniBetNowTab() {
             {/* Ligne de séparation */}
             <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
-            {/* Matches List Skeleton ou Empty State */}
+            {/* Matches List Skeleton */}
             <View style={styles.section}>
                 <View style={styles.emptyState}>
                     <Ionicons name="flash-outline" size={48} color={colors.textSecondary} />
@@ -285,7 +275,7 @@ export default function MiniBetNowTab() {
                         Sélection en cours
                     </Text>
                     <Text variant="body" color="textSecondary" align="center" style={{ marginTop: spacing.xs }}>
-                        Le système Mini sélectionne automatiquement 2 matchs optimaux
+                        Le système Mini sélectionne automatiquement 2 matchs optimaux via React Query
                     </Text>
                 </View>
             </View>
@@ -397,7 +387,7 @@ export default function MiniBetNowTab() {
                 </TouchableOpacity>
 
                 <Button
-                    title={loading ? 'Exécution...' : `Parier maintenant`}
+                    title={loading ? 'Exécution...' : `Parier maintenant `}
                     onPress={handleExecuteBet}
                     variant="outline"
                     disabled={loading || matches?.total_matches !== 2}
@@ -433,7 +423,7 @@ export default function MiniBetNowTab() {
                             Sélection en cours
                         </Text>
                         <Text variant="body" color="textSecondary" align="center" style={{ marginTop: spacing.xs }}>
-                            Le système Mini sélectionne automatiquement 2 matchs optimaux
+                            Le système Mini sélectionne automatiquement 2 matchs optimaux via React Query
                         </Text>
                     </View>
                 </View>
@@ -460,15 +450,15 @@ export default function MiniBetNowTab() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                {initialLoading || (loading && !(config && matches)) ? renderSkeletonContent() : renderContent()}
+                {initialLoading ? renderSkeletonContent() : renderContent()}
             </ScrollView>
 
             {/* Modals */}
             <ConfirmationModal
                 visible={showConfirmModal}
                 onClose={() => setShowConfirmModal(false)}
-                title="Confirmer le pari Mini"
-                message={`Êtes-vous sûr de vouloir parier ${formatCurrency(parseInt(customStake) || 0)} sur ${matches?.total_matches || 0} matchs ?\n\nGain potentiel: ${formatCurrency((matches?.summary.total_odds || 0) * (parseInt(customStake) || 0))}`}
+                title="Confirmer le pari Mini "
+                message={`Êtes-vous sûr de vouloir parier ${formatCurrency(parseInt(customStake) || 0)} sur ${matches?.total_matches || 0} matchs ?\n\nGain potentiel: ${formatCurrency((matches?.summary.total_odds || 0) * (parseInt(customStake) || 0))}\n\nLe cache sera automatiquement mis à jour.`}
                 confirmText="Confirmer"
                 cancelText="Annuler"
                 onConfirm={handleConfirmBet}
@@ -480,10 +470,10 @@ export default function MiniBetNowTab() {
             <SuccessModal
                 visible={showSuccessModal}
                 onClose={() => setShowSuccessModal(false)}
-                title="Pari Mini exécuté !"
+                title="Pari Mini exécuté ! "
                 betId={modalData.betId}
                 potentialPayout={modalData.potentialPayout}
-                customMessage="Votre pari mini a été placé avec succès."
+                customMessage="Votre pari mini a été placé avec succès. React Query a automatiquement mis à jour le cache."
             />
 
             <ConfirmationModal

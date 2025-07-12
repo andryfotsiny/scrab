@@ -1,4 +1,4 @@
-// BetNowTab.tsx - Refactorisé avec les modals personnalisées
+// BetNowTab.tsx - UPDATED avec React Query
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -11,7 +11,8 @@ import {
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFootball } from '@/src/features/football/context/FootballContext';
-import { FootballMatch } from '../../../../shared/services/types';
+import { useGroloConfig, useGroloMatches, useGroloUtils } from '@/src/shared/hooks/grolo/useGroloQueries';
+import { FootballMatch } from '../../../../shared/services/types/grolo.type';
 
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
@@ -23,19 +24,24 @@ import { spacing } from '@/src/styles';
 
 export default function BetNowTab() {
     const { colors } = useTheme();
+
+    // React Query hooks directs + contexte simplifié
+    const { data: config, isLoading: configLoading, error: configError } = useGroloConfig();
+    const { data: matches, isLoading: matchesLoading, error: matchesError, refetch: refetchMatches } = useGroloMatches();
+    const { refreshConfig, refreshMatches } = useGroloUtils();
     const {
-        loading,
-        config,
-        matches,
-        error,
-        loadConfig,
-        loadMatches,
+        loading: contextLoading,
+        error: contextError,
         executeBet,
     } = useFootball();
 
+    // États de chargement dérivés
+    const loading = configLoading || matchesLoading || contextLoading;
+    const error = configError?.message || matchesError?.message || contextError;
+    const initialLoading = (configLoading || matchesLoading) && !(config && matches);
+
     const [customStake, setCustomStake] = useState('');
     const [acceptOddsChange, setAcceptOddsChange] = useState(true);
-    const [initialLoading, setInitialLoading] = useState(true);
 
     // Modal states
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -48,32 +54,20 @@ export default function BetNowTab() {
     });
 
     useEffect(() => {
-        const initializeData = async () => {
-            try {
-                await Promise.all([loadConfig(), loadMatches()]);
-            } catch (err) {
-                console.error('Initialize error:', err);
-            } finally {
-                setInitialLoading(false);
-            }
-        };
-
-        initializeData();
-    }, [loadConfig, loadMatches]);
-
-    useEffect(() => {
         if (config?.settings.default_stake) {
             setCustomStake(config.settings.default_stake.toString());
         }
     }, [config]);
 
+    // React Query gère automatiquement le refresh
     const onRefresh = useCallback(async () => {
         try {
-            await Promise.all([loadConfig(), loadMatches()]);
+            await Promise.all([refreshConfig(), refreshMatches()]);
+            console.log('🔄 BetNowTab: Data refreshed via React Query');
         } catch (err) {
             console.error('Refresh error:', err);
         }
-    }, [loadConfig, loadMatches]);
+    }, [refreshConfig, refreshMatches]);
 
     const handleExecuteBet = async () => {
         console.log('🚀 handleExecuteBet called');
@@ -125,8 +119,8 @@ export default function BetNowTab() {
             });
             setShowSuccessModal(true);
 
-            // Recharger les données après exécution
-            await loadMatches();
+            // React Query va automatiquement invalider et recharger les données nécessaires
+            await refetchMatches();
         } catch (err) {
             console.log('💥 Bet execution failed:', err);
             setModalData({
@@ -486,7 +480,7 @@ export default function BetNowTab() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                {initialLoading || (loading && !(config && matches)) ? renderSkeletonContent() : renderContent()}
+                {initialLoading ? renderSkeletonContent() : renderContent()}
             </ScrollView>
 
             {/* Modals */}

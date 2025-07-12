@@ -1,5 +1,5 @@
-// AutoBetTab.tsx - Refactorisé avec SuccessModal seulement
-import React, { useState, useEffect, useCallback } from 'react';
+// AutoBetTab.tsx - VERSION COMPLÈTE RECONSTRUITE
+import React, { useState, useCallback } from 'react';
 import {
     View,
     StyleSheet,
@@ -9,6 +9,7 @@ import {
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFootball } from '@/src/features/football/context/FootballContext';
+import { useGroloConfig, useGroloUtils } from '@/src/shared/hooks/grolo/useGroloQueries';
 
 import Button from '@/src/components/atoms/Button';
 import Text from '@/src/components/atoms/Text';
@@ -18,18 +19,24 @@ import { spacing } from '@/src/styles';
 
 export default function AutoBetTab() {
     const { colors } = useTheme();
+
+    // React Query hooks directs + contexte simplifié
+    const { data: config, isLoading: configLoading, error: configError } = useGroloConfig();
+    const { refreshConfig } = useGroloUtils();
     const {
-        loading,
-        config,
         autoExecutionActive,
-        error,
-        loadConfig,
+        loading: contextLoading,
+        error: contextError,
         startAutoExecution,
         stopAutoExecution,
     } = useFootball();
 
+    // États de chargement dérivés
+    const loading = configLoading || contextLoading;
+    const error = configError?.message || contextError;
+    const initialLoading = configLoading && !config;
+
     const [localAutoActive, setLocalAutoActive] = useState(false);
-    const [initialLoading, setInitialLoading] = useState(true);
 
     // Modal states
     const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -40,31 +47,19 @@ export default function AutoBetTab() {
         type: 'success' as 'success' | 'info',
     });
 
-    useEffect(() => {
+    React.useEffect(() => {
         setLocalAutoActive(autoExecutionActive);
     }, [autoExecutionActive]);
 
-    useEffect(() => {
-        const initializeData = async () => {
-            try {
-                await loadConfig();
-            } catch (err) {
-                console.error('Initialize error:', err);
-            } finally {
-                setInitialLoading(false);
-            }
-        };
-
-        initializeData();
-    }, [loadConfig]);
-
+    // React Query gère automatiquement le refresh
     const onRefresh = useCallback(async () => {
         try {
-            await loadConfig();
+            await refreshConfig();
+            console.log('🔄 AutoBetTab: Config refreshed via React Query');
         } catch (err) {
             console.error('Refresh error:', err);
         }
-    }, [loadConfig]);
+    }, [refreshConfig]);
 
     const handleToggleAutoExecution = async () => {
         try {
@@ -104,7 +99,7 @@ export default function AutoBetTab() {
 
     const renderSkeletonContent = () => (
         <>
-            {/* Configuration Section Skeleton - SEULEMENT données API */}
+            {/* Configuration Section Skeleton */}
             <View style={styles.firstSection}>
                 <View style={styles.sectionHeader}>
                     <Text variant="heading3" color="text">
@@ -148,7 +143,7 @@ export default function AutoBetTab() {
                 </View>
             </View>
 
-            {/* Auto Execution Section - Textes statiques + état API */}
+            {/* Auto Execution Section */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Exécution Automatique
@@ -197,7 +192,7 @@ export default function AutoBetTab() {
             {/* Ligne de séparation */}
             <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
-            {/* Information Section - Textes statiques, PAS de skeleton */}
+            {/* Information Section */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Informations
@@ -388,7 +383,7 @@ export default function AutoBetTab() {
                 contentContainerStyle={styles.content}
                 refreshControl={
                     <RefreshControl
-                        refreshing={loading && !!config} // Only show refresh si on a déjà des données
+                        refreshing={loading && !!config}
                         onRefresh={onRefresh}
                         tintColor={colors.primary}
                         colors={[colors.primary]}
@@ -396,7 +391,7 @@ export default function AutoBetTab() {
                 }
                 showsVerticalScrollIndicator={false}
             >
-                {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
+                {initialLoading ? renderSkeletonContent() : renderContent()}
             </ScrollView>
 
             {/* Modals */}

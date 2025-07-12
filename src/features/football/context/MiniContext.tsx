@@ -1,6 +1,5 @@
-// src/features/football/context/MiniContext.tsx - VERSION SANS BOUCLE
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { miniService } from '@/src/shared/services/api/football/mini.api';
+// src/features/football/context/MiniContext.tsx - SIMPLIFIED avec React Query
+import React, { createContext, useContext, useCallback, useEffect } from 'react';
 import { useAuth } from '@/src/shared/context/AuthContext';
 import {
     MiniConfig,
@@ -8,15 +7,26 @@ import {
     MiniExecuteBetResponse,
     MiniAutoExecutionResponse,
     MiniConfigUpdateRequest
-} from '@/src/shared/services/types/mini';
+} from '@/src/shared/services/types/mini.type';
+import {
+    useMiniData,
+    useUpdateMiniConfig,
+    useExecuteMiniBet,
+    useStartMiniAutoExecution,
+    useStopMiniAutoExecution,
+    useMiniUtils
+} from '@/src/shared/hooks/mini/useMiniQueries';
 
 interface MiniContextType {
+    // ✅ États simplifiés - React Query gère le cache
     loading: boolean;
     config: MiniConfig | null;
     matches: MiniMatchesResponse | null;
     miniAutoExecutionActive: boolean;
     error: string | null;
-    loadConfig: () => Promise<MiniConfig>;
+
+    // ✅ Actions - utilise React Query hooks
+    loadConfig: () => Promise<any>;
     updateConfig: (updates: MiniConfigUpdateRequest) => Promise<{
         message: string;
         user: string;
@@ -26,7 +36,7 @@ interface MiniContextType {
         source: string;
         metadata: any;
     }>;
-    loadMatches: () => Promise<MiniMatchesResponse>;
+    loadMatches: () => Promise<any>;
     executeBet: (stake: number, acceptOddsChange?: boolean) => Promise<MiniExecuteBetResponse>;
     startAutoExecution: () => Promise<MiniAutoExecutionResponse>;
     stopAutoExecution: () => Promise<MiniAutoExecutionResponse>;
@@ -36,213 +46,112 @@ const MiniContext = createContext<MiniContextType | undefined>(undefined);
 
 export function MiniProvider({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, bet261UserData } = useAuth();
-    const [loading, setLoading] = useState(false);
-    const [config, setConfig] = useState<MiniConfig | null>(null);
-    const [matches, setMatches] = useState<MiniMatchesResponse | null>(null);
-    const [miniAutoExecutionActive, setMiniAutoExecutionActive] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
-    // Check if user is authenticated for actions that require it
+    // ✅ React Query hooks - remplace la logique du contexte
+    const miniData = useMiniData();
+    const updateConfigMutation = useUpdateMiniConfig();
+    const executeBetMutation = useExecuteMiniBet();
+    const startAutoMutation = useStartMiniAutoExecution();
+    const stopAutoMutation = useStopMiniAutoExecution();
+    const miniUtils = useMiniUtils();
+
+    // ✅ Check if user is authenticated for actions that require it
     const ensureAuthenticated = useCallback(() => {
         if (!isAuthenticated || !bet261UserData) {
             throw new Error('Vous devez être connecté pour effectuer cette action');
         }
     }, [isAuthenticated, bet261UserData]);
 
-    // ✅ SOLUTION SIMPLE: Appels directs - l'apiClient gère automatiquement le refresh
-
-    // ✅ Charger la configuration (version simplifiée)
+    // ✅ Wrapper actions avec vérification d'authentification
     const loadConfig = useCallback(async () => {
-        try {
-            ensureAuthenticated();
-            setLoading(true);
-            setError(null);
-            console.log('🔄 MiniContext: Loading config...');
+        ensureAuthenticated();
+        console.log('🔄 MiniContext: Loading config via React Query...');
+        return await miniData.loadConfig();
+    }, [ensureAuthenticated, miniData.loadConfig]);
 
-            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
-            const configData = await miniService.getConfig();
-            console.log('✅ MiniContext: Config loaded:', configData);
-
-            setConfig(configData);
-            return configData;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur de chargement de la configuration';
-            setError(errorMessage);
-            console.error('❌ MiniContext: Load config error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [ensureAuthenticated]); // ✅ Dépendances correctes
-
-    // ✅ Mettre à jour la configuration (version simplifiée)
     const updateConfig = useCallback(async (updates: MiniConfigUpdateRequest) => {
-        try {
-            ensureAuthenticated();
-            console.log('🔄 MiniContext: Starting config update with:', updates);
-            setLoading(true);
-            setError(null);
+        ensureAuthenticated();
+        console.log('🔄 MiniContext: Updating config via React Query...', updates);
+        return new Promise((resolve, reject) => {
+            updateConfigMutation.mutate(updates, {
+                onSuccess: (data) => resolve(data),
+                onError: (error) => reject(error),
+            });
+        });
+    }, [ensureAuthenticated, updateConfigMutation.mutate]);
 
-            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
-            const response = await miniService.updateConfig(updates);
-            console.log('✅ MiniContext: Config updated successfully:', response);
-
-            // Mettre à jour la configuration locale avec correction si nécessaire
-            if (response.new_config) {
-                const correctedConfig: MiniConfig = {
-                    ...response.new_config,
-                    metadata: response.metadata || response.new_config.metadata,
-                    constraints: {
-                        ...response.new_config.constraints,
-                        // S'assurer que les valeurs envoyées sont utilisées
-                        min_odds: updates.min_odds !== undefined ? updates.min_odds : response.new_config.constraints.min_odds,
-                        max_odds: updates.max_odds !== undefined ? updates.max_odds : response.new_config.constraints.max_odds,
-                        max_total_odds: updates.max_total_odds !== undefined ? updates.max_total_odds : response.new_config.constraints.max_total_odds,
-                    },
-                    settings: {
-                        ...response.new_config.settings,
-                        default_stake: updates.default_stake !== undefined ? updates.default_stake : response.new_config.settings.default_stake,
-                    }
-                };
-
-                console.log('🔧 MiniContext: Corrected config:', correctedConfig);
-                setConfig(correctedConfig);
-            }
-
-            return response;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur de mise à jour de la configuration';
-            setError(errorMessage);
-            console.error('❌ MiniContext: Update config error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [ensureAuthenticated]);
-
-    // ✅ Charger les matchs (no auth required - shared data)
     const loadMatches = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            console.log('🔄 MiniContext: Loading matches...');
+        console.log('🔄 MiniContext: Loading matches via React Query...');
+        return await miniData.loadMatches();
+    }, [miniData.loadMatches]);
 
-            const matchesData = await miniService.getMatches();
-            console.log('✅ MiniContext: Matches loaded:', matchesData);
-
-            setMatches(matchesData);
-            return matchesData;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur de chargement des matchs';
-            setError(errorMessage);
-            console.error('❌ MiniContext: Load matches error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // ✅ Exécuter un pari (version simplifiée)
     const executeBet = useCallback(async (stake: number, acceptOddsChange: boolean = true) => {
-        try {
-            ensureAuthenticated();
-            console.log('🔄 MiniContext: Starting bet execution with stake:', stake, 'acceptOddsChange:', acceptOddsChange);
-            setLoading(true);
-            setError(null);
+        ensureAuthenticated();
+        console.log('🔄 MiniContext: Executing bet via React Query...', { stake, acceptOddsChange });
+        return new Promise<MiniExecuteBetResponse>((resolve, reject) => {
+            executeBetMutation.mutate({ stake, acceptOddsChange }, {
+                onSuccess: (data) => resolve(data),
+                onError: (error) => reject(error),
+            });
+        });
+    }, [ensureAuthenticated, executeBetMutation.mutate]);
 
-            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
-            const response = await miniService.executeBet(stake, acceptOddsChange);
-            console.log('✅ MiniContext: Bet executed successfully:', response);
-
-            return response;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur d\'exécution du pari';
-            setError(errorMessage);
-            console.error('❌ MiniContext: Execute bet error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [ensureAuthenticated]);
-
-    // ✅ Démarrer l'exécution automatique (version simplifiée)
     const startAutoExecution = useCallback(async () => {
-        try {
-            ensureAuthenticated();
-            setLoading(true);
-            setError(null);
-            console.log('🔄 MiniContext: Starting auto execution...');
+        ensureAuthenticated();
+        console.log('🔄 MiniContext: Starting auto execution via React Query...');
+        return new Promise<MiniAutoExecutionResponse>((resolve, reject) => {
+            startAutoMutation.mutate(undefined, {
+                onSuccess: (data) => resolve(data),
+                onError: (error) => reject(error),
+            });
+        });
+    }, [ensureAuthenticated, startAutoMutation.mutate]);
 
-            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
-            const response = await miniService.startAutoExecution();
-            console.log('✅ MiniContext: Auto execution started:', response);
-
-            setMiniAutoExecutionActive(response.mini_auto_execution_active);
-            return response;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur de démarrage de l\'exécution automatique';
-            setError(errorMessage);
-            console.error('❌ MiniContext: Start auto execution error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [ensureAuthenticated]);
-
-    // ✅ Arrêter l'exécution automatique (version simplifiée)
     const stopAutoExecution = useCallback(async () => {
-        try {
-            ensureAuthenticated();
-            setLoading(true);
-            setError(null);
-            console.log('🔄 MiniContext: Stopping auto execution...');
+        ensureAuthenticated();
+        console.log('🔄 MiniContext: Stopping auto execution via React Query...');
+        return new Promise<MiniAutoExecutionResponse>((resolve, reject) => {
+            stopAutoMutation.mutate(undefined, {
+                onSuccess: (data) => resolve(data),
+                onError: (error) => reject(error),
+            });
+        });
+    }, [ensureAuthenticated, stopAutoMutation.mutate]);
 
-            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
-            const response = await miniService.stopAutoExecution();
-            console.log('✅ MiniContext: Auto execution stopped:', response);
-
-            setMiniAutoExecutionActive(response.mini_auto_execution_active);
-            return response;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur d\'arrêt de l\'exécution automatique';
-            setError(errorMessage);
-            console.error('❌ MiniContext: Stop auto execution error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [ensureAuthenticated]);
-
-    // Clear mini data when user logs out
+    // ✅ Clear mini data when user logs out
     useEffect(() => {
         if (!isAuthenticated) {
-            console.log('🧹 MiniContext: User logged out, clearing mini data');
-            setConfig(null);
-            setMatches(null);
-            setMiniAutoExecutionActive(false);
-            setError(null);
+            console.log('🧹 MiniContext: User logged out, React Query will handle cache cleanup');
+            // React Query gère automatiquement le cache selon la configuration
         }
     }, [isAuthenticated]);
 
-    // Debug effect - réduit pour éviter le spam
+    // ✅ Debug effect - réduit pour éviter le spam
     useEffect(() => {
-        console.log('🔍 MiniContext state changed:', {
-            loading,
-            hasConfig: !!config,
-            hasMatches: !!matches,
-            miniAutoExecutionActive,
-            error,
+        console.log('🔍 MiniContext state changed (React Query):', {
+            loading: miniData.loading,
+            hasConfig: !!miniData.config,
+            hasMatches: !!miniData.matches,
+            miniAutoExecutionActive: miniData.miniAutoExecutionActive,
+            error: miniData.error,
             isAuthenticated,
             hasUserData: !!bet261UserData
         });
-    }, [loading, config, matches, miniAutoExecutionActive, error, isAuthenticated, bet261UserData]);
+    }, [
+        miniData.loading, miniData.config, miniData.matches,
+        miniData.miniAutoExecutionActive, miniData.error,
+        isAuthenticated, bet261UserData
+    ]);
 
     const value: MiniContextType = {
-        loading,
-        config,
-        matches,
-        miniAutoExecutionActive,
-        error,
+        // ✅ États depuis React Query
+        loading: miniData.loading,
+        config: miniData.config,
+        matches: miniData.matches,
+        miniAutoExecutionActive: miniData.miniAutoExecutionActive,
+        error: miniData.error,
+
+        // ✅ Actions wrappées
         loadConfig,
         updateConfig,
         loadMatches,

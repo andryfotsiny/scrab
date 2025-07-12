@@ -1,5 +1,5 @@
-// MiniAutoBetTab.tsx - Refactorisé avec SuccessModal seulement
-import React, { useState, useEffect, useCallback } from 'react';
+// MiniAutoBetTab.tsx - UPDATED avec React Query
+import React, { useState, useCallback } from 'react';
 import {
     View,
     StyleSheet,
@@ -9,6 +9,7 @@ import {
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useMini } from '@/src/features/football/context/MiniContext';
+import { useMiniConfig, useMiniUtils } from '@/src/shared/hooks/mini/useMiniQueries';
 
 import Button from '@/src/components/atoms/Button';
 import Text from '@/src/components/atoms/Text';
@@ -18,18 +19,22 @@ import { spacing } from '@/src/styles';
 
 export default function MiniAutoBetTab() {
     const { colors } = useTheme();
+
+    // ✅ Utilisation directe des hooks React Query + contexte simplifié
+    const { data: config, isLoading: configLoading, error: configError } = useMiniConfig();
+    const { refreshConfig } = useMiniUtils();
     const {
-        loading,
-        config,
         miniAutoExecutionActive,
-        error,
-        loadConfig,
+        loading: contextLoading,
+        error: contextError,
         startAutoExecution,
         stopAutoExecution,
     } = useMini();
 
-    const [localAutoActive, setLocalAutoActive] = useState(false);
-    const [initialLoading, setInitialLoading] = useState(true);
+    // ✅ États de chargement dérivés
+    const loading = configLoading || contextLoading;
+    const error = configError?.message || contextError;
+    const initialLoading = configLoading && !config;
 
     // Modal states
     const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -40,39 +45,23 @@ export default function MiniAutoBetTab() {
         type: 'success' as 'success' | 'info',
     });
 
-    useEffect(() => {
-        setLocalAutoActive(miniAutoExecutionActive);
-    }, [miniAutoExecutionActive]);
-
-    useEffect(() => {
-        const initializeData = async () => {
-            try {
-                await loadConfig();
-            } catch (err) {
-                console.error('Initialize error:', err);
-            } finally {
-                setInitialLoading(false);
-            }
-        };
-
-        initializeData();
-    }, [loadConfig]);
-
+    // ✅ React Query gère automatiquement le refresh
     const onRefresh = useCallback(async () => {
         try {
-            await loadConfig();
+            await refreshConfig();
+            console.log('🔄 MiniAutoBetTab: Config refreshed via React Query');
         } catch (err) {
             console.error('Refresh error:', err);
         }
-    }, [loadConfig]);
+    }, [refreshConfig]);
 
     const handleToggleAutoExecution = async () => {
         try {
-            if (localAutoActive) {
+            if (miniAutoExecutionActive) {
                 await stopAutoExecution();
                 setModalData({
                     title: 'Exécution automatique Mini arrêtée',
-                    message: 'L\'exécution automatique Mini a été désactivée avec succès.',
+                    message: 'L\'exécution automatique Mini a été désactivée avec succès. Cache React Query mis à jour.',
                     type: 'info',
                 });
                 setShowSuccessModal(true);
@@ -80,7 +69,7 @@ export default function MiniAutoBetTab() {
                 await startAutoExecution();
                 setModalData({
                     title: 'Exécution automatique Mini démarrée',
-                    message: 'L\'exécution automatique Mini est maintenant active et se déclenchera à 00h00 Madagascar.',
+                    message: 'L\'exécution automatique Mini est maintenant active et se déclenchera à 00h00 Madagascar. Cache React Query mis à jour.',
                     type: 'success',
                 });
                 setShowSuccessModal(true);
@@ -108,7 +97,7 @@ export default function MiniAutoBetTab() {
             <View style={styles.firstSection}>
                 <View style={styles.sectionHeader}>
                     <Text variant="heading3" color="text">
-                        Configuration Mini
+                        Configuration
                     </Text>
                     <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
                         <Text variant="label" style={{ color: '#ffffff' }}>
@@ -148,7 +137,7 @@ export default function MiniAutoBetTab() {
                 </View>
             </View>
 
-            {/* Auto Execution Section - Textes statiques + état API */}
+            {/* Auto Execution Section - React Query gère l'état */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Exécution Automatique Mini
@@ -197,7 +186,7 @@ export default function MiniAutoBetTab() {
             {/* Ligne de séparation */}
             <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
-            {/* Information Section - Textes statiques, PAS de skeleton */}
+            {/* Information Section - Textes statiques */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Informations Mini
@@ -221,7 +210,7 @@ export default function MiniAutoBetTab() {
                     <View style={styles.infoItem}>
                         <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Exécution quotidienne à minuit (Madagascar)
+                            Exécution quotidienne à minuit (Madagascar) - Cache intelligent
                         </Text>
                     </View>
                 </View>
@@ -236,7 +225,7 @@ export default function MiniAutoBetTab() {
                 <View style={styles.firstSection}>
                     <View style={styles.sectionHeader}>
                         <Text variant="heading3" color="text">
-                            Configuration Mini
+                            Configuration Mini 
                         </Text>
                         <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
                             <Text variant="label" style={{ color: '#ffffff' }}>
@@ -311,14 +300,14 @@ export default function MiniAutoBetTab() {
                     <View style={styles.statusContainer}>
                         <View style={[
                             styles.statusIndicator,
-                            { backgroundColor: localAutoActive ? colors.success : colors.error }
+                            { backgroundColor: miniAutoExecutionActive ? colors.success : colors.error }
                         ]} />
                         <Text
                             variant="caption"
                             weight="bold"
-                            style={{ color: localAutoActive ? colors.success : colors.error }}
+                            style={{ color: miniAutoExecutionActive ? colors.success : colors.error }}
                         >
-                            {localAutoActive ? 'Actif' : 'Inactif'}
+                            {miniAutoExecutionActive ? 'Actif' : 'Inactif'}
                         </Text>
                     </View>
                 </View>
@@ -326,7 +315,7 @@ export default function MiniAutoBetTab() {
                 <Button
                     title={loading
                         ? 'Traitement...'
-                        : localAutoActive
+                        : miniAutoExecutionActive
                             ? 'Arrêter'
                             : 'Démarrer'
                     }
@@ -336,12 +325,12 @@ export default function MiniAutoBetTab() {
                     disabled={loading}
                     loading={loading}
                     style={{
-                        borderColor: localAutoActive ? colors.error : colors.success,
+                        borderColor: miniAutoExecutionActive ? colors.error : colors.success,
                         paddingVertical: spacing.xs,
                         paddingHorizontal: spacing.xs,
                     }}
                     textStyle={{
-                        color: localAutoActive ? colors.error : colors.success,
+                        color: miniAutoExecutionActive ? colors.error : colors.success,
                     }}
                 />
             </View>
@@ -373,7 +362,7 @@ export default function MiniAutoBetTab() {
                     <View style={styles.infoItem}>
                         <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Exécution quotidienne à minuit (Madagascar)
+                            Exécution quotidienne à minuit (Madagascar) - Cache intelligent
                         </Text>
                     </View>
                 </View>
@@ -396,7 +385,7 @@ export default function MiniAutoBetTab() {
                 }
                 showsVerticalScrollIndicator={false}
             >
-                {initialLoading || (loading && !config) ? renderSkeletonContent() : renderContent()}
+                {initialLoading ? renderSkeletonContent() : renderContent()}
             </ScrollView>
 
             {/* Modals */}

@@ -1,6 +1,5 @@
-// src/features/football/context/FootballContext.tsx - VERSION SANS BOUCLE
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { footballService } from '@/src/shared/services/api/football/football.api';
+// src/features/football/context/FootballContext.tsx - SIMPLIFIED avec React Query
+import React, { createContext, useContext, useCallback, useEffect } from 'react';
 import { useAuth } from '@/src/shared/context/AuthContext';
 import {
     FootballConfig,
@@ -8,15 +7,26 @@ import {
     ExecuteBetResponse,
     AutoExecutionResponse,
     ConfigUpdateRequest
-} from '../../../shared/services/types';
+} from '../../../shared/services/types/grolo.type';
+import {
+    useGroloData,
+    useUpdateGroloConfig,
+    useExecuteGroloBet,
+    useStartGroloAutoExecution,
+    useStopGroloAutoExecution,
+    useGroloUtils
+} from '@/src/shared/hooks/grolo/useGroloQueries';
 
 interface FootballContextType {
+    // États simplifiés - React Query gère le cache
     loading: boolean;
     config: FootballConfig | null;
     matches: FootballMatchesResponse | null;
     autoExecutionActive: boolean;
     error: string | null;
-    loadConfig: () => Promise<FootballConfig>;
+
+    // Actions - utilise React Query hooks
+    loadConfig: () => Promise<any>;
     updateConfig: (updates: ConfigUpdateRequest) => Promise<{
         message: string;
         user: string;
@@ -25,7 +35,7 @@ interface FootballContextType {
         source: string;
         metadata: any;
     }>;
-    loadMatches: () => Promise<FootballMatchesResponse>;
+    loadMatches: () => Promise<any>;
     executeBet: (stake: number, acceptOddsChange?: boolean) => Promise<ExecuteBetResponse>;
     startAutoExecution: () => Promise<AutoExecutionResponse>;
     stopAutoExecution: () => Promise<AutoExecutionResponse>;
@@ -35,11 +45,14 @@ const FootballContext = createContext<FootballContextType | undefined>(undefined
 
 export function FootballProvider({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, bet261UserData } = useAuth();
-    const [loading, setLoading] = useState(false);
-    const [config, setConfig] = useState<FootballConfig | null>(null);
-    const [matches, setMatches] = useState<FootballMatchesResponse | null>(null);
-    const [autoExecutionActive, setAutoExecutionActive] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+
+    // React Query hooks - remplace la logique du contexte
+    const groloData = useGroloData();
+    const updateConfigMutation = useUpdateGroloConfig();
+    const executeBetMutation = useExecuteGroloBet();
+    const startAutoMutation = useStartGroloAutoExecution();
+    const stopAutoMutation = useStopGroloAutoExecution();
+    const groloUtils = useGroloUtils();
 
     // Check if user is authenticated for actions that require it
     const ensureAuthenticated = useCallback(() => {
@@ -48,191 +61,96 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isAuthenticated, bet261UserData]);
 
-    // ✅ SOLUTION SIMPLE: Supprimer executeWithSessionCheck et laisser apiClient gérer
-    // L'apiClient enhanced gère déjà automatiquement le refresh, pas besoin de double logique
-
-    // ✅ Charger la configuration (version simplifiée)
+    // Wrapper actions avec vérification d'authentification
     const loadConfig = useCallback(async () => {
-        try {
-            ensureAuthenticated();
-            setLoading(true);
-            setError(null);
-            console.log('🔄 FootballContext: Loading config...');
+        ensureAuthenticated();
+        console.log('🔄 FootballContext: Loading config via React Query...');
+        return await groloData.loadConfig();
+    }, [ensureAuthenticated, groloData.loadConfig]);
 
-            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
-            const configData = await footballService.getConfig();
-            console.log('✅ FootballContext: Config loaded:', configData);
-
-            setConfig(configData);
-            return configData;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur de chargement de la configuration';
-            setError(errorMessage);
-            console.error('❌ FootballContext: Load config error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [ensureAuthenticated]); // ✅ Dépendances correctes
-
-    // ✅ Mettre à jour la configuration (version simplifiée)
     const updateConfig = useCallback(async (updates: ConfigUpdateRequest) => {
-        try {
-            ensureAuthenticated();
-            console.log('🔄 FootballContext: Starting config update with:', updates);
-            setLoading(true);
-            setError(null);
+        ensureAuthenticated();
+        console.log('🔄 FootballContext: Updating config via React Query...', updates);
+        return new Promise((resolve, reject) => {
+            updateConfigMutation.mutate(updates, {
+                onSuccess: (data) => resolve(data),
+                onError: (error) => reject(error),
+            });
+        });
+    }, [ensureAuthenticated, updateConfigMutation.mutate]);
 
-            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
-            const response = await footballService.updateConfig(updates);
-            console.log('✅ FootballContext: Config updated successfully:', response);
-
-            // Mettre à jour la configuration locale avec les nouvelles données
-            if (response.new_config) {
-                const updatedConfig = {
-                    ...response.new_config,
-                    metadata: response.metadata || response.new_config.metadata
-                };
-                setConfig(updatedConfig);
-            }
-
-            return response;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur de mise à jour de la configuration';
-            setError(errorMessage);
-            console.error('❌ FootballContext: Update config error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [ensureAuthenticated]);
-
-    // ✅ Charger les matchs (no auth required - shared data)
     const loadMatches = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            console.log('🔄 FootballContext: Loading matches...');
+        console.log('🔄 FootballContext: Loading matches via React Query...');
+        return await groloData.loadMatches();
+    }, [groloData.loadMatches]);
 
-            const matchesData = await footballService.getAllMatches();
-            console.log('✅ FootballContext: Matches loaded:', matchesData);
-
-            setMatches(matchesData);
-            return matchesData;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur de chargement des matchs';
-            setError(errorMessage);
-            console.error('❌ FootballContext: Load matches error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // ✅ Exécuter un pari (version simplifiée)
     const executeBet = useCallback(async (stake: number, acceptOddsChange: boolean = true) => {
-        try {
-            ensureAuthenticated();
-            console.log('🔄 FootballContext: Starting bet execution with stake:', stake, 'acceptOddsChange:', acceptOddsChange);
-            setLoading(true);
-            setError(null);
+        ensureAuthenticated();
+        console.log('🔄 FootballContext: Executing bet via React Query...', { stake, acceptOddsChange });
+        return new Promise<ExecuteBetResponse>((resolve, reject) => {
+            executeBetMutation.mutate({ stake, acceptOddsChange }, {
+                onSuccess: (data) => resolve(data),
+                onError: (error) => reject(error),
+            });
+        });
+    }, [ensureAuthenticated, executeBetMutation.mutate]);
 
-            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
-            const response = await footballService.executeBet(stake, acceptOddsChange);
-            console.log('✅ FootballContext: Bet executed successfully:', response);
-
-            return response;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur d\'exécution du pari';
-            setError(errorMessage);
-            console.error('❌ FootballContext: Execute bet error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [ensureAuthenticated]);
-
-    // ✅ Démarrer l'exécution automatique (version simplifiée)
     const startAutoExecution = useCallback(async () => {
-        try {
-            ensureAuthenticated();
-            setLoading(true);
-            setError(null);
-            console.log('🔄 FootballContext: Starting auto execution...');
+        ensureAuthenticated();
+        console.log('🔄 FootballContext: Starting auto execution via React Query...');
+        return new Promise<AutoExecutionResponse>((resolve, reject) => {
+            startAutoMutation.mutate(undefined, {
+                onSuccess: (data) => resolve(data),
+                onError: (error) => reject(error),
+            });
+        });
+    }, [ensureAuthenticated, startAutoMutation.mutate]);
 
-            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
-            const response = await footballService.startAutoExecution();
-            console.log('✅ FootballContext: Auto execution started:', response);
-
-            setAutoExecutionActive(response.auto_execution_active);
-            return response;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur de démarrage de l\'exécution automatique';
-            setError(errorMessage);
-            console.error('❌ FootballContext: Start auto execution error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [ensureAuthenticated]);
-
-    // ✅ Arrêter l'exécution automatique (version simplifiée)
     const stopAutoExecution = useCallback(async () => {
-        try {
-            ensureAuthenticated();
-            setLoading(true);
-            setError(null);
-            console.log('🔄 FootballContext: Stopping auto execution...');
+        ensureAuthenticated();
+        console.log('🔄 FootballContext: Stopping auto execution via React Query...');
+        return new Promise<AutoExecutionResponse>((resolve, reject) => {
+            stopAutoMutation.mutate(undefined, {
+                onSuccess: (data) => resolve(data),
+                onError: (error) => reject(error),
+            });
+        });
+    }, [ensureAuthenticated, stopAutoMutation.mutate]);
 
-            // ✅ Appel direct - l'apiClient gère automatiquement le refresh
-            const response = await footballService.stopAutoExecution();
-            console.log('✅ FootballContext: Auto execution stopped:', response);
-
-            setAutoExecutionActive(response.auto_execution_active);
-            return response;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Erreur d\'arrêt de l\'exécution automatique';
-            setError(errorMessage);
-            console.error('❌ FootballContext: Stop auto execution error:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [ensureAuthenticated]);
-
-    // Clear football data when user logs out
+    // Clear grolo data when user logs out
     useEffect(() => {
         if (!isAuthenticated) {
-            console.log('🧹 FootballContext: User logged out, clearing football data');
-            setConfig(null);
-            setMatches(null);
-            setAutoExecutionActive(false);
-            setError(null);
+            console.log('🧹 FootballContext: User logged out, React Query will handle cache cleanup');
+            // React Query gère automatiquement le cache selon la configuration
         }
     }, [isAuthenticated]);
 
-    // ✅ SUPPRIMÉ: sessionManager et useSessionManager pour éviter la boucle
-    // L'apiClient enhanced gère déjà tout automatiquement
-
     // Debug effect - réduit pour éviter le spam
     useEffect(() => {
-        console.log('🔍 FootballContext state changed:', {
-            loading,
-            hasConfig: !!config,
-            hasMatches: !!matches,
-            autoExecutionActive,
-            error,
+        console.log('🔍 FootballContext state changed (React Query):', {
+            loading: groloData.loading,
+            hasConfig: !!groloData.config,
+            hasMatches: !!groloData.matches,
+            autoExecutionActive: groloData.autoExecutionActive,
+            error: groloData.error,
             isAuthenticated,
             hasUserData: !!bet261UserData
         });
-    }, [loading, config, matches, autoExecutionActive, error, isAuthenticated, bet261UserData]);
+    }, [
+        groloData.loading, groloData.config, groloData.matches,
+        groloData.autoExecutionActive, groloData.error,
+        isAuthenticated, bet261UserData
+    ]);
 
     const value: FootballContextType = {
-        loading,
-        config,
-        matches,
-        autoExecutionActive,
-        error,
+        // États depuis React Query
+        loading: groloData.loading,
+        config: groloData.config || null,
+        matches: groloData.matches || null,
+        autoExecutionActive: groloData.autoExecutionActive,
+        error: groloData.error,
+
+        // Actions wrappées
         loadConfig,
         updateConfig,
         loadMatches,

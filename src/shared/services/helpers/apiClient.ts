@@ -1,4 +1,4 @@
-// src/shared/services/helpers/apiClient.ts - ENHANCED avec Auto-Refresh
+// src/shared/services/helpers/apiClient.ts - ADAPTED pour React Query
 import { API_BASE_URL } from "@/src/shared/services/api/constant-api";
 import { tokenRefreshManager } from '@/src/shared/services/api/auth/TokenRefreshManager';
 
@@ -26,6 +26,10 @@ class ApiClient {
     // Clear authentication token
     clearAuthToken() {
         this.authToken = null;
+        // ✅ Nettoyer aussi le refresh manager
+        if (tokenRefreshManager) {
+            tokenRefreshManager.clearTokenData();
+        }
     }
 
     // Get current auth token
@@ -34,7 +38,7 @@ class ApiClient {
     }
 
     /**
-     * ✅ NOUVELLE MÉTHODE: Request avec auto-refresh intégré
+     * ✅ NOUVELLE MÉTHODE: Request avec auto-refresh intégré pour React Query
      */
     private async requestWithAutoRefresh<T>(
         endpoint: string,
@@ -42,9 +46,11 @@ class ApiClient {
         maxRetries: number = 1
     ): Promise<T> {
         // ✅ 1. Vérifier et refresher le token si nécessaire AVANT la requête
-        const tokenValid = await tokenRefreshManager.ensureValidToken();
-        if (!tokenValid) {
-            throw new Error('Session expirée. Veuillez vous reconnecter.');
+        if (this.authToken && tokenRefreshManager) {
+            const tokenValid = await tokenRefreshManager.ensureValidToken();
+            if (!tokenValid) {
+                throw new Error('Session expirée. Veuillez vous reconnecter.');
+            }
         }
 
         // ✅ 2. Tenter la requête
@@ -53,7 +59,7 @@ class ApiClient {
             return response;
         } catch (error) {
             // ✅ 3. Si erreur d'authentification ET retry possible
-            if (this.isAuthError(error) && maxRetries > 0) {
+            if (this.isAuthError(error) && maxRetries > 0 && tokenRefreshManager) {
                 console.log(`🔄 ApiClient: Erreur auth détectée, tentative de refresh...`);
 
                 // ✅ 4. Tenter refresh du token
@@ -136,7 +142,7 @@ class ApiClient {
     }
 
     /**
-     * ✅ MÉTHODES PUBLIQUES - avec auto-refresh intégré
+     * ✅ MÉTHODES PUBLIQUES - optimisées pour React Query
      */
     async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
         let url = endpoint;
@@ -154,15 +160,17 @@ class ApiClient {
             }
         }
 
-        return this.requestWithAutoRefresh<T>(url, {
-            method: 'GET',
-        });
+        // ✅ Utiliser auto-refresh si token présent
+        if (this.authToken) {
+            return this.requestWithAutoRefresh<T>(url, { method: 'GET' });
+        } else {
+            return this.request<T>(url, { method: 'GET' });
+        }
     }
 
     async post<T>(endpoint: string, body?: any, params?: Record<string, any>): Promise<T> {
         let url = endpoint;
 
-        // Handle query parameters for POST requests
         if (params) {
             const searchParams = new URLSearchParams();
             Object.entries(params).forEach(([key, value]) => {
@@ -176,16 +184,22 @@ class ApiClient {
             }
         }
 
-        return this.requestWithAutoRefresh<T>(url, {
+        const options: RequestInit = {
             method: 'POST',
             body: body ? JSON.stringify(body) : undefined,
-        });
+        };
+
+        // ✅ Utiliser auto-refresh si token présent
+        if (this.authToken) {
+            return this.requestWithAutoRefresh<T>(url, options);
+        } else {
+            return this.request<T>(url, options);
+        }
     }
 
     async put<T>(endpoint: string, body?: any, params?: Record<string, any>): Promise<T> {
         let url = endpoint;
 
-        // Handle query parameters for PUT requests
         if (params) {
             const searchParams = new URLSearchParams();
             Object.entries(params).forEach(([key, value]) => {
@@ -199,23 +213,78 @@ class ApiClient {
             }
         }
 
-        return this.requestWithAutoRefresh<T>(url, {
+        const options: RequestInit = {
             method: 'PUT',
             body: body ? JSON.stringify(body) : undefined,
-        });
+        };
+
+        // ✅ Utiliser auto-refresh si token présent
+        if (this.authToken) {
+            return this.requestWithAutoRefresh<T>(url, options);
+        } else {
+            return this.request<T>(url, options);
+        }
     }
 
     async delete<T>(endpoint: string): Promise<T> {
-        return this.requestWithAutoRefresh<T>(endpoint, {
-            method: 'DELETE',
-        });
+        // ✅ Utiliser auto-refresh si token présent
+        if (this.authToken) {
+            return this.requestWithAutoRefresh<T>(endpoint, { method: 'DELETE' });
+        } else {
+            return this.request<T>(endpoint, { method: 'DELETE' });
+        }
     }
 
     async patch<T>(endpoint: string, body?: any): Promise<T> {
-        return this.requestWithAutoRefresh<T>(endpoint, {
+        const options: RequestInit = {
             method: 'PATCH',
             body: body ? JSON.stringify(body) : undefined,
-        });
+        };
+
+        // ✅ Utiliser auto-refresh si token présent
+        if (this.authToken) {
+            return this.requestWithAutoRefresh<T>(endpoint, options);
+        } else {
+            return this.request<T>(endpoint, options);
+        }
+    }
+
+    // ✅ NOUVELLES MÉTHODES pour React Query
+
+    /**
+     * Méthode spéciale pour les requêtes sans auth (ex: données publiques)
+     */
+    async getPublic<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
+        let url = endpoint;
+
+        if (params) {
+            const searchParams = new URLSearchParams();
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    searchParams.append(key, String(value));
+                }
+            });
+            const queryString = searchParams.toString();
+            if (queryString) {
+                url += `?${queryString}`;
+            }
+        }
+
+        // Toujours utiliser la méthode simple pour les données publiques
+        return this.request<T>(url, { method: 'GET' });
+    }
+
+    /**
+     * Vérifier si une requête nécessite l'authentification
+     */
+    requiresAuth(endpoint: string): boolean {
+        const publicEndpoints = [
+            '/api/betting/mini/matches', // Matchs publics
+            '/api/public/',
+            '/health',
+        ];
+
+        return !publicEndpoints.some(publicEndpoint => endpoint.startsWith(publicEndpoint));
     }
 }
 
