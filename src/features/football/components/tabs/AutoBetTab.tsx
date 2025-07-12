@@ -67,7 +67,7 @@ export default function AutoBetTab() {
                 await stopAutoExecution();
                 setModalData({
                     title: 'Exécution automatique arrêtée',
-                    message: 'L\'exécution automatique a été désactivée avec succès.',
+                    message: 'L\'exécution automatique a été désactivée avec succès. Cette application s\'exécute toujours même si votre téléphone n\'a pas de connexion internet.',
                     type: 'info',
                 });
                 setShowSuccessModal(true);
@@ -75,7 +75,7 @@ export default function AutoBetTab() {
                 await startAutoExecution();
                 setModalData({
                     title: 'Exécution automatique démarrée',
-                    message: 'L\'exécution automatique est maintenant active et se déclenchera à 00h00 Madagascar.',
+                    message: 'L\'exécution automatique est maintenant active et se déclenchera à 00h00 Madagascar. Cette application s\'exécute toujours même si votre téléphone n\'a pas de connexion internet.',
                     type: 'success',
                 });
                 setShowSuccessModal(true);
@@ -132,13 +132,6 @@ export default function AutoBetTab() {
                             Mise par défaut
                         </Text>
                         <Skeleton width="80%" height={18} animated={false} />
-                    </View>
-
-                    <View style={styles.configItem}>
-                        <Text variant="caption" color="textSecondary">
-                            Gain max
-                        </Text>
-                        <Skeleton width="85%" height={18} animated={false} />
                     </View>
                 </View>
             </View>
@@ -219,6 +212,13 @@ export default function AutoBetTab() {
                             Vous pouvez arrêter l'exécution automatique à tout moment
                         </Text>
                     </View>
+
+                    <View style={styles.infoItem}>
+                        <Ionicons name="server-outline" size={16} color={colors.success} />
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                            Cette application s'exécute toujours même si votre téléphone n'a pas de connexion internet
+                        </Text>
+                    </View>
                 </View>
             </View>
         </>
@@ -265,15 +265,6 @@ export default function AutoBetTab() {
                             </Text>
                             <Text variant="body" weight="bold" color="primary">
                                 {formatCurrency(config.settings.default_stake)}
-                            </Text>
-                        </View>
-
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Gain max
-                            </Text>
-                            <Text variant="body" weight="bold" color="primary">
-                                {formatCurrency(config.constraints.max_payout)}
                             </Text>
                         </View>
                     </View>
@@ -369,6 +360,13 @@ export default function AutoBetTab() {
                         <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
                             Vous pouvez arrêter l'exécution automatique à tout moment
+                        </Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                        <Ionicons name="server-outline" size={16} color={colors.success} />
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                            Cette application s'exécute toujours même si votre téléphone n'a pas de connexion internet
                         </Text>
                     </View>
                 </View>

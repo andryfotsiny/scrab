@@ -61,7 +61,7 @@ export default function MiniAutoBetTab() {
                 await stopAutoExecution();
                 setModalData({
                     title: 'Exécution automatique Mini arrêtée',
-                    message: 'L\'exécution automatique Mini a été désactivée avec succès. Cache React Query mis à jour.',
+                    message: 'L\'exécution automatique Mini a été désactivée avec succès. Cette application s\'exécute toujours même si votre téléphone n\'a pas de connexion internet.',
                     type: 'info',
                 });
                 setShowSuccessModal(true);
@@ -69,7 +69,7 @@ export default function MiniAutoBetTab() {
                 await startAutoExecution();
                 setModalData({
                     title: 'Exécution automatique Mini démarrée',
-                    message: 'L\'exécution automatique Mini est maintenant active et se déclenchera à 00h00 Madagascar. Cache React Query mis à jour.',
+                    message: 'L\'exécution automatique Mini est maintenant active et se déclenchera à 00h00 Madagascar. Cette application s\'exécute toujours même si votre téléphone n\'a pas de connexion internet.',
                     type: 'success',
                 });
                 setShowSuccessModal(true);
@@ -126,13 +126,6 @@ export default function MiniAutoBetTab() {
                             Mise par défaut
                         </Text>
                         <Skeleton width="80%" height={18} animated={false} />
-                    </View>
-
-                    <View style={styles.configItem}>
-                        <Text variant="caption" color="textSecondary">
-                            Gain max
-                        </Text>
-                        <Skeleton width="85%" height={18} animated={false} />
                     </View>
                 </View>
             </View>
@@ -213,6 +206,13 @@ export default function MiniAutoBetTab() {
                             Exécution quotidienne à minuit (Madagascar) - Cache intelligent
                         </Text>
                     </View>
+
+                    <View style={styles.infoItem}>
+                        <Ionicons name="server-outline" size={16} color={colors.success} />
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                            Cette application s'exécute toujours même si votre téléphone n'a pas de connexion internet
+                        </Text>
+                    </View>
                 </View>
             </View>
         </>
@@ -225,7 +225,7 @@ export default function MiniAutoBetTab() {
                 <View style={styles.firstSection}>
                     <View style={styles.sectionHeader}>
                         <Text variant="heading3" color="text">
-                            Configuration Mini 
+                            Configuration Mini
                         </Text>
                         <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
                             <Text variant="label" style={{ color: '#ffffff' }}>
@@ -259,15 +259,6 @@ export default function MiniAutoBetTab() {
                             </Text>
                             <Text variant="body" weight="bold" color="primary">
                                 {formatCurrency(config.settings.default_stake)}
-                            </Text>
-                        </View>
-
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Gain max
-                            </Text>
-                            <Text variant="body" weight="bold" color="primary">
-                                {formatCurrency(config.constraints.max_payout)}
                             </Text>
                         </View>
                     </View>
@@ -363,6 +354,13 @@ export default function MiniAutoBetTab() {
                         <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
                         <Text variant="caption" color="textSecondary" style={styles.infoText}>
                             Exécution quotidienne à minuit (Madagascar) - Cache intelligent
+                        </Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                        <Ionicons name="server-outline" size={16} color={colors.success} />
+                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
+                            Cette application s'exécute toujours même si votre téléphone n'a pas de connexion internet
                         </Text>
                     </View>
                 </View>

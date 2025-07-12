@@ -1,4 +1,4 @@
-// src/features/auth/components/UserProfileScreen.tsx - UPDATED avec React Query
+// src/features/auth/components/UserProfileScreen.tsx - COMPLET avec alerte améliorée
 import React, { useState, useCallback } from 'react';
 import {
     View,
@@ -18,7 +18,6 @@ import Button from '@/src/components/atoms/Button';
 import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
 import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
-import SuccessModal from '@/src/components/molecules/SuccessModal';
 import { spacing } from '@/src/styles';
 
 export default function UserProfileScreen() {
@@ -30,7 +29,7 @@ export default function UserProfileScreen() {
         logout
     } = useAuth();
 
-    // ✅ React Query hooks pour les données
+    // React Query hooks pour les données
     const {
         data: localUserInfo,
         isLoading: localUserLoading,
@@ -45,7 +44,7 @@ export default function UserProfileScreen() {
 
     const refreshMutation = useRefreshUserInfo();
 
-    // ✅ États de chargement dérivés
+    // États de chargement dérivés
     const loading = localUserLoading || bet261Loading || refreshMutation.isPending;
     const initialLoading = (localUserLoading || bet261Loading) && !localUserInfo && !bet261UserData;
 
@@ -53,41 +52,29 @@ export default function UserProfileScreen() {
     const [showRefreshErrorModal, setShowRefreshErrorModal] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [showSwitchUserModal, setShowSwitchUserModal] = useState(false);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [modalData, setModalData] = useState({
         title: '',
         message: '',
-        type: 'info' as 'success' | 'info',
     });
 
     const onRefresh = useCallback(async () => {
-        // ✅ React Query gère automatiquement l'état d'authentification
         if (!isAuthenticated && !localUserInfo && !bet261UserData) {
             setModalData({
                 title: 'Erreur',
                 message: 'Vous devez vous connecter pour actualiser les données',
-                type: 'info',
             });
             setShowRefreshErrorModal(true);
             return;
         }
 
         try {
-            // ✅ Utiliser la mutation React Query pour refresh
             await refreshMutation.mutateAsync();
-
-            setModalData({
-                title: 'Données actualisées',
-                message: 'Vos informations ont été mises à jour avec succès grâce au cache React Query.',
-                type: 'success',
-            });
-            setShowSuccessModal(true);
+            // Pas de modal de succès, juste refresh silencieux
         } catch (err) {
             console.error('❌ Refresh error:', err);
             setModalData({
                 title: 'Erreur',
                 message: 'Impossible d\'actualiser les données',
-                type: 'info',
             });
             setShowRefreshErrorModal(true);
         }
@@ -100,12 +87,10 @@ export default function UserProfileScreen() {
     const handleConfirmLogout = useCallback(async () => {
         setShowLogoutModal(false);
         try {
-            // ✅ React Query nettoiera automatiquement le cache
             await logout();
             router.replace('/(auth)/login');
         } catch (error) {
             console.error('Logout error:', error);
-            // Navigate anyway since local state is cleared
             router.replace('/(auth)/login');
         }
     }, [logout]);
@@ -117,7 +102,6 @@ export default function UserProfileScreen() {
     const handleConfirmSwitchUser = useCallback(async () => {
         setShowSwitchUserModal(false);
         try {
-            // ✅ React Query nettoiera automatiquement le cache
             await logout();
             router.replace('/(auth)/login');
         } catch (error) {
@@ -177,10 +161,6 @@ export default function UserProfileScreen() {
                         <Skeleton width="35%" height={14} />
                         <Skeleton width="60%" height={18} />
                     </View>
-                    <View style={styles.infoItem}>
-                        <Skeleton width="45%" height={14} />
-                        <Skeleton width="80%" height={18} />
-                    </View>
                 </View>
             </View>
 
@@ -195,14 +175,6 @@ export default function UserProfileScreen() {
                     <View style={styles.balanceItem}>
                         <Skeleton width="60%" height={14} />
                         <Skeleton width="80%" height={32} />
-                    </View>
-                    <View style={styles.balanceItem}>
-                        <Skeleton width="50%" height={14} />
-                        <Skeleton width="70%" height={20} />
-                    </View>
-                    <View style={styles.balanceItem}>
-                        <Skeleton width="65%" height={14} />
-                        <Skeleton width="60%" height={20} />
                     </View>
                 </View>
             </View>
@@ -261,24 +233,6 @@ export default function UserProfileScreen() {
                                 {bet261UserData.bet261_user_data.login}
                             </Text>
                         </View>
-
-                        <View style={styles.infoItem}>
-                            <Text variant="caption" color="textSecondary">
-                                ID Utilisateur
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {bet261UserData.bet261_user_data.id}
-                            </Text>
-                        </View>
-
-                        <View style={styles.infoItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Référence
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {bet261UserData.bet261_user_data.reference}
-                            </Text>
-                        </View>
                     </View>
                 </View>
             )}
@@ -302,24 +256,6 @@ export default function UserProfileScreen() {
                                 {formatBalance(bet261UserData.bet261_user_data.balance)}
                             </Text>
                         </View>
-
-                        <View style={styles.balanceItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Solde gratuit
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {formatBalance(bet261UserData.bet261_user_data.freeBalance)}
-                            </Text>
-                        </View>
-
-                        <View style={styles.balanceItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Points de fidélité
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {formatBalance(bet261UserData.bet261_user_data.loyaltyBalance)}
-                            </Text>
-                        </View>
                     </View>
                 </View>
             )}
@@ -327,70 +263,42 @@ export default function UserProfileScreen() {
             {/* Separator */}
             <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
-            {/* Account Status Section */}
-            {bet261UserData && (
-                <View style={styles.section}>
-                    <Text variant="heading3" color="text" style={{ marginBottom: spacing.lg }}>
-                        État du compte
-                    </Text>
-
-                    <View style={styles.statusGrid}>
-                        <View style={styles.statusItem}>
-                            <Ionicons
-                                name={bet261UserData.bet261_user_data.depositsAllowed ? "checkmark-circle" : "close-circle"}
-                                size={20}
-                                color={bet261UserData.bet261_user_data.depositsAllowed ? colors.success : colors.error}
-                            />
-                            <Text variant="body" color="text">
-                                Dépôts autorisés
-                            </Text>
-                        </View>
-
-                        <View style={styles.statusItem}>
-                            <Ionicons
-                                name={bet261UserData.bet261_user_data.withdrawalsAllowed ? "checkmark-circle" : "close-circle"}
-                                size={20}
-                                color={bet261UserData.bet261_user_data.withdrawalsAllowed ? colors.success : colors.error}
-                            />
-                            <Text variant="body" color="text">
-                                Retraits autorisés
-                            </Text>
-                        </View>
-
-                        <View style={styles.statusItem}>
-                            <Ionicons
-                                name={bet261UserData.bet261_user_data.isLocked ? "lock-closed" : "lock-open"}
-                                size={20}
-                                color={bet261UserData.bet261_user_data.isLocked ? colors.error : colors.success}
-                            />
-                            <Text variant="body" color="text">
-                                {bet261UserData.bet261_user_data.isLocked ? "Compte verrouillé" : "Compte déverrouillé"}
-                            </Text>
-                        </View>
-
-                        <View style={styles.statusItem}>
-                            <Ionicons
-                                name={bet261UserData.bet261_user_data.hasAcceptedGcu ? "document-text" : "document-text-outline"}
-                                size={20}
-                                color={bet261UserData.bet261_user_data.hasAcceptedGcu ? colors.success : colors.warning}
-                            />
-                            <Text variant="body" color="text">
-                                {bet261UserData.bet261_user_data.hasAcceptedGcu ? "CGU acceptées" : "CGU non acceptées"}
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-            )}
-
-            {/* Separator */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Local User Info Section */}
+            {/* Local User Info Section avec Alerte */}
             {localUserInfo && (
                 <View style={styles.section}>
                     <Text variant="heading3" color="text" style={{ marginBottom: spacing.lg }}>
                         Informations locales
                     </Text>
+
+                    {/* Alerte importante */}
+                    <View style={[styles.alertContainer, {
+                        backgroundColor: colors.warning + '15',
+                        borderColor: colors.warning,
+                        borderWidth: 1,
+                        borderRadius: 8,
+                        padding: spacing.md,
+                        marginBottom: spacing.lg
+                    }]}>
+                        <View style={styles.alertHeader}>
+                            <Ionicons name="warning" size={20} color={colors.warning} />
+                            <Text variant="body" weight="bold" color="warning" style={{ marginLeft: spacing.xs }}>
+                                Information importante
+                            </Text>
+                        </View>
+                        <Text variant="caption" color="text" style={{
+                            lineHeight: 18,
+                            marginTop: spacing.xs
+                        }}>
+                            Lorsque le pari automatique est activé, notre système continue d'exécuter vos paris
+                            sur votre compte Bet261 de manière autonome via nos serveurs, indépendamment de l'état
+                            de votre appareil mobile, de sa connexion internet ou même après désinstallation de l'application. {'\n\n'}
+                            <Text weight="bold" color="warning">
+                                Procédure obligatoire avant désinstallation :
+                            </Text>
+                            veuillez impérativement désactiver le pari automatique et notifier l'administrateur
+                            de votre souhait d'arrêter l'utilisation de cette application.
+                        </Text>
+                    </View>
 
                     <View style={styles.infoGrid}>
                         <View style={styles.infoItem}>
@@ -408,24 +316,6 @@ export default function UserProfileScreen() {
                             </Text>
                             <Text variant="body" weight="bold" color="text">
                                 {localUserInfo.dure_gratuit} jours
-                            </Text>
-                        </View>
-
-                        <View style={styles.infoItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Créé le
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {formatDate(localUserInfo.created_at)}
-                            </Text>
-                        </View>
-
-                        <View style={styles.infoItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Dernière mise à jour
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {formatDate(localUserInfo.updated_at)}
                             </Text>
                         </View>
                     </View>
@@ -480,7 +370,6 @@ export default function UserProfileScreen() {
                 <View style={styles.currentUserInfo}>
                     <Text variant="caption" color="textSecondary">
                         Connecté en tant que: {currentUserLogin}
-                        {isAuthenticated && " aa"}
                     </Text>
                 </View>
             )}
@@ -583,7 +472,7 @@ export default function UserProfileScreen() {
                     visible={showLogoutModal}
                     onClose={() => setShowLogoutModal(false)}
                     title="Déconnexion"
-                    message="Êtes-vous sûr de vouloir vous déconnecter ? Le cache React Query sera nettoyé."
+                    message="Êtes-vous sûr de vouloir vous déconnecter ?"
                     confirmText="Déconnecter"
                     cancelText="Annuler"
                     onConfirm={handleConfirmLogout}
@@ -595,19 +484,11 @@ export default function UserProfileScreen() {
                     visible={showSwitchUserModal}
                     onClose={() => setShowSwitchUserModal(false)}
                     title="Changer d'utilisateur"
-                    message="Voulez-vous vous connecter avec un autre compte ? Le cache sera nettoyé."
+                    message="Voulez-vous vous connecter avec un autre compte ?"
                     confirmText="Changer"
                     cancelText="Annuler"
                     onConfirm={handleConfirmSwitchUser}
                     type="info"
-                />
-
-                <SuccessModal
-                    visible={showSuccessModal}
-                    onClose={() => setShowSuccessModal(false)}
-                    title={modalData.title}
-                    customMessage={modalData.message}
-                    type={modalData.type}
                 />
             </View>
         </SafeAreaProvider>
@@ -658,6 +539,13 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: 'Poppins_700Bold',
     },
+    alertContainer: {
+        // Styles définis inline dans le JSX
+    },
+    alertHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     infoGrid: {
         gap: spacing.md,
     },
@@ -672,14 +560,6 @@ const styles = StyleSheet.create({
         padding: spacing.md,
         borderRadius: 12,
         backgroundColor: 'rgba(0,0,0,0.02)',
-    },
-    statusGrid: {
-        gap: spacing.md,
-    },
-    statusItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.sm,
     },
     actionButtons: {
         flexDirection: 'row',

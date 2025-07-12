@@ -1,4 +1,4 @@
-// MiniConfigurationTab.tsx - UPDATED avec React Query
+// MiniConfigurationTab.tsx - UPDATED avec contrôle d'accès admin
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -11,6 +11,8 @@ import { useTheme } from '@/src/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useMini } from '@/src/features/football/context/MiniContext';
 import { useMiniConfig, useUpdateMiniConfig, useMiniUtils } from '@/src/shared/hooks/mini/useMiniQueries';
+import { useAdminPermissions } from '@/src/shared/hooks/admin/useAdminQueries';
+import { MiniConfigUpdateRequest } from "@/src/shared/services/types/mini.type";
 
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
@@ -18,26 +20,41 @@ import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
 import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
 import { spacing } from '@/src/styles';
-import { MiniConfigUpdateRequest } from "@/src/shared/services/types/mini.type";
 
 export default function MiniConfigurationTab() {
     const { colors } = useTheme();
 
-    // ✅ React Query hooks directs + contexte simplifié
+    // React Query hooks + vérification admin
     const { data: config, isLoading: configLoading, error: configError } = useMiniConfig();
     const updateConfigMutation = useUpdateMiniConfig();
     const { refreshConfig } = useMiniUtils();
+    const adminPermissions = useAdminPermissions();
     const {
         loading: contextLoading,
         error: contextError,
     } = useMini();
 
-    // ✅ États de chargement dérivés
-    const loading = configLoading || contextLoading || updateConfigMutation.isPending;
-    const error = configError?.message || contextError;
-    const initialLoading = configLoading && !config;
+    // Debug permissions
+    useEffect(() => {
+        console.log('🔐 MiniConfigurationTab permissions:', {
+            isAdmin: adminPermissions.isAdmin,
+            isSuperAdmin: adminPermissions.isSuperAdmin,
+            canEditConfig: adminPermissions.isAdmin || adminPermissions.isSuperAdmin,
+            isLoading: adminPermissions.isLoading
+        });
+    }, [adminPermissions]);
 
-    // Form state
+    // Dérivation des permissions
+    const isAdmin = adminPermissions.isAdmin;
+    const isSuperAdmin = adminPermissions.isSuperAdmin;
+    const canEditConfig = isAdmin || isSuperAdmin;
+
+    // États de chargement dérivés
+    const loading = configLoading || contextLoading || updateConfigMutation.isPending || adminPermissions.isLoading;
+    const error = configError?.message || contextError;
+    const initialLoading = (configLoading && !config) || adminPermissions.isLoading;
+
+    // Form state - adapté selon les permissions
     const [formData, setFormData] = useState<MiniConfigUpdateRequest>({});
     const [hasChanges, setHasChanges] = useState(false);
     const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
@@ -55,18 +72,22 @@ export default function MiniConfigurationTab() {
 
     useEffect(() => {
         if (config) {
-            const initialData = {
+            // Pour les utilisateurs normaux, seulement default_stake
+            const initialData = canEditConfig ? {
                 min_odds: config.constraints.min_odds,
                 max_odds: config.constraints.max_odds,
                 max_total_odds: config.constraints.max_total_odds,
                 default_stake: config.settings.default_stake,
+            } : {
+                default_stake: config.settings.default_stake,
             };
+
             setFormData(initialData);
             setHasChanges(false);
         }
-    }, [config]);
+    }, [config, canEditConfig]);
 
-    // ✅ React Query gère automatiquement le refresh
+    // React Query gère automatiquement le refresh
     const onRefresh = useCallback(async () => {
         try {
             await refreshConfig();
@@ -83,35 +104,46 @@ export default function MiniConfigurationTab() {
 
         // Check if there are changes
         if (config) {
-            const hasFieldChanges =
-                newFormData.min_odds !== config.constraints.min_odds ||
-                newFormData.max_odds !== config.constraints.max_odds ||
-                newFormData.max_total_odds !== config.constraints.max_total_odds ||
-                newFormData.default_stake !== config.settings.default_stake;
+            let hasFieldChanges = false;
+
+            if (canEditConfig) {
+                hasFieldChanges =
+                    newFormData.min_odds !== config.constraints.min_odds ||
+                    newFormData.max_odds !== config.constraints.max_odds ||
+                    newFormData.max_total_odds !== config.constraints.max_total_odds ||
+                    newFormData.default_stake !== config.settings.default_stake;
+            } else {
+                // Pour les utilisateurs normaux, seulement default_stake
+                hasFieldChanges = newFormData.default_stake !== config.settings.default_stake;
+            }
 
             setHasChanges(hasFieldChanges);
         }
     };
 
     const validateForm = (): string | null => {
-        if (!formData.min_odds || formData.min_odds < 1 || formData.min_odds > 3) {
-            return 'La cote minimale doit être entre 1 et 3';
-        }
-
-        if (!formData.max_odds || formData.max_odds < 1 || formData.max_odds > 5) {
-            return 'La cote maximale doit être entre 1 et 5';
-        }
-
-        if (formData.min_odds >= formData.max_odds) {
-            return 'La cote minimale doit être inférieure à la cote maximale';
-        }
-
-        if (!formData.max_total_odds || formData.max_total_odds < 1000 || formData.max_total_odds > 10000) {
-            return 'La cote totale maximum doit être entre 1 000 et 10 000';
-        }
-
+        // Validation default_stake (toujours nécessaire)
         if (!formData.default_stake || formData.default_stake < 100 || formData.default_stake > 100000) {
             return 'La mise par défaut doit être entre 100 et 100 000 MGA';
+        }
+
+        // Validations admin seulement
+        if (canEditConfig) {
+            if (!formData.min_odds || formData.min_odds < 1 || formData.min_odds > 3) {
+                return 'La cote minimale doit être entre 1 et 3';
+            }
+
+            if (!formData.max_odds || formData.max_odds < 1 || formData.max_odds > 5) {
+                return 'La cote maximale doit être entre 1 et 5';
+            }
+
+            if (formData.min_odds >= formData.max_odds) {
+                return 'La cote minimale doit être inférieure à la cote maximale';
+            }
+
+            if (!formData.max_total_odds || formData.max_total_odds < 1000 || formData.max_total_odds > 10000) {
+                return 'La cote totale maximum doit être entre 1 000 et 10 000';
+            }
         }
 
         return null;
@@ -136,9 +168,10 @@ export default function MiniConfigurationTab() {
             return;
         }
 
+        const actionText = canEditConfig ? 'sauvegarder ces modifications pour le système Mini' : 'modifier votre mise par défaut Mini';
         setModalData({
-            title: 'Confirmer les modifications ',
-            message: 'Êtes-vous sûr de vouloir sauvegarder ces modifications pour le système Mini ? Le cache sera automatiquement mis à jour.',
+            title: 'Confirmer les modifications',
+            message: `Êtes-vous sûr de vouloir ${actionText} ?`,
             confirmText: 'Sauvegarder',
             onConfirm: handleConfirmSave,
         });
@@ -150,7 +183,7 @@ export default function MiniConfigurationTab() {
         setShowConfirmModal(false);
 
         try {
-            // ✅ Utiliser la mutation React Query
+            // Utiliser la mutation React Query
             const result = await updateConfigMutation.mutateAsync(formData);
             console.log('🎉 Mini config update successful:', result);
 
@@ -159,9 +192,13 @@ export default function MiniConfigurationTab() {
                 setLastUpdateTime(result.metadata.updated_at);
             }
 
+            const successMessage = canEditConfig
+                ? `Configuration Mini mise à jour avec succès !\n\nChangements:\n${result.changes_made.join('\n')}`
+                : `Mise par défaut Mini mise à jour avec succès !\n\nNouvelle valeur: ${result.new_config.settings.default_stake} MGA`;
+
             setModalData({
-                title: 'Configuration Mini mise à jour ',
-                message: `Modifications sauvegardées avec succès via React Query !\n\nChangements:\n${result.changes_made.join('\n')}\n\nLe cache a été automatiquement mis à jour.`,
+                title: 'Configuration Mini mise à jour',
+                message: successMessage,
                 confirmText: 'Parfait !',
                 onConfirm: () => setShowSuccessModal(false),
             });
@@ -184,12 +221,16 @@ export default function MiniConfigurationTab() {
         Keyboard.dismiss();
 
         if (config) {
-            setFormData({
+            const resetData = canEditConfig ? {
                 min_odds: config.constraints.min_odds,
                 max_odds: config.constraints.max_odds,
                 max_total_odds: config.constraints.max_total_odds,
                 default_stake: config.settings.default_stake,
-            });
+            } : {
+                default_stake: config.settings.default_stake,
+            };
+
+            setFormData(resetData);
             setHasChanges(false);
         }
     };
@@ -203,7 +244,7 @@ export default function MiniConfigurationTab() {
 
     const renderSkeletonContent = () => (
         <>
-            {/* Current Configuration Display Skeleton - SEULEMENT données API */}
+            {/* Current Configuration Display Skeleton */}
             <View style={styles.firstSection}>
                 <Text variant="heading3" color="text">
                     Configuration Mini Actuelle
@@ -217,19 +258,23 @@ export default function MiniConfigurationTab() {
                         <Skeleton width="60%" height={18} animated={false} />
                     </View>
 
-                    <View style={styles.configItem}>
-                        <Text variant="caption" color="textSecondary">
-                            Système
-                        </Text>
-                        <Skeleton width="40%" height={18} animated={false} />
-                    </View>
+                    {canEditConfig && (
+                        <>
+                            <View style={styles.configItem}>
+                                <Text variant="caption" color="textSecondary">
+                                    Système
+                                </Text>
+                                <Skeleton width="40%" height={18} animated={false} />
+                            </View>
 
-                    <View style={styles.configItem}>
-                        <Text variant="caption" color="textSecondary">
-                            Cote totale max
-                        </Text>
-                        <Skeleton width="50%" height={18} animated={false} />
-                    </View>
+                            <View style={styles.configItem}>
+                                <Text variant="caption" color="textSecondary">
+                                    Cote totale max
+                                </Text>
+                                <Skeleton width="50%" height={18} animated={false} />
+                            </View>
+                        </>
+                    )}
 
                     <View style={styles.configItem}>
                         <Text variant="caption" color="textSecondary">
@@ -254,57 +299,61 @@ export default function MiniConfigurationTab() {
             {/* Ligne de séparation */}
             <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
-            {/* Configuration Form - Inputs vides mais visibles */}
+            {/* Configuration Form */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Modifier la Configuration Mini
+                    {canEditConfig ? 'Modifier la Configuration Mini' : 'Paramètres Personnels Mini'}
                 </Text>
 
-                {/* Cotes Section */}
-                <View style={styles.formSection}>
-                    <Text variant="body" weight="bold" color="text">
-                        Contraintes de Cotes Mini
-                    </Text>
+                {/* Cotes Section - Admin seulement */}
+                {canEditConfig && (
+                    <View style={styles.formSection}>
+                        <Text variant="body" weight="bold" color="text">
+                            Contraintes de Cotes Mini
+                        </Text>
 
-                    <Input
-                        label="Cote minimale"
-                        value=""
-                        onChangeText={() => {}}
-                        keyboardType="decimal-pad"
-                        placeholder="1.1"
-                        helperText="Entre 1.0 et 3.0"
-                        editable={false}
-                    />
+                        <Input
+                            label="Cote minimale"
+                            value=""
+                            onChangeText={() => {}}
+                            keyboardType="decimal-pad"
+                            placeholder="1.1"
+                            helperText="Entre 1.0 et 3.0"
+                            editable={false}
+                        />
 
-                    <Input
-                        label="Cote maximale"
-                        value=""
-                        onChangeText={() => {}}
-                        keyboardType="decimal-pad"
-                        placeholder="1.5"
-                        helperText="Entre 1.0 et 5.0"
-                        editable={false}
-                    />
-                </View>
+                        <Input
+                            label="Cote maximale"
+                            value=""
+                            onChangeText={() => {}}
+                            keyboardType="decimal-pad"
+                            placeholder="1.5"
+                            helperText="Entre 1.0 et 5.0"
+                            editable={false}
+                        />
+                    </View>
+                )}
 
-                {/* Limits Section */}
-                <View style={styles.formSection}>
-                    <Text variant="body" weight="bold" color="text">
-                        Limites Mini
-                    </Text>
+                {/* Limits Section - Admin seulement */}
+                {canEditConfig && (
+                    <View style={styles.formSection}>
+                        <Text variant="body" weight="bold" color="text">
+                            Limites Mini
+                        </Text>
 
-                    <Input
-                        label="Cote totale maximum"
-                        value=""
-                        onChangeText={() => {}}
-                        keyboardType="numeric"
-                        placeholder="10000"
-                        helperText="Entre 1 000 et 10 000 (spécifique au Mini)"
-                        editable={false}
-                    />
-                </View>
+                        <Input
+                            label="Cote totale maximum"
+                            value=""
+                            onChangeText={() => {}}
+                            keyboardType="numeric"
+                            placeholder="10000"
+                            helperText="Entre 1 000 et 10 000 (spécifique au Mini)"
+                            editable={false}
+                        />
+                    </View>
+                )}
 
-                {/* Settings Section */}
+                {/* Settings Section - Toujours visible */}
                 <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
                         Paramètres Mini
@@ -341,39 +390,6 @@ export default function MiniConfigurationTab() {
                     />
                 </View>
             </View>
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Information Section - Textes statiques, PAS de skeleton */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Informations Mini
-                </Text>
-
-                <View style={styles.infoList}>
-                    <View style={styles.infoItem}>
-                        <Ionicons name="flash-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Le système Mini est optimisé pour exactement 2 matchs avec des cotes modérées
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Les limites de cotes totales sont plus basses pour réduire les risques
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="shield-checkmark-outline" size={16} color={colors.success} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Système idéal pour des gains réguliers avec une mise plus sûre - Cache automatique
-                        </Text>
-                    </View>
-                </View>
-            </View>
         </>
     );
 
@@ -396,23 +412,27 @@ export default function MiniConfigurationTab() {
                             </Text>
                         </View>
 
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Système
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {config.constraints.max_matches} matchs
-                            </Text>
-                        </View>
+                        {canEditConfig && (
+                            <>
+                                <View style={styles.configItem}>
+                                    <Text variant="caption" color="textSecondary">
+                                        Système
+                                    </Text>
+                                    <Text variant="body" weight="bold" color="text">
+                                        {config.constraints.max_matches} matchs
+                                    </Text>
+                                </View>
 
-                        <View style={styles.configItem}>
-                            <Text variant="caption" color="textSecondary">
-                                Cote totale max
-                            </Text>
-                            <Text variant="body" weight="bold" color="text">
-                                {config.constraints.max_total_odds.toLocaleString()}
-                            </Text>
-                        </View>
+                                <View style={styles.configItem}>
+                                    <Text variant="caption" color="textSecondary">
+                                        Cote totale max
+                                    </Text>
+                                    <Text variant="body" weight="bold" color="text">
+                                        {config.constraints.max_total_odds.toLocaleString()}
+                                    </Text>
+                                </View>
+                            </>
+                        )}
 
                         <View style={styles.configItem}>
                             <Text variant="caption" color="textSecondary">
@@ -434,7 +454,7 @@ export default function MiniConfigurationTab() {
                             : (config.metadata?.updated_at
                                     ? new Date(config.metadata.updated_at).toLocaleString('fr-FR')
                                     : 'Information non disponible'
-                            )} (Cache React Query)
+                            )}
                         </Text>
                     </View>
                 </View>
@@ -446,57 +466,61 @@ export default function MiniConfigurationTab() {
             {/* Configuration Form */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
-                    Modifier la Configuration Mini
+                    {canEditConfig ? 'Modifier la Configuration Mini' : 'Paramètres Personnels Mini'}
                 </Text>
 
-                {/* Cotes Section */}
-                <View style={styles.formSection}>
-                    <Text variant="body" weight="bold" color="text">
-                        Contraintes de Cotes Mini
-                    </Text>
+                {/* Cotes Section - Admin seulement */}
+                {canEditConfig && (
+                    <View style={styles.formSection}>
+                        <Text variant="body" weight="bold" color="text">
+                            Contraintes de Cotes Mini
+                        </Text>
 
-                    <Input
-                        label="Cote minimale"
-                        value={formData.min_odds?.toString() || ''}
-                        onChangeText={(value) => handleInputChange('min_odds', value)}
-                        keyboardType="decimal-pad"
-                        placeholder="1.1"
-                        helperText="Entre 1.0 et 3.0"
-                        returnKeyType="done"
-                        onSubmitEditing={Keyboard.dismiss}
-                    />
+                        <Input
+                            label="Cote minimale"
+                            value={formData.min_odds?.toString() || ''}
+                            onChangeText={(value) => handleInputChange('min_odds', value)}
+                            keyboardType="decimal-pad"
+                            placeholder="1.1"
+                            helperText="Entre 1.0 et 3.0"
+                            returnKeyType="done"
+                            onSubmitEditing={Keyboard.dismiss}
+                        />
 
-                    <Input
-                        label="Cote maximale"
-                        value={formData.max_odds?.toString() || ''}
-                        onChangeText={(value) => handleInputChange('max_odds', value)}
-                        keyboardType="decimal-pad"
-                        placeholder="1.5"
-                        helperText="Entre 1.0 et 5.0"
-                        returnKeyType="done"
-                        onSubmitEditing={Keyboard.dismiss}
-                    />
-                </View>
+                        <Input
+                            label="Cote maximale"
+                            value={formData.max_odds?.toString() || ''}
+                            onChangeText={(value) => handleInputChange('max_odds', value)}
+                            keyboardType="decimal-pad"
+                            placeholder="1.5"
+                            helperText="Entre 1.0 et 5.0"
+                            returnKeyType="done"
+                            onSubmitEditing={Keyboard.dismiss}
+                        />
+                    </View>
+                )}
 
-                {/* Limits Section */}
-                <View style={styles.formSection}>
-                    <Text variant="body" weight="bold" color="text">
-                        Limites Mini
-                    </Text>
+                {/* Limits Section - Admin seulement */}
+                {canEditConfig && (
+                    <View style={styles.formSection}>
+                        <Text variant="body" weight="bold" color="text">
+                            Limites Mini
+                        </Text>
 
-                    <Input
-                        label="Cote totale maximum"
-                        value={formData.max_total_odds?.toString() || ''}
-                        onChangeText={(value) => handleInputChange('max_total_odds', value)}
-                        keyboardType="numeric"
-                        placeholder="10000"
-                        helperText="Entre 1 000 et 10 000 (spécifique au Mini)"
-                        returnKeyType="done"
-                        onSubmitEditing={Keyboard.dismiss}
-                    />
-                </View>
+                        <Input
+                            label="Cote totale maximum"
+                            value={formData.max_total_odds?.toString() || ''}
+                            onChangeText={(value) => handleInputChange('max_total_odds', value)}
+                            keyboardType="numeric"
+                            placeholder="10000"
+                            helperText="Entre 1 000 et 10 000 (spécifique au Mini)"
+                            returnKeyType="done"
+                            onSubmitEditing={Keyboard.dismiss}
+                        />
+                    </View>
+                )}
 
-                {/* Settings Section */}
+                {/* Settings Section - Toujours visible */}
                 <View style={styles.formSection}>
                     <Text variant="body" weight="bold" color="text">
                         Paramètres Mini
@@ -539,39 +563,6 @@ export default function MiniConfigurationTab() {
                             color: hasChanges ? colors.success : colors.textSecondary,
                         }}
                     />
-                </View>
-            </View>
-
-            {/* Ligne de séparation */}
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-            {/* Information Section */}
-            <View style={styles.section}>
-                <Text variant="heading3" color="text">
-                    Informations Mini
-                </Text>
-
-                <View style={styles.infoList}>
-                    <View style={styles.infoItem}>
-                        <Ionicons name="flash-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Le système Mini est optimisé pour exactement 2 matchs avec des cotes modérées
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Les limites de cotes totales sont plus basses pour réduire les risques
-                        </Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Ionicons name="shield-checkmark-outline" size={16} color={colors.success} />
-                        <Text variant="caption" color="textSecondary" style={styles.infoText}>
-                            Système idéal pour des gains réguliers avec une mise plus sûre - Cache automatique
-                        </Text>
-                    </View>
                 </View>
             </View>
         </>
@@ -675,17 +666,5 @@ const styles = StyleSheet.create({
         flexDirection: 'column-reverse',
         gap: spacing.sm,
         marginTop: spacing.xs,
-    },
-    infoList: {
-        gap: spacing.sm,
-    },
-    infoItem: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: spacing.xs,
-    },
-    infoText: {
-        flex: 1,
-        lineHeight: 20,
     },
 });

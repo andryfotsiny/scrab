@@ -41,7 +41,7 @@ export default function MiniBetNowTab() {
     const initialLoading = (configLoading || matchesLoading) && !(config && matches);
 
     const [customStake, setCustomStake] = useState('');
-    const [acceptOddsChange, setAcceptOddsChange] = useState(true);
+    const [acceptOddsChange] = useState(true);
 
     // Modal states
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -178,6 +178,10 @@ export default function MiniBetNowTab() {
                         Système:
                     </Text>
                     <Skeleton width="35%" height={14} animated={false} />
+                    <Text variant="caption" color="textSecondary">
+                        Mise (MGA):
+                    </Text>
+                    <Skeleton width="30%" height={14} animated={false} />
                 </View>
             </View>
 
@@ -213,42 +217,26 @@ export default function MiniBetNowTab() {
             {/* Ligne de séparation */}
             <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
-            {/* Bet Configuration - Input vide mais visible */}
+            {/* Bet Configuration - Plus d'input, juste checkbox et bouton */}
             <View style={styles.section}>
                 <Text variant="heading3" color="text">
                     Configuration du Pari Mini
                 </Text>
 
-                <Input
-                    label="Mise (MGA)"
-                    value=""
-                    onChangeText={() => {}}
-                    keyboardType="numeric"
-                    placeholder="Montant de la mise"
-                    helperText="Entre 100 et 50 000 MGA"
-                    editable={false}
-                    required
-                />
-
-                <TouchableOpacity
-                    style={styles.checkboxContainer}
-                    onPress={() => {}}
-                    activeOpacity={0.7}
-                    disabled={true}
-                >
+                <View style={styles.checkboxContainer}>
                     <View style={[
                         styles.checkbox,
                         {
-                            borderColor: colors.primary,
-                            backgroundColor: colors.primary,
+                            borderColor: colors.textSecondary,
+                            backgroundColor: colors.textSecondary,
                         },
                     ]}>
                         <Ionicons name="checkmark" size={16} color="#ffffff" />
                     </View>
-                    <Text variant="caption" color="text" style={styles.checkboxLabel}>
+                    <Text variant="caption" color="textSecondary" style={styles.checkboxLabel}>
                         Accepter les changements de cotes
                     </Text>
-                </TouchableOpacity>
+                </View>
 
                 <Button
                     title="Chargement..."
@@ -297,6 +285,9 @@ export default function MiniBetNowTab() {
                         </Text>
                         <Text variant="caption" color="textSecondary">
                             Système: {config.constraints.max_matches} matchs exactement
+                        </Text>
+                        <Text variant="caption" color="textSecondary">
+                            Mise (MGA): {formatCurrency(config.settings.default_stake)} • Entre 100 et 50 000 MGA
                         </Text>
                     </View>
                 </View>
@@ -353,38 +344,20 @@ export default function MiniBetNowTab() {
                     Configuration du Pari Mini
                 </Text>
 
-                <Input
-                    label="Mise (MGA)"
-                    value={customStake}
-                    onChangeText={setCustomStake}
-                    keyboardType="numeric"
-                    placeholder="Montant de la mise"
-                    helperText="Entre 100 et 50 000 MGA"
-                    returnKeyType="done"
-                    onSubmitEditing={Keyboard.dismiss}
-                    required
-                />
-
-                <TouchableOpacity
-                    style={styles.checkboxContainer}
-                    onPress={() => setAcceptOddsChange(!acceptOddsChange)}
-                    activeOpacity={0.7}
-                >
+                <View style={styles.checkboxContainer}>
                     <View style={[
                         styles.checkbox,
                         {
-                            borderColor: colors.primary,
-                            backgroundColor: acceptOddsChange ? colors.primary : 'transparent',
+                            borderColor: colors.textSecondary,
+                            backgroundColor: colors.textSecondary,
                         },
                     ]}>
-                        {acceptOddsChange && (
-                            <Ionicons name="checkmark" size={16} color="#ffffff" />
-                        )}
+                        <Ionicons name="checkmark" size={16} color="#ffffff" />
                     </View>
-                    <Text variant="caption" color="text" style={styles.checkboxLabel}>
+                    <Text variant="caption" color="textSecondary" style={styles.checkboxLabel}>
                         Accepter les changements de cotes
                     </Text>
-                </TouchableOpacity>
+                </View>
 
                 <Button
                     title={loading ? 'Exécution...' : `Parier maintenant `}
