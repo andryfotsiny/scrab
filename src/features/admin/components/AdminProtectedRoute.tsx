@@ -1,7 +1,7 @@
-// src/features/admin/components/AdminProtectedRoute.tsx
+// src/features/admin/components/AdminProtectedRoute.tsx - CORRECTION
 import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { router, Href } from 'expo-router'; // 🔧 AJOUT: Import Href
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/src/shared/context/ThemeContext';
 import { useAuth } from '@/src/shared/context/AuthContext';
@@ -16,7 +16,7 @@ export default function AdminProtectedRoute({
                                                 requireAdmin = true,
                                                 requireSuperAdmin = false,
                                                 fallback,
-                                                redirectTo = '/(main)/(tabs)',
+                                                redirectTo = '/(main)/(tabs)' as Href,
                                             }: RouteProtectionProps) {
     const { colors } = useTheme();
     const { isAuthenticated, userRole } = useAuth();
@@ -37,13 +37,13 @@ export default function AdminProtectedRoute({
         return true;
     };
 
-    // Redirection automatique si permissions insuffisantes
+    // 🔧 CORRECTION: Plus besoin de cast car redirectTo est maintenant de type Href
     useEffect(() => {
         if (!permissions.isLoading && !hasRequiredPermissions()) {
             console.log('🚫 AdminProtectedRoute: Permissions insuffisantes, redirection...');
             router.replace(redirectTo);
         }
-    }, [permissions.isLoading, isAuthenticated, permissions.isAdmin, permissions.isSuperAdmin]);
+    }, [permissions.isLoading, isAuthenticated, permissions.isAdmin, permissions.isSuperAdmin, redirectTo]);
 
     // Chargement des permissions
     if (permissions.isLoading) {
@@ -74,7 +74,7 @@ export default function AdminProtectedRoute({
                     </Text>
                     <Button
                         title="Se connecter"
-                        onPress={() => router.replace('/(auth)/login')}
+                        onPress={() => router.replace('/(auth)/login')} // 🔧 CORRECTION: Plus de cast nécessaire
                         variant="primary"
                         size="md"
                         style={{ marginTop: spacing.xl }}
@@ -119,7 +119,7 @@ export default function AdminProtectedRoute({
     return <>{children}</>;
 }
 
-// Hook utilitaire pour la protection des routes
+// 🔧 CORRECTION: Hook utilitaire avec types corrects
 export function useAdminRouteGuard(requireSuperAdmin: boolean = false) {
     const { isAuthenticated, userRole } = useAuth();
     const permissions = useAdminPermissions();
@@ -138,7 +138,7 @@ export function useAdminRouteGuard(requireSuperAdmin: boolean = false) {
         isAllowed: isAllowed(),
         isLoading: permissions.isLoading,
         userRole,
-        redirectPath: isAuthenticated ? '/(main)/(tabs)' : '/(auth)/login',
+        redirectPath: (isAuthenticated ? '/(main)/(tabs)' : '/(auth)/login') as Href, // 🔧 CORRECTION: Cast ici
     };
 }
 
@@ -168,3 +168,14 @@ const styles = StyleSheet.create({
         padding: spacing.xl,
     },
 });
+
+// 🔧 SOLUTION ALTERNATIVE: Utilitaire de navigation typé
+export const navigateToRoute = (route: string) => {
+    try {
+        router.replace(route as Href);
+    } catch (error) {
+        console.error('Navigation error:', error);
+        // Fallback vers une route connue
+        router.replace('/(main)/(tabs)');
+    }
+};

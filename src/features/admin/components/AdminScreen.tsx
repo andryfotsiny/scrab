@@ -130,6 +130,7 @@ export default function AdminScreen() {
                 />
 
                 <View style={styles.unauthorizedContainer}>
+                    <Ionicons name="shield-outline" size={64} color={colors.error} />
                     <Text variant="heading2" color="text" style={{ marginTop: spacing.lg }}>
                         Accès refusé
                     </Text>
@@ -183,8 +184,9 @@ export default function AdminScreen() {
             />
             <Text
                 variant="body"
-                color={activeTab === tab ? "surface" : "textSecondary"}
+                color={activeTab === tab ? "primary" : "textSecondary"}
                 weight={activeTab === tab ? "bold" : "regular"}
+                style={activeTab === tab ? { color: colors.surface } : undefined}
             >
                 {label}
             </Text>

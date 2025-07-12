@@ -1,4 +1,4 @@
-// src/features/football/context/FootballContext.tsx - SIMPLIFIED avec React Query
+// src/features/football/context/FootballContext.tsx - COMPLET avec corrections
 import React, { createContext, useContext, useCallback, useEffect } from 'react';
 import { useAuth } from '@/src/shared/context/AuthContext';
 import {
@@ -68,9 +68,18 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         return await groloData.loadConfig();
     }, [ensureAuthenticated, groloData.loadConfig]);
 
-    const updateConfig = useCallback(async (updates: ConfigUpdateRequest) => {
+    // 🔧 CORRECTION: Typer explicitement le retour de updateConfig
+    const updateConfig = useCallback(async (updates: ConfigUpdateRequest): Promise<{
+        message: string;
+        user: string;
+        changes_made: string[];
+        new_config: FootballConfig;
+        source: string;
+        metadata: any;
+    }> => {
         ensureAuthenticated();
         console.log('🔄 FootballContext: Updating config via React Query...', updates);
+
         return new Promise((resolve, reject) => {
             updateConfigMutation.mutate(updates, {
                 onSuccess: (data) => resolve(data),
@@ -84,9 +93,11 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         return await groloData.loadMatches();
     }, [groloData.loadMatches]);
 
-    const executeBet = useCallback(async (stake: number, acceptOddsChange: boolean = true) => {
+    // 🔧 CORRECTION: Typer explicitement le retour de executeBet
+    const executeBet = useCallback(async (stake: number, acceptOddsChange: boolean = true): Promise<ExecuteBetResponse> => {
         ensureAuthenticated();
         console.log('🔄 FootballContext: Executing bet via React Query...', { stake, acceptOddsChange });
+
         return new Promise<ExecuteBetResponse>((resolve, reject) => {
             executeBetMutation.mutate({ stake, acceptOddsChange }, {
                 onSuccess: (data) => resolve(data),
@@ -95,9 +106,11 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         });
     }, [ensureAuthenticated, executeBetMutation.mutate]);
 
-    const startAutoExecution = useCallback(async () => {
+    // 🔧 CORRECTION: Typer explicitement le retour de startAutoExecution
+    const startAutoExecution = useCallback(async (): Promise<AutoExecutionResponse> => {
         ensureAuthenticated();
         console.log('🔄 FootballContext: Starting auto execution via React Query...');
+
         return new Promise<AutoExecutionResponse>((resolve, reject) => {
             startAutoMutation.mutate(undefined, {
                 onSuccess: (data) => resolve(data),
@@ -106,9 +119,11 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         });
     }, [ensureAuthenticated, startAutoMutation.mutate]);
 
-    const stopAutoExecution = useCallback(async () => {
+    // 🔧 CORRECTION: Typer explicitement le retour de stopAutoExecution
+    const stopAutoExecution = useCallback(async (): Promise<AutoExecutionResponse> => {
         ensureAuthenticated();
         console.log('🔄 FootballContext: Stopping auto execution via React Query...');
+
         return new Promise<AutoExecutionResponse>((resolve, reject) => {
             stopAutoMutation.mutate(undefined, {
                 onSuccess: (data) => resolve(data),

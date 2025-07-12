@@ -293,11 +293,6 @@ export default function UsersList({
                                 variant="outline"
                                 size="sm"
                                 disabled={actionLoading}
-                                style={[
-                                    { flex: 1 },
-                                    { borderColor: colors.error }
-                                ]}
-                                textStyle={{ color: colors.error }}
                             />
                         )}
                     </View>
@@ -327,8 +322,7 @@ export default function UsersList({
                 placeholder="Rechercher par numéro..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                style={styles.searchInput}
-                leftIcon="search"
+                containerStyle={styles.searchInput}
             />
 
             <View style={styles.roleFilters}>
@@ -346,8 +340,9 @@ export default function UsersList({
                     >
                         <Text
                             variant="caption"
-                            color={roleFilter === role ? "surface" : "text"}
+                            color={roleFilter === role ? "primary" : "text"}
                             weight={roleFilter === role ? "bold" : "regular"}
+                            style={roleFilter === role ? { color: colors.surface } : undefined}
                         >
                             {role === 'all' ? 'Tous' : getRoleLabel(role)}
                         </Text>

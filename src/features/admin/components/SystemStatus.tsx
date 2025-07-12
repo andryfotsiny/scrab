@@ -1,4 +1,4 @@
-// src/features/admin/components/SystemStatus.tsx
+// src/features/admin/components/SystemStatus.tsx - CORRECTION pour SuccessModal
 import React, { useCallback, useState } from 'react';
 import {
     View,
@@ -44,11 +44,15 @@ export default function SystemStatus() {
         type: 'error',
     });
 
-    const [successModal, setSuccessModal] = useState<ModalState>({
+    // 🔧 CORRECTION: Simplifier la structure pour SuccessModal
+    const [successModal, setSuccessModal] = useState<{
+        visible: boolean;
+        title: string;
+        message: string;
+    }>({
         visible: false,
         title: '',
         message: '',
-        type: 'success',
     });
 
     // Fonctions helper pour les modales
@@ -65,12 +69,12 @@ export default function SystemStatus() {
         setErrorModal(prev => ({ ...prev, visible: false }));
     }, []);
 
+    // 🔧 CORRECTION: Simplifier pour SuccessModal
     const showSuccessModal = useCallback((title: string, message: string) => {
         setSuccessModal({
             visible: true,
             title,
             message,
-            type: 'success',
         });
     }, []);
 
@@ -233,13 +237,13 @@ export default function SystemStatus() {
                     type={errorModal.type}
                 />
 
-                {/* Modal de succès */}
+                {/* 🔧 CORRECTION: SuccessModal simplifiée */}
                 <SuccessModal
                     visible={successModal.visible}
                     onClose={hideSuccessModal}
                     title={successModal.title}
                     customMessage={successModal.message}
-                    type={successModal.type}
+                    type="success"
                 />
             </>
         );
@@ -339,12 +343,13 @@ export default function SystemStatus() {
                 type={errorModal.type}
             />
 
+            {/* 🔧 CORRECTION: SuccessModal avec type fixe */}
             <SuccessModal
                 visible={successModal.visible}
                 onClose={hideSuccessModal}
                 title={successModal.title}
                 customMessage={successModal.message}
-                type={successModal.type}
+                type="success"
             />
         </>
     );

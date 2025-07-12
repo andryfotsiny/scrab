@@ -1,4 +1,6 @@
 // src/features/auth/types/index.ts - UPDATED avec rôles admin
+import {Href} from "expo-router";
+
 export interface UserInfo {
     id: number;
     login: string;
@@ -119,7 +121,7 @@ export interface RouteProtectionProps {
     requireAdmin?: boolean;
     requireSuperAdmin?: boolean;
     fallback?: React.ReactNode;
-    redirectTo?: string;
+    redirectTo?: Href;
 }
 
 // 🆕 Types pour les hooks de protection

@@ -1,4 +1,4 @@
-// src/features/football/context/MiniContext.tsx - SIMPLIFIED avec React Query
+// src/features/football/context/MiniContext.tsx - COMPLET avec corrections
 import React, { createContext, useContext, useCallback, useEffect } from 'react';
 import { useAuth } from '@/src/shared/context/AuthContext';
 import {
@@ -69,9 +69,19 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         return await miniData.loadConfig();
     }, [ensureAuthenticated, miniData.loadConfig]);
 
-    const updateConfig = useCallback(async (updates: MiniConfigUpdateRequest) => {
+    // 🔧 CORRECTION: Typer explicitement le retour de updateConfig
+    const updateConfig = useCallback(async (updates: MiniConfigUpdateRequest): Promise<{
+        message: string;
+        user: string;
+        changes_made: string[];
+        new_config: MiniConfig;
+        system_type: string;
+        source: string;
+        metadata: any;
+    }> => {
         ensureAuthenticated();
         console.log('🔄 MiniContext: Updating config via React Query...', updates);
+
         return new Promise((resolve, reject) => {
             updateConfigMutation.mutate(updates, {
                 onSuccess: (data) => resolve(data),
@@ -85,9 +95,11 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         return await miniData.loadMatches();
     }, [miniData.loadMatches]);
 
-    const executeBet = useCallback(async (stake: number, acceptOddsChange: boolean = true) => {
+    // 🔧 CORRECTION: Typer explicitement le retour de executeBet
+    const executeBet = useCallback(async (stake: number, acceptOddsChange: boolean = true): Promise<MiniExecuteBetResponse> => {
         ensureAuthenticated();
         console.log('🔄 MiniContext: Executing bet via React Query...', { stake, acceptOddsChange });
+
         return new Promise<MiniExecuteBetResponse>((resolve, reject) => {
             executeBetMutation.mutate({ stake, acceptOddsChange }, {
                 onSuccess: (data) => resolve(data),
@@ -96,9 +108,11 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         });
     }, [ensureAuthenticated, executeBetMutation.mutate]);
 
-    const startAutoExecution = useCallback(async () => {
+    // 🔧 CORRECTION: Typer explicitement le retour de startAutoExecution
+    const startAutoExecution = useCallback(async (): Promise<MiniAutoExecutionResponse> => {
         ensureAuthenticated();
         console.log('🔄 MiniContext: Starting auto execution via React Query...');
+
         return new Promise<MiniAutoExecutionResponse>((resolve, reject) => {
             startAutoMutation.mutate(undefined, {
                 onSuccess: (data) => resolve(data),
@@ -107,9 +121,11 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         });
     }, [ensureAuthenticated, startAutoMutation.mutate]);
 
-    const stopAutoExecution = useCallback(async () => {
+    // 🔧 CORRECTION: Typer explicitement le retour de stopAutoExecution
+    const stopAutoExecution = useCallback(async (): Promise<MiniAutoExecutionResponse> => {
         ensureAuthenticated();
         console.log('🔄 MiniContext: Stopping auto execution via React Query...');
+
         return new Promise<MiniAutoExecutionResponse>((resolve, reject) => {
             stopAutoMutation.mutate(undefined, {
                 onSuccess: (data) => resolve(data),
@@ -144,14 +160,14 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
     ]);
 
     const value: MiniContextType = {
-        // ✅ États depuis React Query
+        // 🔧 CORRECTION: Convertir undefined en null pour correspondre à l'interface
         loading: miniData.loading,
-        config: miniData.config,
-        matches: miniData.matches,
+        config: miniData.config || null,
+        matches: miniData.matches || null,
         miniAutoExecutionActive: miniData.miniAutoExecutionActive,
         error: miniData.error,
 
-        // ✅ Actions wrappées
+        // ✅ Actions wrappées avec types corrects
         loadConfig,
         updateConfig,
         loadMatches,
