@@ -244,8 +244,8 @@ export default function MiniBetNowTab() {
                     <Text variant="caption" color="textSecondary">
                         Système: {config.constraints.max_matches} matchs exactement
                     </Text>
-                    <Text variant="caption" color="textSecondary">
-                        Mise (MGA): {formatCurrency(config.settings.default_stake)} • Entre 100 et 50 000 MGA
+                    <Text variant="heading2" color="primary">
+                        Mise: {formatCurrency(config.settings.default_stake)}
                     </Text>
                 </View>
             </View>
