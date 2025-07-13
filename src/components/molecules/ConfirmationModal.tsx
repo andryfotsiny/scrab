@@ -1,4 +1,4 @@
-// src/components/molecules/ConfirmationModal.tsx
+// src/components/molecules/ConfirmationModal.tsx - VERSION CORRIGÉE
 import React from 'react';
 import {
     Modal,
@@ -28,6 +28,8 @@ interface ConfirmationModalProps {
     type?: 'info' | 'warning' | 'success' | 'error';
     loading?: boolean;
     confirmButtonVariant?: 'primary' | 'secondary' | 'outline';
+    // 🆕 Ajout de la prop customContent
+    customContent?: React.ReactNode;
 }
 
 export default function ConfirmationModal({
@@ -42,6 +44,7 @@ export default function ConfirmationModal({
                                               type = 'info',
                                               loading = false,
                                               confirmButtonVariant = 'primary',
+                                              customContent, // 🆕 Nouvelle prop
                                           }: ConfirmationModalProps) {
     const { colors } = useTheme();
 
@@ -107,6 +110,13 @@ export default function ConfirmationModal({
                                 <Text variant="body" color="textSecondary" align="center" style={styles.message}>
                                     {message}
                                 </Text>
+
+                                {/* 🆕 Rendu du contenu personnalisé */}
+                                {customContent && (
+                                    <View style={styles.customContent}>
+                                        {customContent}
+                                    </View>
+                                )}
                             </View>
 
                             {/* Actions */}
@@ -173,6 +183,10 @@ const styles = StyleSheet.create({
     },
     message: {
         lineHeight: 24,
+    },
+    // 🆕 Style pour le contenu personnalisé
+    customContent: {
+        marginTop: spacing.lg,
     },
     actions: {
         flexDirection: 'row',

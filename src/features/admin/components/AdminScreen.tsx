@@ -1,4 +1,4 @@
-// src/features/admin/components/AdminScreen.tsx - Version simplifiée avec hook responsive
+// src/features/admin/components/AdminScreen.tsx - Avec onglet Abonnements
 import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
@@ -21,9 +21,11 @@ import ThemeToggle from '@/src/components/atoms/ThemeToggle';
 import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
 import UsersList from './UsersList';
 import SystemStatus from './SystemStatus';
+import SubscriptionsList from './SubscriptionsList'; // 🆕 Nouveau composant
 import { spacing } from '@/src/styles';
 
-type AdminTab = 'users' | 'status';
+// 🆕 Type étendu avec onglet abonnements
+type AdminTab = 'users' | 'subscriptions' | 'status';
 
 interface ModalState {
     visible: boolean;
@@ -53,7 +55,7 @@ export default function AdminScreen() {
         return [baseStyle, { maxWidth: layout.contentMaxWidth as number }];
     };
 
-    // État local
+    // 🆕 État local - onglet par défaut "users"
     const [activeTab, setActiveTab] = useState<AdminTab>('users');
     const [modal, setModal] = useState<ModalState>({
         visible: false,
@@ -88,6 +90,13 @@ export default function AdminScreen() {
             });
         }
     }, [permissions.canViewAdminPanel, roleLoading, showModal, hideModal]);
+
+    // 🆕 Configuration des onglets avec abonnements
+    const tabsConfig = [
+        { key: 'users', icon: 'people-outline', label: 'Utilisateurs' },
+        { key: 'subscriptions', icon: 'card-outline', label: 'Abonnements' }, // 🆕 Nouvel onglet
+        { key: 'status', icon: 'analytics-outline', label: 'Système' }
+    ] as const;
 
     // Composant sidebar pour desktop
     const DesktopSidebar = () => (
@@ -127,25 +136,22 @@ export default function AdminScreen() {
                             size={14}
                             color={permissions.canPromote ? colors.success : colors.textSecondary}
                         />
-                        <Text variant="caption" color="textSecondary">Promotion</Text>
+                        <Text variant="caption" color="textSecondary">Gestion rôles</Text>
                     </View>
                     <View style={styles.permissionItem}>
                         <Ionicons
-                            name={permissions.canDemote ? "checkmark-circle" : "close-circle"}
+                            name={permissions.canViewAdminPanel ? "checkmark-circle" : "close-circle"}
                             size={14}
-                            color={permissions.canDemote ? colors.success : colors.textSecondary}
+                            color={permissions.canViewAdminPanel ? colors.success : colors.textSecondary}
                         />
-                        <Text variant="caption" color="textSecondary">Rétrogradation</Text>
+                        <Text variant="caption" color="textSecondary">Panel admin</Text>
                     </View>
                 </View>
             </View>
 
             {/* Navigation */}
             <View style={styles.navigation}>
-                {[
-                    { key: 'users', icon: 'people-outline', label: 'Utilisateurs' },
-                    { key: 'status', icon: 'analytics-outline', label: 'Système' }
-                ].map(({ key, icon, label }) => (
+                {tabsConfig.map(({ key, icon, label }) => (
                     <TouchableOpacity
                         key={key}
                         style={[
@@ -188,10 +194,7 @@ export default function AdminScreen() {
     // Composant onglets pour mobile/tablette
     const MobileTabs = () => (
         <View style={[styles.tabsContainer, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-            {[
-                { key: 'users', icon: 'people-outline', label: 'Utilisateurs' },
-                { key: 'status', icon: 'analytics-outline', label: 'Système' }
-            ].map(({ key, icon, label }) => (
+            {tabsConfig.map(({ key, icon, label }) => (
                 <TouchableOpacity
                     key={key}
                     style={[
@@ -222,15 +225,31 @@ export default function AdminScreen() {
         </View>
     );
 
-    // Composant contenu principal
+    // 🆕 Composant contenu principal avec onglet abonnements
     const MainContent = () => {
         switch (activeTab) {
             case 'users':
                 return <UsersList showModal={showModal} hideModal={hideModal} />;
+            case 'subscriptions': // 🆕 Nouvel onglet
+                return <SubscriptionsList showModal={showModal} hideModal={hideModal} />;
             case 'status':
                 return <SystemStatus />;
             default:
                 return null;
+        }
+    };
+
+    // 🆕 Fonction pour obtenir le titre de l'onglet actif
+    const getActiveTabTitle = () => {
+        switch (activeTab) {
+            case 'users':
+                return 'Gestion des Utilisateurs';
+            case 'subscriptions':
+                return 'Gestion des Abonnements';
+            case 'status':
+                return 'Statut du Système';
+            default:
+                return 'Administration';
         }
     };
 
@@ -355,7 +374,7 @@ export default function AdminScreen() {
                             }
                         ]}>
                             <Text variant="heading3" color="text" weight="bold">
-                                {activeTab === 'users' ? 'Gestion des Utilisateurs' : 'Statut du Système'}
+                                {getActiveTabTitle()}
                             </Text>
                         </View>
 
@@ -402,15 +421,15 @@ export default function AdminScreen() {
                                     size={14}
                                     color={permissions.canPromote ? colors.success : colors.textSecondary}
                                 />
-                                <Text variant="caption" color="textSecondary">Promotion</Text>
+                                <Text variant="caption" color="textSecondary">Gestion rôles</Text>
                             </View>
                             <View style={styles.permissionItem}>
                                 <Ionicons
-                                    name={permissions.canDemote ? "checkmark-circle" : "close-circle"}
+                                    name={permissions.canViewAdminPanel ? "checkmark-circle" : "close-circle"}
                                     size={14}
-                                    color={permissions.canDemote ? colors.success : colors.textSecondary}
+                                    color={permissions.canViewAdminPanel ? colors.success : colors.textSecondary}
                                 />
-                                <Text variant="caption" color="textSecondary">Rétrogradation</Text>
+                                <Text variant="caption" color="textSecondary">Panel admin</Text>
                             </View>
                         </View>
                     </View>
