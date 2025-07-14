@@ -1,4 +1,5 @@
-// src/features/admin/components/AdminScreen.tsx - Avec onglet Abonnements
+// src/features/admin/components/AdminScreen.tsx - LAYOUT MOBILE CORRIGÉ avec padding fixé
+
 import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
@@ -6,6 +7,7 @@ import {
     StatusBar,
     SafeAreaView,
     TouchableOpacity,
+    ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,10 +23,9 @@ import ThemeToggle from '@/src/components/atoms/ThemeToggle';
 import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
 import UsersList from './UsersList';
 import SystemStatus from './SystemStatus';
-import SubscriptionsList from './SubscriptionsList'; // 🆕 Nouveau composant
+import SubscriptionsList from './SubscriptionsList';
 import { spacing } from '@/src/styles';
 
-// 🆕 Type étendu avec onglet abonnements
 type AdminTab = 'users' | 'subscriptions' | 'status';
 
 interface ModalState {
@@ -42,11 +43,9 @@ export default function AdminScreen() {
     const permissions = useAdminPermissions();
     const { data: myRole, isLoading: roleLoading } = useMyRole();
 
-    // Hook responsive personnalisé
     const screen = useResponsive();
     const layout = getLayoutConfig(screen.device);
 
-    // Fonction utilitaire pour créer des styles conditionnels sûrs
     const createConditionalStyle = () => {
         const baseStyle = styles.desktopMainContent;
         if (layout.contentMaxWidth === '100%') {
@@ -55,7 +54,6 @@ export default function AdminScreen() {
         return [baseStyle, { maxWidth: layout.contentMaxWidth as number }];
     };
 
-    // 🆕 État local - onglet par défaut "users"
     const [activeTab, setActiveTab] = useState<AdminTab>('users');
     const [modal, setModal] = useState<ModalState>({
         visible: false,
@@ -64,7 +62,6 @@ export default function AdminScreen() {
         onConfirm: () => {},
     });
 
-    // Fonction helper pour afficher les modales
     const showModal = useCallback((modalConfig: Omit<ModalState, 'visible'>) => {
         setModal({
             visible: true,
@@ -76,7 +73,6 @@ export default function AdminScreen() {
         setModal(prev => ({ ...prev, visible: false }));
     }, []);
 
-    // Vérification des permissions au chargement
     useEffect(() => {
         if (!roleLoading && !permissions.canViewAdminPanel) {
             showModal({
@@ -91,10 +87,9 @@ export default function AdminScreen() {
         }
     }, [permissions.canViewAdminPanel, roleLoading, showModal, hideModal]);
 
-    // 🆕 Configuration des onglets avec abonnements
     const tabsConfig = [
         { key: 'users', icon: 'people-outline', label: 'Utilisateurs' },
-        { key: 'subscriptions', icon: 'card-outline', label: 'Abonnements' }, // 🆕 Nouvel onglet
+        { key: 'subscriptions', icon: 'card-outline', label: 'Abonnements' },
         { key: 'status', icon: 'analytics-outline', label: 'Système' }
     ] as const;
 
@@ -108,7 +103,6 @@ export default function AdminScreen() {
                 borderRightColor: colors.border
             }
         ]}>
-            {/* Header */}
             <View style={[styles.sidebarHeader, { borderBottomColor: colors.border }]}>
                 <Text variant="heading2" color="text" weight="bold">
                     Administration
@@ -116,7 +110,6 @@ export default function AdminScreen() {
                 <ThemeToggle />
             </View>
 
-            {/* Informations admin */}
             <View style={[styles.adminInfo, { backgroundColor: colors.background }]}>
                 <View style={styles.adminDetails}>
                     <Text variant="body" color="text" weight="bold">
@@ -149,7 +142,6 @@ export default function AdminScreen() {
                 </View>
             </View>
 
-            {/* Navigation */}
             <View style={styles.navigation}>
                 {tabsConfig.map(({ key, icon, label }) => (
                     <TouchableOpacity
@@ -179,7 +171,6 @@ export default function AdminScreen() {
                 ))}
             </View>
 
-            {/* Actions */}
             <View style={[styles.sidebarActions, { borderTopColor: colors.border }]}>
                 <Button
                     title="Retour"
@@ -191,17 +182,27 @@ export default function AdminScreen() {
         </View>
     );
 
-    // Composant onglets pour mobile/tablette
+    // Composant onglets mobile COMPACT
     const MobileTabs = () => (
-        <View style={[styles.tabsContainer, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+        <View style={[
+            styles.tabsContainer,
+            {
+                backgroundColor: colors.surface,
+                borderBottomColor: colors.border,
+                paddingVertical: spacing.xs,
+                paddingHorizontal: spacing.sm,
+            }
+        ]}>
             {tabsConfig.map(({ key, icon, label }) => (
                 <TouchableOpacity
                     key={key}
                     style={[
                         styles.tabButton,
                         {
-                            backgroundColor: activeTab === key ? colors.primary : 'transparent',
-                            borderColor: colors.border,
+                            backgroundColor: activeTab === key ? colors.primary : colors.background,
+                            borderColor: activeTab === key ? colors.primary : colors.border,
+                            paddingVertical: spacing.sm,
+                            paddingHorizontal: spacing.xs,
                         }
                     ]}
                     onPress={() => setActiveTab(key as AdminTab)}
@@ -209,28 +210,77 @@ export default function AdminScreen() {
                 >
                     <Ionicons
                         name={icon as any}
-                        size={20}
+                        size={18}
                         color={activeTab === key ? colors.surface : colors.textSecondary}
                     />
                     <Text
-                        variant="body"
+                        variant="caption"
                         color={activeTab === key ? "primary" : "textSecondary"}
                         weight={activeTab === key ? "bold" : "regular"}
-                        style={activeTab === key ? { color: colors.surface } : undefined}
+                        style={[
+                            activeTab === key ? { color: colors.surface } : undefined,
+                            screen.width < 350 && styles.smallScreenText
+                        ]}
                     >
-                        {label}
+                        {screen.width < 350 ? getShortLabel(key) : label}
                     </Text>
                 </TouchableOpacity>
             ))}
         </View>
     );
 
-    // 🆕 Composant contenu principal avec onglet abonnements
+    // Informations admin mobile COMPACTES
+    const MobileAdminInfo = () => (
+        <View style={[
+            styles.mobileAdminInfo,
+            {
+                backgroundColor: colors.surface,
+                borderBottomColor: colors.border,
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.md,
+            }
+        ]}>
+            <View style={styles.adminDetails}>
+                <Text variant="body" color="text" weight="bold">
+                    {currentUserLogin}
+                </Text>
+                <View style={[styles.roleBadge, { backgroundColor: getRoleColor(userRole, colors) }]}>
+                    <Text style={styles.roleText}>
+                        {getRoleLabel(userRole)}
+                    </Text>
+                </View>
+            </View>
+
+            <View style={styles.permissionsInfoMobile}>
+                <View style={styles.permissionItem}>
+                    <Ionicons
+                        name={permissions.canPromote ? "checkmark-circle" : "close-circle"}
+                        size={12}
+                        color={permissions.canPromote ? colors.success : colors.textSecondary}
+                    />
+                    <Text variant="caption" color="textSecondary" style={styles.permissionTextMobile}>
+                        Gestion rôles
+                    </Text>
+                </View>
+                <View style={styles.permissionItem}>
+                    <Ionicons
+                        name={permissions.canViewAdminPanel ? "checkmark-circle" : "close-circle"}
+                        size={12}
+                        color={permissions.canViewAdminPanel ? colors.success : colors.textSecondary}
+                    />
+                    <Text variant="caption" color="textSecondary" style={styles.permissionTextMobile}>
+                        Panel admin
+                    </Text>
+                </View>
+            </View>
+        </View>
+    );
+
     const MainContent = () => {
         switch (activeTab) {
             case 'users':
                 return <UsersList showModal={showModal} hideModal={hideModal} />;
-            case 'subscriptions': // 🆕 Nouvel onglet
+            case 'subscriptions':
                 return <SubscriptionsList showModal={showModal} hideModal={hideModal} />;
             case 'status':
                 return <SystemStatus />;
@@ -239,7 +289,6 @@ export default function AdminScreen() {
         }
     };
 
-    // 🆕 Fonction pour obtenir le titre de l'onglet actif
     const getActiveTabTitle = () => {
         switch (activeTab) {
             case 'users':
@@ -253,7 +302,21 @@ export default function AdminScreen() {
         }
     };
 
-    // Protection de la route - affichage conditionnel
+    // Fonction pour les labels courts sur petits écrans
+    const getShortLabel = (key: string) => {
+        switch (key) {
+            case 'users':
+                return 'Users';
+            case 'subscriptions':
+                return 'Subs';
+            case 'status':
+                return 'Status';
+            default:
+                return key;
+        }
+    };
+
+    // Protection de la route - utilisateur non authentifié
     if (!isAuthenticated) {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -364,7 +427,6 @@ export default function AdminScreen() {
                     <DesktopSidebar />
 
                     <View style={styles.desktopContent}>
-                        {/* Header desktop */}
                         <View style={[
                             styles.desktopHeader,
                             {
@@ -378,16 +440,15 @@ export default function AdminScreen() {
                             </Text>
                         </View>
 
-                        {/* Contenu principal */}
                         <View style={createConditionalStyle()}>
                             <MainContent />
                         </View>
                     </View>
                 </View>
             ) : (
-                // Layout Mobile/Tablette
-                <>
-                    {/* Header mobile avec informations admin */}
+                // 🔧 Layout Mobile/Tablette OPTIMISÉ avec padding fixé
+                <View style={styles.mobileLayout}>
+                    {/* Header mobile compact */}
                     <Header
                         title="Administration"
                         showBackButton={true}
@@ -395,53 +456,31 @@ export default function AdminScreen() {
                         elevated={true}
                     />
 
-                    {/* Informations admin mobile */}
-                    <View style={[
-                        styles.mobileAdminInfo,
-                        {
-                            backgroundColor: colors.surface,
-                            borderBottomColor: colors.border
-                        }
-                    ]}>
-                        <View style={styles.adminDetails}>
-                            <Text variant="body" color="text" weight="bold">
-                                {currentUserLogin}
-                            </Text>
-                            <View style={[styles.roleBadge, { backgroundColor: getRoleColor(userRole, colors) }]}>
-                                <Text style={styles.roleText}>
-                                    {getRoleLabel(userRole)}
-                                </Text>
-                            </View>
+                    {/* 🔧 Contenu scrollable avec padding bottom fixé */}
+                    <ScrollView
+                        style={styles.mobileScrollContainer}
+                        contentContainerStyle={[
+                            styles.mobileScrollContent,
+                            {
+                                // 🔧 Padding bottom dynamique pour éviter la coupure
+                                paddingBottom: insets.bottom + 90 + spacing.xl
+                            }
+                        ]}
+                        showsVerticalScrollIndicator={false}
+                        bounces={false}
+                    >
+                        {/* Informations admin compactes */}
+                        <MobileAdminInfo />
+
+                        {/* Onglets compacts */}
+                        <MobileTabs />
+
+                        {/* Contenu principal dans un conteneur avec hauteur flexible */}
+                        <View style={styles.mobileMainContent}>
+                            <MainContent />
                         </View>
-
-                        <View style={styles.permissionsInfo}>
-                            <View style={styles.permissionItem}>
-                                <Ionicons
-                                    name={permissions.canPromote ? "checkmark-circle" : "close-circle"}
-                                    size={14}
-                                    color={permissions.canPromote ? colors.success : colors.textSecondary}
-                                />
-                                <Text variant="caption" color="textSecondary">Gestion rôles</Text>
-                            </View>
-                            <View style={styles.permissionItem}>
-                                <Ionicons
-                                    name={permissions.canViewAdminPanel ? "checkmark-circle" : "close-circle"}
-                                    size={14}
-                                    color={permissions.canViewAdminPanel ? colors.success : colors.textSecondary}
-                                />
-                                <Text variant="caption" color="textSecondary">Panel admin</Text>
-                            </View>
-                        </View>
-                    </View>
-
-                    {/* Onglets mobiles */}
-                    <MobileTabs />
-
-                    {/* Contenu principal */}
-                    <View style={styles.mobileContent}>
-                        <MainContent />
-                    </View>
-                </>
+                    </ScrollView>
+                </View>
             )}
 
             {/* Modal de confirmation globale */}
@@ -529,6 +568,22 @@ const styles = StyleSheet.create({
         width: '100%',
     },
 
+    // 🔧 Layout Mobile optimisé
+    mobileLayout: {
+        flex: 1,
+    },
+    mobileScrollContainer: {
+        flex: 1,
+    },
+    mobileScrollContent: {
+        flexGrow: 1,
+        // Le paddingBottom est maintenant géré dynamiquement dans le JSX
+    },
+    mobileMainContent: {
+        flex: 1,
+        minHeight: 600, // Hauteur minimum pour assurer le scroll
+    },
+
     // Informations Admin
     adminInfo: {
         padding: spacing.lg,
@@ -538,9 +593,7 @@ const styles = StyleSheet.create({
     },
     mobileAdminInfo: {
         borderBottomWidth: 1,
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.md,
-        gap: spacing.sm,
+        gap: spacing.xs,
     },
     adminDetails: {
         flexDirection: 'row',
@@ -561,13 +614,23 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: spacing.lg,
     },
+    // Version mobile compacte des permissions
+    permissionsInfoMobile: {
+        flexDirection: 'row',
+        gap: spacing.md,
+        flexWrap: 'wrap',
+    },
     permissionItem: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.xs,
     },
+    // Texte plus petit pour mobile
+    permissionTextMobile: {
+        fontSize: 11,
+    },
 
-    // Navigation
+    // Navigation Desktop
     navigation: {
         flex: 1,
         paddingVertical: spacing.lg,
@@ -585,28 +648,25 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
     },
 
-    // Onglets Mobile
+    // Onglets Mobile optimisés
     tabsContainer: {
         flexDirection: 'row',
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.sm,
         borderBottomWidth: 1,
-        gap: spacing.sm,
+        gap: spacing.xs,
     },
     tabButton: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: spacing.sm,
-        paddingVertical: spacing.md,
-        paddingHorizontal: spacing.lg,
-        borderRadius: 8,
+        gap: spacing.xs,
+        borderRadius: 6,
         borderWidth: 1,
+        minHeight: 44, // Hauteur minimum pour la navigation tactile
     },
 
-    // Contenu Mobile
-    mobileContent: {
-        flex: 1,
+    // Styles pour petits écrans
+    smallScreenText: {
+        fontSize: 10,
     },
 });

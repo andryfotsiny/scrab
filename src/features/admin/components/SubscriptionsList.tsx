@@ -1,4 +1,4 @@
-// src/features/admin/components/SubscriptionsList.tsx - COMPOSANT PRINCIPAL
+// src/features/admin/components/SubscriptionsList.tsx - COMPOSANT PRINCIPAL CORRIGÉ
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl, Dimensions, Alert } from 'react-native';
@@ -456,41 +456,59 @@ export default function SubscriptionsList({
                     />
                 </View>
             ) : (
-                // Vue mobile - Format cartes
-                <FlatList
-                    data={filteredSubscriptions}
-                    renderItem={({ item }) => (
-                        <SubscriptionMobileCard
-                            user={item}
-                            currentUserLogin={currentUserLogin}
-                            actionLoading={actionLoading}
-                            onActivatePaid={handleActivatePaid}
-                            onDeactivatePaid={handleDeactivatePaid}
-                            onExtendTrial={handleExtendTrial}
-                        />
+                // Vue mobile - Format cartes SANS FlatList interne pour éviter les conflits de scroll
+                <View style={styles.mobileListContainer}>
+                    {/* Pull to refresh manuel pour mobile */}
+                    {refreshing && (
+                        <View style={styles.refreshIndicator}>
+                            <Text variant="caption" color="textSecondary">Actualisation...</Text>
+                        </View>
                     )}
-                    keyExtractor={(item) => item.user}
-                    contentContainerStyle={styles.mobileListContainer}
-                    showsVerticalScrollIndicator={false}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={onRefresh}
-                            tintColor={colors.primary}
-                            colors={[colors.primary]}
-                        />
-                    }
-                    ListEmptyComponent={
-                        !isLoading ? (
-                            <View style={styles.emptyContainer}>
-                                <Ionicons name="card-outline" size={48} color={colors.textSecondary} />
-                                <Text variant="body" color="textSecondary" style={{ textAlign: 'center' }}>
-                                    Aucun abonnement trouvé
-                                </Text>
-                            </View>
-                        ) : null
-                    }
-                />
+
+                    {/* Rendu direct des cartes */}
+                    {filteredSubscriptions.length > 0 ? (
+                        filteredSubscriptions.map((item) => (
+                            <SubscriptionMobileCard
+                                key={item.user}
+                                user={item}
+                                currentUserLogin={currentUserLogin}
+                                actionLoading={actionLoading}
+                                onActivatePaid={handleActivatePaid}
+                                onDeactivatePaid={handleDeactivatePaid}
+                                onExtendTrial={handleExtendTrial}
+                            />
+                        ))
+                    ) : !isLoading ? (
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="card-outline" size={48} color={colors.textSecondary} />
+                            <Text variant="body" color="textSecondary" style={{ textAlign: 'center' }}>
+                                Aucun abonnement trouvé
+                            </Text>
+                        </View>
+                    ) : null}
+
+                    {/* Loading skeletons pour mobile */}
+                    {isLoading && (
+                        <>
+                            {Array(3).fill(null).map((_, index) => (
+                                <View key={`skeleton-${index}`} style={[
+                                    styles.mobileCard,
+                                    { backgroundColor: colors.surface, borderColor: colors.border }
+                                ]}>
+                                    <View style={styles.cardHeader}>
+                                        <View style={{ width: '40%', height: 18, backgroundColor: colors.border, borderRadius: 4 }} />
+                                        <View style={{ width: 100, height: 24, backgroundColor: colors.border, borderRadius: 12 }} />
+                                    </View>
+                                    <View style={styles.cardContent}>
+                                        <View style={{ width: '90%', height: 14, backgroundColor: colors.border, borderRadius: 4 }} />
+                                        <View style={{ width: '70%', height: 14, backgroundColor: colors.border, borderRadius: 4 }} />
+                                        <View style={{ width: '60%', height: 14, backgroundColor: colors.border, borderRadius: 4 }} />
+                                    </View>
+                                </View>
+                            ))}
+                        </>
+                    )}
+                </View>
             )}
 
             {/* Modales */}
@@ -544,10 +562,30 @@ const styles = StyleSheet.create({
     desktopListContainer: {
         paddingBottom: spacing.lg,
     },
+    // Styles mobile optimisés
     mobileListContainer: {
         padding: spacing.lg,
         paddingTop: 0,
         gap: spacing.md,
+        paddingBottom: spacing.xl, // Plus d'espace en bas
+    },
+    mobileCard: {
+        padding: spacing.lg,
+        borderRadius: 12,
+        borderWidth: 1,
+        gap: spacing.md,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    cardContent: {
+        gap: spacing.sm,
+    },
+    refreshIndicator: {
+        padding: spacing.md,
+        alignItems: 'center',
     },
     errorContainer: {
         flex: 1,

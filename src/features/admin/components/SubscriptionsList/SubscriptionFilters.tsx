@@ -41,6 +41,8 @@ export default function SubscriptionFilters({
         <View style={[
             styles.filtersContainer,
             screenSize.isDesktop && styles.desktopFiltersContainer,
+            // 🆕 Réduction du padding sur mobile
+            screenSize.isMobile && styles.mobileFiltersContainer,
             { borderBottomColor: colors.border }
         ]}>
             <View style={[
@@ -61,12 +63,18 @@ export default function SubscriptionFilters({
                     <Text variant="caption" color="textSecondary" style={styles.filterLabel}>
                         Statut :
                     </Text>
-                    <View style={styles.statusFilters}>
+                    <View style={[
+                        styles.statusFilters,
+                        // 🆕 Layout adaptatif pour mobile
+                        screenSize.isMobile && styles.mobileStatusFilters
+                    ]}>
                         {filterOptions.map(({ key, label, color }) => (
                             <TouchableOpacity
                                 key={key}
                                 style={[
                                     styles.filterChip,
+                                    // 🆕 Taille adaptative
+                                    screenSize.isMobile && styles.mobileFilterChip,
                                     {
                                         backgroundColor: statusFilter === key ? color + '20' : colors.surface,
                                         borderColor: statusFilter === key ? color : colors.border,
@@ -76,12 +84,17 @@ export default function SubscriptionFilters({
                             >
                                 <Text
                                     variant="caption"
-                                    style={{
-                                        color: statusFilter === key ? color : colors.text,
-                                        fontWeight: statusFilter === key ? 'bold' : 'normal'
-                                    }}
+                                    style={[
+                                        {
+                                            color: statusFilter === key ? color : colors.text,
+                                            fontWeight: statusFilter === key ? 'bold' : 'normal'
+                                        },
+                                        // 🆕 Texte plus petit sur mobile
+                                        screenSize.isMobile && styles.mobileFilterText
+                                    ]}
                                 >
-                                    {label}
+                                    {/* 🆕 Labels raccourcis pour très petits écrans */}
+                                    {screenSize.width < 350 ? getShortLabel(key) : label}
                                 </Text>
                             </TouchableOpacity>
                         ))}
@@ -92,10 +105,33 @@ export default function SubscriptionFilters({
     );
 }
 
+// 🆕 Fonction helper pour les labels courts
+const getShortLabel = (key: string) => {
+    switch (key) {
+        case 'all':
+            return 'Tous';
+        case 'payant':
+            return 'Payant';
+        case 'gratuit':
+            return 'Gratuit';
+        case 'expire':
+            return 'Expiré';
+        case 'non_demarre':
+            return 'Nouveau';
+        default:
+            return key;
+    }
+};
+
 const styles = StyleSheet.create({
     filtersContainer: {
         padding: spacing.lg,
         gap: spacing.md,
+    },
+    // 🆕 Version mobile compacte
+    mobileFiltersContainer: {
+        padding: spacing.md,
+        gap: spacing.sm,
     },
     filtersRow: {
         gap: spacing.md,
@@ -114,11 +150,30 @@ const styles = StyleSheet.create({
         gap: spacing.sm,
         flexWrap: 'wrap',
     },
+    // 🆕 Layout mobile optimisé
+    mobileStatusFilters: {
+        gap: spacing.xs,
+        justifyContent: 'space-between',
+    },
     filterChip: {
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.xs,
         borderRadius: 16,
         borderWidth: 1,
+        minHeight: 32, // 🆕 Hauteur minimum pour le touch
+    },
+    // 🆕 Version mobile plus compacte
+    mobileFilterChip: {
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xs,
+        borderRadius: 12,
+        flex: 1,
+        alignItems: 'center',
+        minWidth: 60,
+    },
+    // 🆕 Texte mobile plus petit
+    mobileFilterText: {
+        fontSize: 11,
     },
     // Styles desktop
     desktopFiltersContainer: {
