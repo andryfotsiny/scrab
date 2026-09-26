@@ -59,6 +59,16 @@ export default function TabLayout() {
                 }}
             />
 
+            <Tabs.Screen
+                name="aviator"
+                options={{
+                    title: 'Aviator',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="airplane-outline" size={size} color={color} />
+                    ),
+                }}
+            />
+
             {/* 🆕 Onglet Admin - Visible seulement aux administrateurs */}
             <Tabs.Screen
                 name="admin"
