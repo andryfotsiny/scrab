@@ -5,6 +5,7 @@ import {
     Text,
     View,
     StyleSheet,
+    StyleProp,
     ViewStyle,
     TextStyle,
     TextInputProps,
@@ -18,7 +19,7 @@ interface InputProps extends Omit<TextInputProps, 'style'> {
     error?: string;
     variant?: 'default' | 'filled';
     size?: 'sm' | 'md' | 'lg';
-    containerStyle?: ViewStyle;
+    containerStyle?: StyleProp<ViewStyle>;
     inputStyle?: TextStyle;
     labelStyle?: TextStyle;
     required?: boolean;

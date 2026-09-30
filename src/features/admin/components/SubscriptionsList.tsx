@@ -425,7 +425,7 @@ export default function SubscriptionsList({
                         renderItem={({ item }) => (
                             <SubscriptionDesktopRow
                                 user={item}
-                                currentUserLogin={currentUserLogin}
+                                currentUserLogin={currentUserLogin ?? ''}
                                 actionLoading={actionLoading}
                                 onActivatePaid={handleActivatePaid}
                                 onDeactivatePaid={handleDeactivatePaid}
@@ -471,7 +471,7 @@ export default function SubscriptionsList({
                             <SubscriptionMobileCard
                                 key={item.user}
                                 user={item}
-                                currentUserLogin={currentUserLogin}
+                                currentUserLogin={currentUserLogin ?? ''}
                                 actionLoading={actionLoading}
                                 onActivatePaid={handleActivatePaid}
                                 onDeactivatePaid={handleDeactivatePaid}

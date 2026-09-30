@@ -18,11 +18,11 @@ export default function MenuFootball() {
     const insets = useSafeAreaInsets();
 
     const handleGroloPress = () => {
-        router.push('/(main)/grolo');
+        router.push('/grolo');
     };
 
     const handleMiniPress = () => {
-        router.push('/(main)/mini');
+        router.push('/mini');
     };
 
     return (

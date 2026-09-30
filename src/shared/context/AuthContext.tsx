@@ -199,7 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCurrentUserLogin(null);
             setError(null);
         }
-    }, [authService.getAuthToken()]);
+    }, [isAuthenticated]);
 
     // ✅ Gestion des erreurs React Query
     useEffect(() => {
