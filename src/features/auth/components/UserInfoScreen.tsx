@@ -16,6 +16,7 @@ import { useUserInfo, useBet261UserData, useRefreshUserInfo } from '@/src/shared
 import ThemeToggle from '@/src/components/atoms/ThemeToggle';
 import Button from '@/src/components/atoms/Button';
 import Text from '@/src/components/atoms/Text';
+import AuthLoading from '@/src/components/molecules/AuthLoading';
 import Skeleton from '@/src/components/atoms/Skeleton';
 import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
 import { spacing } from '@/src/styles';
@@ -25,6 +26,7 @@ export default function UserProfileScreen() {
     const insets = useSafeAreaInsets();
     const {
         isAuthenticated,
+        isAuthPending,
         currentUserLogin,
         logout
     } = useAuth();
@@ -71,7 +73,7 @@ export default function UserProfileScreen() {
             await refreshMutation.mutateAsync();
             // Pas de modal de succès, juste refresh silencieux
         } catch (err) {
-            console.error('❌ Refresh error:', err);
+            console.error('Refresh error:', err);
             setModalData({
                 title: 'Erreur',
                 message: 'Impossible d\'actualiser les données',
@@ -375,6 +377,11 @@ export default function UserProfileScreen() {
             )}
         </>
     );
+
+    // Session en cours de chargement : pas de « Non connecté » pendant la restauration
+    if (isAuthPending && !localUserInfo && !bet261UserData) {
+        return <AuthLoading fullScreen />;
+    }
 
     // Show login prompt if not authenticated AND no user data
     if (!isAuthenticated && !localUserInfo && !bet261UserData) {

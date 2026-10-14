@@ -17,6 +17,7 @@ import { FootballProvider } from '@/src/features/football/context/FootballContex
 import Header from '@/src/components/molecules/Header';
 import TabBar, { TabItem } from '@/src/components/molecules/TabBar';
 import Text from '@/src/components/atoms/Text';
+import AuthLoading from '@/src/components/molecules/AuthLoading';
 
 // Import des tabs
 import AutoBetTab from './tabs/AutoBetTab';
@@ -27,14 +28,13 @@ type TabType = 'auto' | 'now' | 'config';
 
 function GroloContent() {
     const { colors, mode } = useTheme();
-    const { isAuthenticated, bet261UserData } = useAuth();
+    const { isAuthenticated, isAuthPending, bet261UserData } = useAuth();
     const insets = useSafeAreaInsets();
     const [activeTab, setActiveTab] = useState<TabType>('auto');
 
     // Check authentication status
     useEffect(() => {
         if (!isAuthenticated || !bet261UserData) {
-            console.log('⚠️ GroloScreen: User not authenticated, showing warning');
         }
     }, [isAuthenticated, bet261UserData]);
 
@@ -58,6 +58,11 @@ function GroloContent() {
     };
 
     const renderTabContent = () => {
+        // Session en cours de chargement : pas de « Connexion requise » pendant la restauration
+        if (isAuthPending) {
+            return <AuthLoading />;
+        }
+
         // Show message if not authenticated
         if (!isAuthenticated || !bet261UserData) {
             return (

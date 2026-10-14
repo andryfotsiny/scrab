@@ -13,11 +13,38 @@ export interface FootballConfig {
         default_stake: number;
     };
     source: string;
+    /** 'global' : cotes/limites imposées par l'admin ; 'personal' : celles du compte (admin) */
+    constraints_source?: 'global' | 'personal';
     metadata: {
         created_at: string;
         updated_at: string;
         system_type: string;
     };
+}
+
+// Cotes et limites imposées par l'admin à tous les utilisateurs
+export interface GlobalConstraints {
+    min_odds: number;
+    max_odds: number;
+    max_matches: number;
+    max_total_odds: number;
+    max_payout: number;
+}
+
+export interface GlobalConfigResponse {
+    constraints: GlobalConstraints;
+    metadata: {
+        updated_at: string | null;
+        updated_by: number | null;
+        is_default: boolean;
+    };
+}
+
+export interface GlobalConfigUpdateRequest {
+    min_odds?: number;
+    max_odds?: number;
+    max_matches?: number;
+    max_total_odds?: number;
 }
 
 export interface FootballMatch {

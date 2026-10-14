@@ -65,7 +65,6 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
     // ✅ Wrapper actions avec vérification d'authentification
     const loadConfig = useCallback(async () => {
         ensureAuthenticated();
-        console.log('🔄 MiniContext: Loading config via React Query...');
         return await miniData.loadConfig();
     }, [ensureAuthenticated, miniData.loadConfig]);
 
@@ -80,7 +79,6 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
         metadata: any;
     }> => {
         ensureAuthenticated();
-        console.log('🔄 MiniContext: Updating config via React Query...', updates);
 
         return new Promise((resolve, reject) => {
             updateConfigMutation.mutate(updates, {
@@ -91,14 +89,12 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
     }, [ensureAuthenticated, updateConfigMutation.mutate]);
 
     const loadMatches = useCallback(async () => {
-        console.log('🔄 MiniContext: Loading matches via React Query...');
         return await miniData.loadMatches();
     }, [miniData.loadMatches]);
 
     // 🔧 CORRECTION: Typer explicitement le retour de executeBet
     const executeBet = useCallback(async (stake: number, acceptOddsChange: boolean = true): Promise<MiniExecuteBetResponse> => {
         ensureAuthenticated();
-        console.log('🔄 MiniContext: Executing bet via React Query...', { stake, acceptOddsChange });
 
         return new Promise<MiniExecuteBetResponse>((resolve, reject) => {
             executeBetMutation.mutate({ stake, acceptOddsChange }, {
@@ -111,7 +107,6 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
     // 🔧 CORRECTION: Typer explicitement le retour de startAutoExecution
     const startAutoExecution = useCallback(async (): Promise<MiniAutoExecutionResponse> => {
         ensureAuthenticated();
-        console.log('🔄 MiniContext: Starting auto execution via React Query...');
 
         return new Promise<MiniAutoExecutionResponse>((resolve, reject) => {
             startAutoMutation.mutate(undefined, {
@@ -124,7 +119,6 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
     // 🔧 CORRECTION: Typer explicitement le retour de stopAutoExecution
     const stopAutoExecution = useCallback(async (): Promise<MiniAutoExecutionResponse> => {
         ensureAuthenticated();
-        console.log('🔄 MiniContext: Stopping auto execution via React Query...');
 
         return new Promise<MiniAutoExecutionResponse>((resolve, reject) => {
             stopAutoMutation.mutate(undefined, {
@@ -137,22 +131,12 @@ export function MiniProvider({ children }: { children: React.ReactNode }) {
     // ✅ Clear mini data when user logs out
     useEffect(() => {
         if (!isAuthenticated) {
-            console.log('🧹 MiniContext: User logged out, React Query will handle cache cleanup');
             // React Query gère automatiquement le cache selon la configuration
         }
     }, [isAuthenticated]);
 
     // ✅ Debug effect - réduit pour éviter le spam
     useEffect(() => {
-        console.log('🔍 MiniContext state changed (React Query):', {
-            loading: miniData.loading,
-            hasConfig: !!miniData.config,
-            hasMatches: !!miniData.matches,
-            miniAutoExecutionActive: miniData.miniAutoExecutionActive,
-            error: miniData.error,
-            isAuthenticated,
-            hasUserData: !!bet261UserData
-        });
     }, [
         miniData.loading, miniData.config, miniData.matches,
         miniData.miniAutoExecutionActive, miniData.error,

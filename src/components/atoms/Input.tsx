@@ -1,9 +1,11 @@
 // src/components/atoms/Input.tsx
-import React from 'react';
+import React, { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import {
     TextInput,
     Text,
     View,
+    Pressable,
     StyleSheet,
     StyleProp,
     ViewStyle,
@@ -23,6 +25,8 @@ interface InputProps extends Omit<TextInputProps, 'style'> {
     inputStyle?: TextStyle;
     labelStyle?: TextStyle;
     required?: boolean;
+    /** Champ mot de passe avec bouton œil (afficher/masquer) */
+    passwordToggle?: boolean;
 }
 
 export default function Input({
@@ -35,9 +39,11 @@ export default function Input({
                                   inputStyle,
                                   labelStyle,
                                   required = false,
+                                  passwordToggle = false,
                                   ...textInputProps
                               }: InputProps) {
     const { colors } = useTheme();
+    const [showPassword, setShowPassword] = useState(false);
 
     const getInputStyle = (): TextStyle => {
         const baseStyle: TextStyle = {
@@ -108,20 +114,38 @@ export default function Input({
 
     return (
         <View style={[styles.container, containerStyle]}>
-            {label && (
+            {!!label && (
                 <Text style={[getLabelStyle(), labelStyle]}>
                     {label}
                     {required && <Text style={{ color: colors.error }}> *</Text>}
                 </Text>
             )}
 
-            <TextInput
-                style={[getInputStyle(), inputStyle]}
-                placeholderTextColor={colors.textSecondary}
-                {...textInputProps}
-            />
+            <View>
+                <TextInput
+                    style={[getInputStyle(), passwordToggle && { paddingRight: 48 }, inputStyle]}
+                    placeholderTextColor={colors.textSecondary}
+                    {...textInputProps}
+                    secureTextEntry={passwordToggle ? !showPassword : textInputProps.secureTextEntry}
+                />
+                {passwordToggle && (
+                    <Pressable
+                        onPress={() => setShowPassword((visible) => !visible)}
+                        style={styles.toggle}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    >
+                        <Ionicons
+                            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                            size={22}
+                            color={colors.textSecondary}
+                        />
+                    </Pressable>
+                )}
+            </View>
 
-            {(helperText || error) && (
+            {!!(helperText || error) && (
                 <Text style={getHelperTextStyle()}>
                     {error || helperText}
                 </Text>
@@ -133,5 +157,12 @@ export default function Input({
 const styles = StyleSheet.create({
     container: {
         marginBottom: spacing.md,
+    },
+    toggle: {
+        position: 'absolute',
+        right: spacing.md,
+        top: 0,
+        bottom: 0,
+        justifyContent: 'center',
     },
 });

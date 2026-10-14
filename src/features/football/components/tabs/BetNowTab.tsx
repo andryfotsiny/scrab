@@ -16,6 +16,7 @@ import { useFootball } from '@/src/features/football/context/FootballContext';
 import { useGroloConfig, useGroloMatches, useGroloUtils } from '@/src/shared/hooks/grolo/useGroloQueries';
 import { FootballMatch } from '../../../../shared/services/types/grolo.type';
 
+import MatchCountSelector, { useMatchCount } from '../MatchCountSelector';
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
 import Text from '@/src/components/atoms/Text';
@@ -58,7 +59,7 @@ export default function BetNowTab() {
 
     // React Query hooks directs + contexte simplifié
     const { data: config, isLoading: configLoading, error: configError } = useGroloConfig();
-    const { data: matches, isLoading: matchesLoading, error: matchesError, refetch: refetchMatches } = useGroloMatches();
+    const { data: matches, isLoading: matchesLoading, isFetching: matchesFetching, error: matchesError, refetch: refetchMatches } = useGroloMatches();
     const { refreshConfig, refreshMatches } = useGroloUtils();
     const {
         loading: contextLoading,
@@ -66,12 +67,21 @@ export default function BetNowTab() {
         executeBet,
     } = useFootball();
 
+    const matchCount = useMatchCount(config, refetchMatches);
+    const applyingCount = matchCount.applying;
+
+    // Vrai pari en cours : seul cet état affiche « Exécution... » (le rechargement de la liste après un
+    // changement du nombre de matchs ne doit pas faire croire que le pari part)
+    const [executing, setExecuting] = useState(false);
+
     // États de chargement dérivés
-    const loading = configLoading || matchesLoading || contextLoading;
+    const loading = configLoading || matchesLoading || contextLoading || applyingCount;
     const error = configError?.message || matchesError?.message || contextError;
     const initialLoading = (configLoading || matchesLoading) && !(config && matches);
 
     const [customStake, setCustomStake] = useState('');
+    // Cote totale et gain recalculés à partir des matchs réellement chargés
+    const displayedOdds = (matches?.matches ?? []).reduce((acc, m) => acc * m.odds, 1);
     const [acceptOddsChange] = useState(true);
 
     // Modal states
@@ -90,56 +100,52 @@ export default function BetNowTab() {
         }
     }, [config]);
 
+    // Gain estimé recalculé avec la mise saisie (ou celle de la configuration) : il suit donc tout changement
+    // de mise, sans dépendre du calcul serveur de `summary.estimated_payout`
+    const effectiveStake = parseInt(customStake) || config?.settings.default_stake || 0;
+
     // React Query gère automatiquement le refresh
     const onRefresh = useCallback(async () => {
         try {
             await Promise.all([refreshConfig(), refreshMatches()]);
-            console.log('🔄 BetNowTab: Data refreshed via React Query');
         } catch (err) {
             console.error('Refresh error:', err);
         }
     }, [refreshConfig, refreshMatches]);
 
     const handleExecuteBet = async () => {
-        console.log('🚀 handleExecuteBet called');
         Keyboard.dismiss();
 
         if (!matches?.matches.length) {
-            console.log('❌ No matches available');
             setModalData({ ...modalData, errorMessage: 'Aucun match disponible pour le pari' });
             setShowErrorModal(true);
             return;
         }
 
         const stake = parseInt(customStake);
-        console.log('💰 Stake parsed:', stake);
 
         if (!stake || stake < 100) {
-            console.log('❌ Invalid stake:', stake);
             setModalData({ ...modalData, errorMessage: 'La mise doit être d\'au moins 100 MGA' });
             setShowErrorModal(true);
             return;
         }
 
         if (config && stake > 50000) {
-            console.log('❌ Stake too high:', stake);
             setModalData({ ...modalData, errorMessage: 'La mise ne peut pas dépasser 50 000 MGA' });
             setShowErrorModal(true);
             return;
         }
 
-        console.log('✅ All validations passed, showing confirmation modal');
         setShowConfirmModal(true);
     };
 
     const handleConfirmBet = async () => {
-        console.log('✅ User confirmed bet, calling executeBet...');
         setShowConfirmModal(false);
+        setExecuting(true);
 
         try {
             const stake = parseInt(customStake);
             const result = await executeBet(stake, acceptOddsChange);
-            console.log('🎉 Bet execution successful:', result);
 
             setModalData({
                 betId: result.bet_id.toString(),
@@ -147,15 +153,18 @@ export default function BetNowTab() {
                 errorMessage: '',
             });
             setShowSuccessModal(true);
+            // Le pari est déjà confirmé ici : ne pas faire attendre le bouton pour le rechargement de la
+            // liste des matchs (appel réseau vers Bet261, plusieurs secondes). Il tourne en arrière-plan.
+            setExecuting(false);
 
-            await refetchMatches();
+            refetchMatches().catch((err) => console.error('Refresh matches after bet error:', err));
         } catch (err) {
-            console.log('💥 Bet execution failed:', err);
             setModalData({
                 ...modalData,
-                errorMessage: error || 'Erreur lors de l\'exécution du pari'
+                errorMessage: (err instanceof Error && err.message) || error || 'Erreur lors de l\'exécution du pari'
             });
             setShowErrorModal(true);
+            setExecuting(false);
         }
     };
 
@@ -298,7 +307,7 @@ export default function BetNowTab() {
                             variant={screenSize.isDesktop ? "heading2" : "heading3"}
                             color="primary"
                         >
-                            {matches.summary.total_odds.toFixed(2)}
+                            {matches.matches.length ? displayedOdds.toFixed(2) : '—'}
                         </Text>
                     </View>
 
@@ -310,7 +319,7 @@ export default function BetNowTab() {
                             variant={screenSize.isDesktop ? "heading2" : "heading3"}
                             color="success"
                         >
-                            {formatCurrency(matches.summary.estimated_payout)}
+                            {formatCurrency(Math.floor(displayedOdds * effectiveStake))}
                         </Text>
                     </View>
                 </View>
@@ -331,6 +340,16 @@ export default function BetNowTab() {
                 Configuration du Pari
             </Text>
 
+            <MatchCountSelector
+                mode={matchCount.mode}
+                randomCount={matchCount.randomCount}
+                targetCount={matchCount.targetCount}
+                applying={matchCount.applying}
+                error={matchCount.error}
+                onSelect={matchCount.selectMode}
+                availableMatches={matches?.total_matches}
+            />
+
             <View style={styles.checkboxContainer}>
                 <View style={[
                     styles.checkbox,
@@ -347,12 +366,12 @@ export default function BetNowTab() {
             </View>
 
             <Button
-                title={loading ? 'Exécution...' : `Parier maintenant`}
+                title={executing ? 'Exécution...' : `Parier maintenant`}
                 onPress={handleExecuteBet}
                 variant="outline"
                 size={screenSize.isDesktop ? "md" : "sm"}
-                disabled={loading || !matches?.total_matches}
-                loading={loading}
+                disabled={loading || executing || !matches?.total_matches}
+                loading={executing}
                 style={{
                     borderColor: matches?.total_matches ? colors.success : colors.textSecondary,
                     ...(screenSize.isDesktop && { minWidth: 200 })
@@ -542,7 +561,7 @@ export default function BetNowTab() {
                 visible={showConfirmModal}
                 onClose={() => setShowConfirmModal(false)}
                 title="Confirmer le pari"
-                message={`Êtes-vous sûr de vouloir parier ${formatCurrency(parseInt(customStake) || 0)} sur ${matches?.total_matches || 0} matchs ?\n\nGain potentiel: ${formatCurrency((matches?.summary.total_odds || 0) * (parseInt(customStake) || 0))}`}
+                message={`Êtes-vous sûr de vouloir parier ${formatCurrency(parseInt(customStake) || 0)} sur ${matches?.total_matches || 0} matchs ?\n\nGain potentiel: ${formatCurrency(Math.floor(displayedOdds * (parseInt(customStake) || 0)))}`}
                 confirmText="Confirmer"
                 cancelText="Annuler"
                 onConfirm={handleConfirmBet}

@@ -1,5 +1,6 @@
 // src/shared/services/api/auth/auth.api.ts - ENHANCED avec Auto-Refresh
-import { apiClient } from "@/src/shared/services/helpers/apiClient";
+import { apiClient, ApiError } from "@/src/shared/services/helpers/apiClient";
+import { API_BASE_URL } from "@/src/shared/services/api/constant-api";
 import { LoginRequest, LoginResponse, LocalUserInfo, Bet261UserData } from "@/src/features/auth/types";
 import { tokenRefreshManager } from '@/src/shared/services/api/auth/TokenRefreshManager';
 
@@ -29,7 +30,6 @@ class AuthService {
     // ✅ MÉTHODE MODIFIÉE: Login avec initialisation du refresh manager
     async login(loginData: LoginRequest): Promise<LoginResponse> {
         try {
-            console.log('🔐 AuthService: Attempting login for user:', loginData.bet_login);
 
             // ✅ Utiliser la requête normale (pas d'auto-refresh pour le login)
             const response = await fetch(`${apiClient['baseURL']}/api/login`, {
@@ -42,7 +42,10 @@ class AuthService {
             });
 
             if (!response.ok) {
-                throw new Error(`Login failed: ${response.status} - ${response.statusText}`);
+                // Le backend répond avec un `detail` lisible (« Numéro ou mot de passe incorrect. »...)
+                const body = await response.json().catch(() => null);
+                const detail = typeof body?.detail === 'string' && body.detail ? body.detail : null;
+                throw new ApiError(detail || `Connexion impossible (erreur ${response.status}).`, response.status);
             }
 
             const loginResponse: LoginResponse = await response.json();
@@ -51,24 +54,33 @@ class AuthService {
             if (loginResponse.token) {
                 this.setAuthToken(loginResponse.token);
 
-                // ✅ Initialiser le système de refresh avec les credentials
+                // ✅ Mémoriser le token et son expiration réelle (5 min chez Bet261). Le mot de passe n'est PAS conservé :
+                // le renouvellement passe par /api/refresh.
                 await tokenRefreshManager.initialize(
                     loginResponse.token,
                     loginResponse.user_login,
-                    {
-                        betLogin: loginData.bet_login,
-                        betPassword: loginData.bet_password
-                    }
+                    loginResponse.expires_in ?? 300
                 );
 
-                console.log('✅ AuthService: Token et refresh manager initialisés');
             }
 
             return loginResponse;
         } catch (error) {
-            console.error('❌ AuthService: Login error:', error);
+            console.error('AuthService: Login error:', error);
+            if (error instanceof TypeError) {
+                throw new Error('Impossible de joindre le serveur. Vérifiez votre connexion.');
+            }
             throw error;
         }
+    }
+
+    // ✅ Au démarrage : retrouver la session mémorisée (renouvelle le token si besoin)
+    async restoreSession(): Promise<{ token: string; userLogin: string } | null> {
+        const session = await tokenRefreshManager.restoreSession();
+        if (session) {
+            this.setAuthToken(session.token);
+        }
+        return session;
     }
 
     // ✅ MÉTHODE INCHANGÉE: Get local user info (utilise auto-refresh via apiClient)
@@ -80,7 +92,7 @@ class AuthService {
 
             return await apiClient.get<LocalUserInfo>('/api/user-info');
         } catch (error) {
-            console.error('❌ Get user info error:', error);
+            console.error('Get user info error:', error);
             throw error;
         }
     }
@@ -94,7 +106,7 @@ class AuthService {
 
             return await apiClient.get<Bet261UserData>('/api/bet261-user-info');
         } catch (error) {
-            console.error('❌ Get Bet261 user info error:', error);
+            console.error('Get Bet261 user info error:', error);
             throw error;
         }
     }
@@ -108,40 +120,34 @@ class AuthService {
 
             return await apiClient.get<any>('/api/configuration');
         } catch (error) {
-            console.error('❌ Get configuration error:', error);
+            console.error('Get configuration error:', error);
             throw error;
         }
     }
 
-    // ✅ MÉTHODE MODIFIÉE: Logout avec nettoyage du refresh manager
+    // ✅ Logout : tentative côté serveur (au mieux), puis nettoyage local TOUJOURS effectué
     async logout(): Promise<{ message: string; logged_out_user: string }> {
-        try {
-            if (!this.authToken) {
-                throw new Error('No authentication token available');
-            }
+        const token = this.authToken;
+        let result = { message: 'Déconnexion locale réussie', logged_out_user: 'unknown' };
 
-            // ✅ Tentative de logout côté serveur (avec auto-refresh si nécessaire)
-            let response;
+        if (token) {
             try {
-                response = await apiClient.post<{ message: string; logged_out_user: string }>('/api/logout');
+                // fetch direct (pas apiClient) : inutile de renouveler un token juste pour se déconnecter,
+                // et le backend accepte un token expiré sur /api/logout
+                const response = await fetch(`${API_BASE_URL}/api/logout`, {
+                    method: 'POST',
+                    headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+                });
+                if (response.ok) {
+                    result = await response.json();
+                }
             } catch (error) {
-                // ✅ Si le logout serveur échoue, continuer avec le nettoyage local
-                console.warn('⚠️ AuthService: Server logout failed, proceeding with local cleanup:', error);
+                console.warn('AuthService: Server logout failed, proceeding with local cleanup:', error);
             }
-
-            // ✅ Nettoyer les tokens et le refresh manager
-            this.clearAuthToken();
-
-            return response || {
-                message: 'Déconnexion locale réussie',
-                logged_out_user: 'unknown'
-            };
-        } catch (error) {
-            console.error('❌ Logout error:', error);
-            // ✅ Nettoyer même en cas d'erreur
-            this.clearAuthToken();
-            throw error;
         }
+
+        this.clearAuthToken();
+        return result;
     }
 
     // ✅ NOUVELLE MÉTHODE: Vérifier si la session est encore valide

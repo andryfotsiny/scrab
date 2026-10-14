@@ -1,6 +1,7 @@
 // src/shared/providers/QueryProvider.tsx - VERSION SIMPLIFIÉE (sans DevTools)
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { isClientError } from '@/src/shared/services/helpers/apiClient';
 
 // Configuration optimisée pour React Native/Expo + Web
 const queryClient = new QueryClient({
@@ -14,8 +15,8 @@ const queryClient = new QueryClient({
 
             // 📱 Gestion réseau mobile
             retry: (failureCount, error: any) => {
-                // Pas de retry pour les erreurs d'auth
-                if (error?.message?.includes('401') || error?.message?.includes('403')) {
+                // Pas de retry pour les erreurs client (4xx : auth, validation, solde...) : le résultat ne changera pas
+                if (isClientError(error)) {
                     return false;
                 }
                 // Retry réseau jusqu'à 3 fois
@@ -32,10 +33,9 @@ const queryClient = new QueryClient({
         mutations: {
             // 🔄 Retry pour les mutations importantes
             retry: (failureCount, error: any) => {
-                // Pas de retry pour les erreurs d'auth ou validation
-                if (error?.message?.includes('401') ||
-                    error?.message?.includes('403') ||
-                    error?.message?.includes('400')) {
+                // Pas de retry dès que le serveur a répondu (4xx comme 5xx) : la requête a pu être traitée
+                // (ex. un pari) et la renvoyer risquerait de la dupliquer. Seule une panne réseau est retentée.
+                if (typeof error?.status === 'number') {
                     return false;
                 }
                 // 1 retry pour les autres erreurs

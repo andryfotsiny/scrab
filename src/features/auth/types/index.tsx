@@ -35,6 +35,8 @@ export interface LoginResponse {
     user_login: string;
     token: string;
     expiry?: string;
+    /** Durée de vie restante du token en secondes (5 min chez Bet261) */
+    expires_in?: number;
     was_already_authenticated?: boolean;
     connection_type?: string;
     // 🆕 Nouvelles propriétés pour les rôles
@@ -80,6 +82,12 @@ export interface AuthContextType {
     localUserInfo: LocalUserInfo | null;
     bet261UserData: Bet261UserData | null;
     isAuthenticated: boolean;
+    /** Un token de session existe (même si les données utilisateur ne sont pas encore chargées) */
+    hasSession: boolean;
+    /** Restauration de la session mémorisée en cours au démarrage de l'app */
+    isRestoring: boolean;
+    /** Restauration en cours OU session ouverte dont les données utilisateur arrivent : afficher un chargement */
+    isAuthPending: boolean;
     error: string | null;
     currentUserLogin: string | null;
 

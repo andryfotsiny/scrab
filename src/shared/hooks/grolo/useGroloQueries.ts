@@ -6,13 +6,15 @@ import {
     FootballMatchesResponse,
     ExecuteBetResponse,
     AutoExecutionResponse,
-    ConfigUpdateRequest
+    ConfigUpdateRequest,
+    GlobalConfigUpdateRequest
 } from '@/src/shared/services/types/grolo.type';
 
 // 🔑 Query Keys - Centralisés
 export const groloKeys = {
     all: ['grolo'] as const,
     config: () => [...groloKeys.all, 'config'] as const,
+    globalConfig: () => [...groloKeys.all, 'globalConfig'] as const,
     matches: () => [...groloKeys.all, 'matches'] as const,
     autoExecution: () => [...groloKeys.all, 'autoExecution'] as const,
 } as const;
@@ -29,6 +31,45 @@ export function useGroloConfig() {
                 return false;
             }
             return failureCount < 2;
+        },
+    });
+}
+
+// 🌍 Hook: réglages communs à tous les utilisateurs (admin seulement)
+export function useGroloGlobalConfig(enabled: boolean) {
+    return useQuery({
+        queryKey: groloKeys.globalConfig(),
+        queryFn: () => footballService.getGlobalConfig(),
+        enabled,
+        staleTime: 60 * 1000,
+    });
+}
+
+// 🌍 Hook: modifier les cotes/limites de TOUS les utilisateurs (admin seulement)
+export function useUpdateGroloGlobalConfig() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (updates: GlobalConfigUpdateRequest) => footballService.updateGlobalConfig(updates),
+        onSuccess: () => {
+            // La config effective (cotes affichées) et la sélection de matchs dépendent de ces réglages
+            queryClient.invalidateQueries({ queryKey: groloKeys.globalConfig() });
+            queryClient.invalidateQueries({ queryKey: groloKeys.config() });
+            queryClient.invalidateQueries({ queryKey: groloKeys.matches() });
+        },
+    });
+}
+
+// 🌍 Hook: remettre les cotes/limites communes aux valeurs par défaut (admin seulement)
+export function useResetGroloGlobalConfig() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: () => footballService.resetGlobalConfig(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: groloKeys.globalConfig() });
+            queryClient.invalidateQueries({ queryKey: groloKeys.config() });
+            queryClient.invalidateQueries({ queryKey: groloKeys.matches() });
         },
     });
 }
@@ -54,11 +95,9 @@ export function useUpdateGroloConfig() {
 
     return useMutation({
         mutationFn: (updates: ConfigUpdateRequest) => {
-            console.log('🔧 Updating grolo config:', updates);
             return footballService.updateConfig(updates);
         },
         onSuccess: (data, variables) => {
-            console.log('✅ Grolo config updated successfully:', data);
 
             // Mettre à jour le cache avec la nouvelle config
             if (data.new_config) {
@@ -74,7 +113,7 @@ export function useUpdateGroloConfig() {
             queryClient.invalidateQueries({ queryKey: groloKeys.matches() });
         },
         onError: (error) => {
-            console.error('❌ Grolo config update failed:', error);
+            console.error('Grolo config update failed:', error);
         },
     });
 }
@@ -84,12 +123,11 @@ export function useExecuteGroloBet() {
     const queryClient = useQueryClient();
 
     return useMutation({
+        retry: false, // Un pari ne doit JAMAIS être renvoyé automatiquement (risque de doublon)
         mutationFn: ({ stake, acceptOddsChange = true }: { stake: number; acceptOddsChange?: boolean }) => {
-            console.log('🎯 Executing grolo bet:', { stake, acceptOddsChange });
             return footballService.executeBet(stake, acceptOddsChange);
         },
         onSuccess: (data) => {
-            console.log('✅ Grolo bet executed successfully:', data);
 
             // Invalider les matchs pour récupérer les nouveaux
             queryClient.invalidateQueries({ queryKey: groloKeys.matches() });
@@ -98,7 +136,7 @@ export function useExecuteGroloBet() {
             queryClient.invalidateQueries({ queryKey: ['auth', 'bet261UserData'] });
         },
         onError: (error) => {
-            console.error('❌ Grolo bet execution failed:', error);
+            console.error('Grolo bet execution failed:', error);
         },
     });
 }
@@ -109,17 +147,15 @@ export function useStartGroloAutoExecution() {
 
     return useMutation({
         mutationFn: () => {
-            console.log('🔄 Starting grolo auto execution...');
             return footballService.startAutoExecution();
         },
         onSuccess: (data) => {
-            console.log('✅ Grolo auto execution started:', data);
 
             // Mettre à jour le statut dans le cache
             queryClient.setQueryData(groloKeys.autoExecution(), data);
         },
         onError: (error) => {
-            console.error('❌ Start grolo auto execution failed:', error);
+            console.error('Start grolo auto execution failed:', error);
         },
     });
 }
@@ -130,17 +166,15 @@ export function useStopGroloAutoExecution() {
 
     return useMutation({
         mutationFn: () => {
-            console.log('⏹️ Stopping grolo auto execution...');
             return footballService.stopAutoExecution();
         },
         onSuccess: (data) => {
-            console.log('✅ Grolo auto execution stopped:', data);
 
             // Mettre à jour le statut dans le cache
             queryClient.setQueryData(groloKeys.autoExecution(), data);
         },
         onError: (error) => {
-            console.error('❌ Stop grolo auto execution failed:', error);
+            console.error('Stop grolo auto execution failed:', error);
         },
     });
 }

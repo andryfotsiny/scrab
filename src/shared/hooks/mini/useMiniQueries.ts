@@ -54,11 +54,9 @@ export function useUpdateMiniConfig() {
 
     return useMutation({
         mutationFn: (updates: MiniConfigUpdateRequest) => {
-            console.log('🔧 Updating mini config:', updates);
             return miniService.updateConfig(updates);
         },
         onSuccess: (data, variables) => {
-            console.log('✅ Mini config updated successfully:', data);
 
             // Mettre à jour le cache avec la nouvelle config
             if (data.new_config) {
@@ -86,7 +84,7 @@ export function useUpdateMiniConfig() {
             queryClient.invalidateQueries({ queryKey: miniKeys.matches() });
         },
         onError: (error) => {
-            console.error('❌ Mini config update failed:', error);
+            console.error('Mini config update failed:', error);
         },
     });
 }
@@ -96,12 +94,11 @@ export function useExecuteMiniBet() {
     const queryClient = useQueryClient();
 
     return useMutation({
+        retry: false, // Un pari ne doit JAMAIS être renvoyé automatiquement (risque de doublon)
         mutationFn: ({ stake, acceptOddsChange = true }: { stake: number; acceptOddsChange?: boolean }) => {
-            console.log('🎯 Executing mini bet:', { stake, acceptOddsChange });
             return miniService.executeBet(stake, acceptOddsChange);
         },
         onSuccess: (data) => {
-            console.log('✅ Mini bet executed successfully:', data);
 
             // Invalider les matchs pour récupérer les nouveaux
             queryClient.invalidateQueries({ queryKey: miniKeys.matches() });
@@ -110,7 +107,7 @@ export function useExecuteMiniBet() {
             queryClient.invalidateQueries({ queryKey: ['auth', 'bet261UserData'] });
         },
         onError: (error) => {
-            console.error('❌ Mini bet execution failed:', error);
+            console.error('Mini bet execution failed:', error);
         },
     });
 }
@@ -121,17 +118,15 @@ export function useStartMiniAutoExecution() {
 
     return useMutation({
         mutationFn: () => {
-            console.log('🔄 Starting mini auto execution...');
             return miniService.startAutoExecution();
         },
         onSuccess: (data) => {
-            console.log('✅ Mini auto execution started:', data);
 
             // Mettre à jour le statut dans le cache
             queryClient.setQueryData(miniKeys.autoExecution(), data);
         },
         onError: (error) => {
-            console.error('❌ Start mini auto execution failed:', error);
+            console.error('Start mini auto execution failed:', error);
         },
     });
 }
@@ -142,17 +137,15 @@ export function useStopMiniAutoExecution() {
 
     return useMutation({
         mutationFn: () => {
-            console.log('⏹️ Stopping mini auto execution...');
             return miniService.stopAutoExecution();
         },
         onSuccess: (data) => {
-            console.log('✅ Mini auto execution stopped:', data);
 
             // Mettre à jour le statut dans le cache
             queryClient.setQueryData(miniKeys.autoExecution(), data);
         },
         onError: (error) => {
-            console.error('❌ Stop mini auto execution failed:', error);
+            console.error('Stop mini auto execution failed:', error);
         },
     });
 }

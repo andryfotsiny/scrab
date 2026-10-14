@@ -17,6 +17,8 @@ import { useAuth } from '@/src/shared/context/AuthContext';
 import ThemeToggle from '@/src/components/atoms/ThemeToggle';
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
+import PhoneInput from '@/src/components/atoms/PhoneInput';
+import { validateMgPhone } from '@/src/shared/utils/phone';
 import Text from '@/src/components/atoms/Text';
 import { spacing } from '@/src/styles';
 
@@ -32,9 +34,12 @@ export default function LoginScreen() {
         bet_login: '',
         bet_password: '',
     });
+    // Alert.alert ne fait rien sur le web : l'erreur de connexion est aussi affichée dans la page
+    const [submitError, setSubmitError] = useState('');
 
     const handleInputChange = (field: 'bet_login' | 'bet_password', value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        setSubmitError('');
 
         // Clear error when user starts typing
         if (formErrors[field]) {
@@ -48,18 +53,12 @@ export default function LoginScreen() {
             bet_password: '',
         };
 
-        // Validate login
-        if (!formData.bet_login.trim()) {
-            errors.bet_login = 'Le login est requis';
-        } else if (formData.bet_login.trim().length < 3) {
-            errors.bet_login = 'Le login doit contenir au moins 3 caractères';
-        }
+        // Numéro : 9 chiffres après +261 (le 0 initial et l'indicatif sont retirés à la saisie)
+        errors.bet_login = validateMgPhone(formData.bet_login);
 
-        // Validate password
-        if (!formData.bet_password.trim()) {
+        // Mot de passe : seule règle = non vide (Bet261 décide du reste) ; jamais de trim : un espace peut en faire partie
+        if (!formData.bet_password) {
             errors.bet_password = 'Le mot de passe est requis';
-        } else if (formData.bet_password.trim().length < 4) {
-            errors.bet_password = 'Le mot de passe doit contenir au moins 4 caractères';
         }
 
         setFormErrors(errors);
@@ -75,16 +74,14 @@ export default function LoginScreen() {
         }
 
         try {
-            console.log('🚀 LoginScreen: Starting login with React Query...');
 
             // ✅ Le login utilise maintenant React Query sous le capot
             const result = await login({
-                bet_login: formData.bet_login.trim(),
-                bet_password: formData.bet_password.trim(),
+                bet_login: formData.bet_login,
+                bet_password: formData.bet_password,
             });
 
             if (result.success) {
-                console.log('✅ LoginScreen: Login successful (React Query cache populated)');
 
                 // Clear form data
                 setFormData({ bet_login: '', bet_password: '' });
@@ -93,17 +90,15 @@ export default function LoginScreen() {
                 // Navigate directly to main screen
                 router.replace('/(main)');
             } else {
-                Alert.alert(
-                    'Erreur de connexion',
-                    result.error || 'Impossible de se connecter. Veuillez vérifier vos identifiants.'
-                );
+                const message = result.error || 'Impossible de se connecter. Veuillez vérifier vos identifiants.';
+                setSubmitError(message);
+                Alert.alert('Erreur de connexion', message);
             }
         } catch (error) {
-            console.error('💥 LoginScreen: Login error:', error);
-            Alert.alert(
-                'Erreur de connexion',
-                'Une erreur inattendue s\'est produite. Veuillez réessayer.'
-            );
+            console.error('LoginScreen: Login error:', error);
+            const message = 'Une erreur inattendue s\'est produite. Veuillez réessayer.';
+            setSubmitError(message);
+            Alert.alert('Erreur de connexion', message);
         }
     }, [formData, login]);
 
@@ -111,6 +106,7 @@ export default function LoginScreen() {
         Keyboard.dismiss();
         setFormData({ bet_login: '', bet_password: '' });
         setFormErrors({ bet_login: '', bet_password: '' });
+        setSubmitError('');
     };
 
     // Dynamic styles based on theme
@@ -121,8 +117,8 @@ export default function LoginScreen() {
         footerText: { color: colors.textSecondary },
     };
 
-    const hasFormData = formData.bet_login.trim() || formData.bet_password.trim();
-    const isFormValid = formData.bet_login.trim().length >= 3 && formData.bet_password.trim().length >= 4;
+    const hasFormData = formData.bet_login || formData.bet_password;
+    const isFormValid = validateMgPhone(formData.bet_login) === '' && formData.bet_password.length > 0;
 
     return (
         <SafeAreaView style={[styles.container, dynamicStyles.container]}>
@@ -166,20 +162,13 @@ export default function LoginScreen() {
                         </Text>
 
                         <View style={styles.formContainer}>
-                            <Input
-                                label="Login Bet261"
+                            <PhoneInput
+                                label="Numéro Bet261"
                                 value={formData.bet_login}
-                                onChangeText={(value) => handleInputChange('bet_login', value)}
-                                placeholder="Votre login Bet261"
-                                keyboardType="default"
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                                returnKeyType="next"
+                                onChangeDigits={(digits) => handleInputChange('bet_login', digits)}
                                 error={formErrors.bet_login}
+                                helperText="Exemple : xx xx xxx xx (sans le 0)"
                                 required
-                                onSubmitEditing={() => {
-                                    // Focus next input or submit if last
-                                }}
                             />
 
                             <Input
@@ -188,6 +177,9 @@ export default function LoginScreen() {
                                 onChangeText={(value) => handleInputChange('bet_password', value)}
                                 placeholder="Votre mot de passe"
                                 secureTextEntry={true}
+                                passwordToggle
+                                autoCapitalize="none"
+                                autoCorrect={false}
                                 returnKeyType="done"
                                 error={formErrors.bet_password}
                                 required
@@ -217,11 +209,18 @@ export default function LoginScreen() {
                             </View>
                         </View>
 
-                        {/* Helper Text */}
+                        {/* Erreur de connexion (visible aussi sur le web, où Alert.alert ne fait rien) */}
+                        {!!submitError && (
+                            <View style={styles.helperContainer}>
+                                <Text variant="caption" color="error" style={styles.helperText}>
+                                    {submitError}
+                                </Text>
+                            </View>
+                        )}
+
                         <View style={styles.helperContainer}>
                             <Text variant="caption" color="textSecondary" style={styles.helperText}>
-                                ✅ Données mises en cache automatiquement avec React Query.
-                                L'application se connectera automatiquement à votre compte.
+                                Utilisez le numéro et le mot de passe de votre compte Bet261.
                             </Text>
                         </View>
                     </View>

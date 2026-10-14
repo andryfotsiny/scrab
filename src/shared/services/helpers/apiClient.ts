@@ -60,13 +60,11 @@ class ApiClient {
         } catch (error) {
             // ✅ 3. Si erreur d'authentification ET retry possible
             if (this.isAuthError(error) && maxRetries > 0 && tokenRefreshManager) {
-                console.log(`🔄 ApiClient: Erreur auth détectée, tentative de refresh...`);
 
                 // ✅ 4. Tenter refresh du token
                 const refreshSuccess = await tokenRefreshManager.handleExpiredToken();
 
                 if (refreshSuccess) {
-                    console.log(`🔄 ApiClient: Refresh réussi, retry de la requête...`);
                     // ✅ 5. Retry avec le nouveau token
                     return await this.requestWithAutoRefresh<T>(endpoint, options, maxRetries - 1);
                 }
@@ -86,7 +84,6 @@ class ApiClient {
     ): Promise<T> {
         const url = `${this.baseURL}${endpoint}`;
 
-        console.log(`🔗 ${options.method || 'GET'} request to:`, url);
 
         const headers: Record<string, string> = {
             'Accept': 'application/json',
@@ -105,22 +102,29 @@ class ApiClient {
                 ...options,
             });
 
-            console.log('📡 Response status:', response.status);
 
             if (!response.ok) {
                 // Handle specific auth errors
                 if (response.status === 401 || response.status === 403) {
-                    console.warn('🔒 Authentication failed - token expired or invalid');
-                    throw new AuthError(`Authentication failed: ${response.status} - ${response.statusText}`);
+                    console.warn('Authentication failed - token expired or invalid');
+                    throw new AuthError(`Authentication failed: ${response.status} - ${response.statusText}`, response.status);
                 }
 
-                throw new Error(`Request failed: ${response.status} - ${response.statusText}`);
+                // Le backend renvoie un message lisible dans `detail` : le garder au lieu de le perdre.
+                // Le code HTTP voyage dans `status` (les règles de retry ne doivent pas lire le texte du message).
+                const body = await response.json().catch(() => null);
+                const detail = typeof body?.detail === 'string' && body.detail ? body.detail : null;
+                throw new ApiError(detail || `Request failed: ${response.status} - ${response.statusText}`, response.status);
             }
 
             const data = await response.json();
             return data;
         } catch (error) {
-            console.error('❌ Request error:', error);
+            if (error instanceof AuthError) {
+                // 401/403 attendu : le token est renouvelé puis la requête rejouée (requestWithAutoRefresh)
+            } else {
+                console.error('Request error:', error);
+            }
             if (error instanceof TypeError && error.message.includes('Network request failed')) {
                 throw new Error('Impossible de se connecter au serveur. Vérifiez votre connexion réseau.');
             }
@@ -133,9 +137,8 @@ class ApiClient {
      */
     private isAuthError(error: any): boolean {
         return error instanceof AuthError ||
-            (error.message && (
-                error.message.includes('401') ||
-                error.message.includes('403') ||
+            error?.status === 401 || error?.status === 403 ||
+            (error?.message && (
                 error.message.includes('Authentication failed') ||
                 error.message.includes('Session expirée')
             ));
@@ -289,14 +292,36 @@ class ApiClient {
 }
 
 /**
- * ✅ Classe d'erreur spécifique pour l'authentification
+ * Erreur HTTP du backend : `message` = `detail` lisible du serveur, `status` = code HTTP.
  */
-class AuthError extends Error {
-    constructor(message: string) {
+class ApiError extends Error {
+    status: number;
+
+    constructor(message: string, status: number) {
         super(message);
+        this.name = 'ApiError';
+        this.status = status;
+    }
+}
+
+/**
+ * ✅ Classe d'erreur spécifique pour l'authentification (401/403)
+ */
+class AuthError extends ApiError {
+    constructor(message: string, status: number = 401) {
+        super(message, status);
         this.name = 'AuthError';
     }
 }
 
+/**
+ * Vrai si le serveur a répondu avec une erreur client (4xx) : renvoyer la même requête ne changera rien
+ * (et pour un pari, ce serait dangereux).
+ */
+export function isClientError(error: unknown): boolean {
+    const status = (error as { status?: number } | null)?.status;
+    return typeof status === 'number' && status >= 400 && status < 500;
+}
+
 export const apiClient = new ApiClient(API_BASE_URL);
-export { AuthError };
+export { AuthError, ApiError };

@@ -64,7 +64,6 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
     // Wrapper actions avec vérification d'authentification
     const loadConfig = useCallback(async () => {
         ensureAuthenticated();
-        console.log('🔄 FootballContext: Loading config via React Query...');
         return await groloData.loadConfig();
     }, [ensureAuthenticated, groloData.loadConfig]);
 
@@ -78,7 +77,6 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         metadata: any;
     }> => {
         ensureAuthenticated();
-        console.log('🔄 FootballContext: Updating config via React Query...', updates);
 
         return new Promise((resolve, reject) => {
             updateConfigMutation.mutate(updates, {
@@ -89,14 +87,12 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
     }, [ensureAuthenticated, updateConfigMutation.mutate]);
 
     const loadMatches = useCallback(async () => {
-        console.log('🔄 FootballContext: Loading matches via React Query...');
         return await groloData.loadMatches();
     }, [groloData.loadMatches]);
 
     // 🔧 CORRECTION: Typer explicitement le retour de executeBet
     const executeBet = useCallback(async (stake: number, acceptOddsChange: boolean = true): Promise<ExecuteBetResponse> => {
         ensureAuthenticated();
-        console.log('🔄 FootballContext: Executing bet via React Query...', { stake, acceptOddsChange });
 
         return new Promise<ExecuteBetResponse>((resolve, reject) => {
             executeBetMutation.mutate({ stake, acceptOddsChange }, {
@@ -109,7 +105,6 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
     // 🔧 CORRECTION: Typer explicitement le retour de startAutoExecution
     const startAutoExecution = useCallback(async (): Promise<AutoExecutionResponse> => {
         ensureAuthenticated();
-        console.log('🔄 FootballContext: Starting auto execution via React Query...');
 
         return new Promise<AutoExecutionResponse>((resolve, reject) => {
             startAutoMutation.mutate(undefined, {
@@ -122,7 +117,6 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
     // 🔧 CORRECTION: Typer explicitement le retour de stopAutoExecution
     const stopAutoExecution = useCallback(async (): Promise<AutoExecutionResponse> => {
         ensureAuthenticated();
-        console.log('🔄 FootballContext: Stopping auto execution via React Query...');
 
         return new Promise<AutoExecutionResponse>((resolve, reject) => {
             stopAutoMutation.mutate(undefined, {
@@ -135,22 +129,12 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
     // Clear grolo data when user logs out
     useEffect(() => {
         if (!isAuthenticated) {
-            console.log('🧹 FootballContext: User logged out, React Query will handle cache cleanup');
             // React Query gère automatiquement le cache selon la configuration
         }
     }, [isAuthenticated]);
 
     // Debug effect - réduit pour éviter le spam
     useEffect(() => {
-        console.log('🔍 FootballContext state changed (React Query):', {
-            loading: groloData.loading,
-            hasConfig: !!groloData.config,
-            hasMatches: !!groloData.matches,
-            autoExecutionActive: groloData.autoExecutionActive,
-            error: groloData.error,
-            isAuthenticated,
-            hasUserData: !!bet261UserData
-        });
     }, [
         groloData.loading, groloData.config, groloData.matches,
         groloData.autoExecutionActive, groloData.error,

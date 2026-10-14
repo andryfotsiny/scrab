@@ -26,7 +26,6 @@ export function useLogin() {
             return loginResponse;
         },
         onSuccess: (data, variables) => {
-            console.log('✅ Login successful, prefetching user data...');
 
             // 🚀 Prefetch des données utilisateur après login réussi
             queryClient.prefetchQuery({
@@ -42,7 +41,7 @@ export function useLogin() {
             });
         },
         onError: (error) => {
-            console.error('❌ Login failed:', error);
+            console.error('Login failed:', error);
             // Nettoyer le cache en cas d'erreur
             queryClient.removeQueries({ queryKey: authKeys.all });
         },
@@ -115,10 +114,9 @@ export function useRefreshUserInfo() {
             queryClient.setQueryData(authKeys.userInfo(), data.localUser);
             queryClient.setQueryData(authKeys.bet261UserData(), data.bet261User);
 
-            console.log('🔄 User info refreshed successfully');
         },
         onError: (error) => {
-            console.error('❌ Refresh user info failed:', error);
+            console.error('Refresh user info failed:', error);
         },
     });
 }
@@ -136,27 +134,24 @@ export function useLogout() {
                 }
             } catch (error) {
                 // Continuer même si logout serveur échoue
-                console.warn('⚠️ Server logout failed, proceeding with local cleanup:', error);
+                console.warn('Server logout failed, proceeding with local cleanup:', error);
             }
 
             // Toujours nettoyer localement
             authService.clearAuthToken();
         },
         onSuccess: () => {
-            // Nettoyer tout le cache auth
-            queryClient.removeQueries({ queryKey: authKeys.all });
+            // Vider TOUT le cache (matchs Grolo/Mini, statut Aviator, solde...) : les clés ne sont pas
+            // propres à un utilisateur, le suivant verrait sinon les données du précédent.
+            queryClient.clear();
 
-            // Optionnel: nettoyer tout le cache
-            // queryClient.clear();
-
-            console.log('✅ Logout completed, cache cleared');
         },
         onError: (error) => {
-            console.error('❌ Logout error:', error);
+            console.error('Logout error:', error);
 
             // Nettoyer quand même en cas d'erreur
             authService.clearAuthToken();
-            queryClient.removeQueries({ queryKey: authKeys.all });
+            queryClient.clear();
         },
     });
 }
@@ -176,10 +171,9 @@ export function useSwitchUser() {
             return await login.mutateAsync(credentials);
         },
         onSuccess: () => {
-            console.log('🔄 User switched successfully');
         },
         onError: (error) => {
-            console.error('❌ Switch user failed:', error);
+            console.error('Switch user failed:', error);
         },
     });
 }

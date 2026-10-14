@@ -5,7 +5,9 @@ import {
     FootballMatchesResponse,
     ExecuteBetResponse,
     AutoExecutionResponse,
-    ConfigUpdateRequest
+    ConfigUpdateRequest,
+    GlobalConfigResponse,
+    GlobalConfigUpdateRequest
 } from "@/src/shared/services/types/grolo.type";
 
 class FootballService {
@@ -14,7 +16,7 @@ class FootballService {
         try {
             return await apiClient.get<FootballConfig>('/api/betting/football/config');
         } catch (error) {
-            console.error('❌ Get football config error:', error);
+            console.error('Get football config error:', error);
             throw error;
         }
     }
@@ -29,12 +31,35 @@ class FootballService {
         metadata: any;
     }> {
         try {
-            console.log('📝 Updating football config with:', config);
             return await apiClient.put('/api/betting/football/config', undefined, config);
         } catch (error) {
-            console.error('❌ Update football config error:', error);
+            console.error('Update football config error:', error);
             throw error;
         }
+    }
+
+    // Réglages communs à tous les utilisateurs (admin seulement)
+    async getGlobalConfig(): Promise<GlobalConfigResponse> {
+        return await apiClient.get<GlobalConfigResponse>('/api/betting/football/config/global');
+    }
+
+    async updateGlobalConfig(config: GlobalConfigUpdateRequest): Promise<{
+        message: string;
+        changes_made: string[];
+        constraints: GlobalConfigResponse['constraints'];
+        metadata: GlobalConfigResponse['metadata'];
+    }> {
+        return await apiClient.put('/api/betting/football/config/global', undefined, config);
+    }
+
+    // Remet les réglages communs aux valeurs par défaut (admin seulement) ; les mises personnelles ne bougent pas
+    async resetGlobalConfig(): Promise<{
+        message: string;
+        changes_made: string[];
+        constraints: GlobalConfigResponse['constraints'];
+        metadata: GlobalConfigResponse['metadata'];
+    }> {
+        return await apiClient.post('/api/betting/football/config/global/reset');
     }
 
     // API 3: Get All Football Matches (no authentication required - shared data)
@@ -42,7 +67,7 @@ class FootballService {
         try {
             return await apiClient.get<FootballMatchesResponse>('/api/betting/football/matches');
         } catch (error) {
-            console.error('❌ Get football matches error:', error);
+            console.error('Get football matches error:', error);
             throw error;
         }
     }
@@ -54,10 +79,9 @@ class FootballService {
                 stake,
                 accept_odds_change: acceptOddsChange
             };
-            console.log('🎯 Executing football bet with:', params);
             return await apiClient.post<ExecuteBetResponse>('/api/betting/football/execute', undefined, params);
         } catch (error) {
-            console.error('❌ Execute football bet error:', error);
+            console.error('Execute football bet error:', error);
             throw error;
         }
     }
@@ -67,7 +91,7 @@ class FootballService {
         try {
             return await apiClient.post<AutoExecutionResponse>('/api/betting/football/auto-execution/start');
         } catch (error) {
-            console.error('❌ Start auto execution error:', error);
+            console.error('Start auto execution error:', error);
             throw error;
         }
     }
@@ -77,7 +101,7 @@ class FootballService {
         try {
             return await apiClient.post<AutoExecutionResponse>('/api/betting/football/auto-execution/stop');
         } catch (error) {
-            console.error('❌ Stop auto execution error:', error);
+            console.error('Stop auto execution error:', error);
             throw error;
         }
     }

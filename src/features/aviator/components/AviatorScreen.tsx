@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Button from '@/src/components/atoms/Button';
 import Input from '@/src/components/atoms/Input';
 import Text from '@/src/components/atoms/Text';
+import AuthLoading from '@/src/components/molecules/AuthLoading';
 import SuccessModal from '@/src/components/molecules/SuccessModal';
 import { spacing } from '@/src/styles';
 
@@ -29,7 +30,7 @@ import {
 export default function AviatorScreen() {
     const { colors, mode } = useTheme();
     const insets = useSafeAreaInsets();
-    const { isAuthenticated, bet261UserData } = useAuth();
+    const { isAuthenticated, isAuthPending, bet261UserData } = useAuth();
 
     const { data: status, isLoading: statusLoading, refetch } = useAviatorStatus();
     const startBot = useStartAviatorBot();
@@ -100,6 +101,11 @@ export default function AviatorScreen() {
             setShowModal(true);
         }
     };
+
+    // Session en cours de chargement : pas de « Connexion requise » pendant la restauration
+    if (isAuthPending) {
+        return <AuthLoading fullScreen />;
+    }
 
     if (!isAuthenticated || !bet261UserData) {
         return (

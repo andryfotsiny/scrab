@@ -1,16 +1,21 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, StatusBar } from 'react-native';
 import { router } from 'expo-router';
+import { useAuth } from '@/src/shared/context/AuthContext';
 
 export default function WelcomeScreen() {
+    const { hasSession, isRestoring } = useAuth();
+
     useEffect(() => {
-        // Redirection automatique vers l'écran de login après un court délai
+        // Attendre la restauration de la session mémorisée, puis aller à l'app ou au login
+        if (isRestoring) return;
+
         const timer = setTimeout(() => {
-            router.replace('/(auth)/login');
-        }, 2000);
+            router.replace(hasSession ? '/(main)' : '/(auth)/login');
+        }, 500);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [isRestoring, hasSession]);
 
     return (
         <View style={styles.container}>

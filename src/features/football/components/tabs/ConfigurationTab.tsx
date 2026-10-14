@@ -20,35 +20,8 @@ import Input from '@/src/components/atoms/Input';
 import Text from '@/src/components/atoms/Text';
 import Skeleton from '@/src/components/atoms/Skeleton';
 import ConfirmationModal from '@/src/components/molecules/ConfirmationModal';
-import { spacing } from '@/src/styles';
-
-// Hook pour la responsivité
-const useScreenSize = () => {
-    const [screenSize, setScreenSize] = useState(() => {
-        const { width } = Dimensions.get('window');
-        return {
-            width,
-            isTablet: width >= 768,
-            isDesktop: width >= 1024,
-            isMobile: width < 768,
-        };
-    });
-
-    useEffect(() => {
-        const subscription = Dimensions.addEventListener('change', ({ window }) => {
-            setScreenSize({
-                width: window.width,
-                isTablet: window.width >= 768,
-                isDesktop: window.width >= 1024,
-                isMobile: window.width < 768,
-            });
-        });
-
-        return () => subscription?.remove();
-    }, []);
-
-    return screenSize;
-};
+import GlobalConfigCard from '@/src/features/football/components/GlobalConfigCard';
+import { useScreenSize, styles } from './configTabShared';
 
 export default function ConfigurationTab() {
     const { colors } = useTheme();
@@ -66,12 +39,6 @@ export default function ConfigurationTab() {
 
     // Debug permissions
     useEffect(() => {
-        console.log('🔐 ConfigurationTab permissions:', {
-            isAdmin: adminPermissions.isAdmin,
-            isSuperAdmin: adminPermissions.isSuperAdmin,
-            canEditConfig: adminPermissions.isAdmin || adminPermissions.isSuperAdmin,
-            isLoading: adminPermissions.isLoading
-        });
     }, [adminPermissions]);
 
     // Dérivation des permissions
@@ -122,7 +89,6 @@ export default function ConfigurationTab() {
     const onRefresh = useCallback(async () => {
         try {
             await refreshConfig();
-            console.log('🔄 ConfigurationTab: Config refreshed via React Query');
         } catch (err) {
             console.error('Refresh error:', err);
         }
@@ -186,12 +152,10 @@ export default function ConfigurationTab() {
     };
 
     const handleSave = async () => {
-        console.log('🚀 handleSave called with formData:', formData);
         Keyboard.dismiss();
 
         const validationError = validateForm();
         if (validationError) {
-            console.log('❌ Validation error:', validationError);
             setModalData({
                 title: 'Erreur de validation',
                 message: validationError,
@@ -213,12 +177,10 @@ export default function ConfigurationTab() {
     };
 
     const handleConfirmSave = async () => {
-        console.log('✅ User confirmed save, calling updateConfig...');
         setShowConfirmModal(false);
 
         try {
             const result = await updateConfigMutation.mutateAsync(formData);
-            console.log('🎉 Config update successful:', result);
 
             if (result.metadata && result.metadata.updated_at) {
                 setLastUpdateTime(result.metadata.updated_at);
@@ -237,7 +199,6 @@ export default function ConfigurationTab() {
             setShowSuccessModal(true);
             setHasChanges(false);
         } catch (err) {
-            console.log('💥 Config update failed:', err);
             setModalData({
                 title: 'Erreur',
                 message: error || 'Erreur lors de la sauvegarde',
@@ -286,6 +247,11 @@ export default function ConfigurationTab() {
                     color="text"
                 >
                     Configuration Actuelle
+                </Text>
+                <Text variant="caption" color="textSecondary">
+                    {canEditConfig
+                        ? 'Vos réglages personnels : ils servent pour vos propres paris.'
+                        : 'Les cotes et limites sont fixées par l\'administrateur. Vous réglez seulement votre mise.'}
                 </Text>
 
                 <View style={[
@@ -666,6 +632,7 @@ export default function ConfigurationTab() {
                     <View style={styles.desktopLeftColumn}>
                         {renderCurrentConfigSection()}
                         {renderConfigFormSection()}
+                        {canEditConfig && <GlobalConfigCard />}
                     </View>
                     <View style={styles.desktopRightColumn}>
                         {renderInformationSection()}
@@ -677,6 +644,7 @@ export default function ConfigurationTab() {
                     {renderCurrentConfigSection()}
                     <View style={[styles.separator, { backgroundColor: colors.border }]} />
                     {renderConfigFormSection()}
+                    {canEditConfig && <GlobalConfigCard />}
                     {canEditConfig && (
                         <>
                             <View style={[styles.separator, { backgroundColor: colors.border }]} />
@@ -741,153 +709,3 @@ export default function ConfigurationTab() {
         </>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    content: {
-        padding: spacing.lg,
-        paddingTop: spacing.xs,
-    },
-
-    // Styles communs
-    configSection: {
-        paddingBottom: spacing.lg,
-    },
-    section: {
-        paddingVertical: spacing.lg,
-    },
-    separator: {
-        height: 1,
-        marginVertical: spacing.xs,
-    },
-    currentConfigGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: spacing.md,
-        marginBottom: spacing.md,
-    },
-    configItem: {
-        flex: 1,
-        minWidth: '45%',
-    },
-    metadataContainer: {
-        paddingTop: spacing.md,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.1)',
-    },
-    formSection: {
-        marginBottom: spacing.lg,
-    },
-    actionButtons: {
-        flexDirection: 'column-reverse',
-        gap: spacing.sm,
-        marginTop: spacing.xs,
-    },
-    infoList: {
-        gap: spacing.sm,
-    },
-    infoItem: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: spacing.xs,
-    },
-    infoText: {
-        flex: 1,
-        lineHeight: 20,
-    },
-
-    // Styles desktop
-    desktopContent: {
-        padding: spacing.xl,
-        maxWidth: 1400,
-        alignSelf: 'center',
-        width: '100%',
-    },
-
-    desktopLayout: {
-        flexDirection: 'row',
-        gap: spacing.xl * 2,
-    },
-
-    desktopLeftColumn: {
-        flex: 2,
-        gap: spacing.xl,
-    },
-
-    desktopRightColumn: {
-        flex: 1,
-        gap: spacing.xl,
-    },
-
-    desktopConfigSection: {
-        padding: spacing.xl,
-        backgroundColor: 'rgba(0,0,0,0.02)',
-        borderRadius: 16,
-    },
-
-    desktopCurrentConfigGrid: {
-        gap: spacing.xl,
-    },
-
-    desktopConfigItem: {
-        minWidth: 200,
-        padding: spacing.lg,
-        backgroundColor: '#ffffff',
-        borderRadius: 12,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-
-    desktopSection: {
-        padding: spacing.xl,
-        backgroundColor: 'rgba(0,0,0,0.02)',
-        borderRadius: 16,
-    },
-
-    desktopFormLayout: {
-        flexDirection: 'row',
-        gap: spacing.xl,
-    },
-
-    desktopFormColumn: {
-        flex: 1,
-    },
-
-    desktopFormCard: {
-        padding: spacing.xl,
-        backgroundColor: '#ffffff',
-        borderRadius: 12,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-
-    desktopActionButtons: {
-        flexDirection: 'row',
-        gap: spacing.lg,
-        justifyContent: 'flex-end',
-        marginTop: spacing.lg,
-    },
-
-    desktopInfoList: {
-        gap: spacing.md,
-    },
-
-    desktopInfoItem: {
-        padding: spacing.md,
-        backgroundColor: '#ffffff',
-        borderRadius: 8,
-        elevation: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-    },
-});

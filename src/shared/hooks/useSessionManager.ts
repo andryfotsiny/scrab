@@ -21,21 +21,17 @@ export function useSessionManager(config: SessionManagerConfig = {}) {
      */
     const refreshSession = useCallback(async (): Promise<boolean> => {
         // Cette méthode est maintenant handled par apiClient automatiquement
-        console.log('🔄 SessionManager: Refresh géré automatiquement par apiClient');
         return true;
     }, []);
 
     const checkSessionStatus = useCallback(async () => {
         // Cette méthode est maintenant handled par apiClient automatiquement
-        console.log('🔍 SessionManager: Vérification gérée automatiquement par apiClient');
     }, []);
 
     const startSessionMonitoring = useCallback(() => {
-        console.log('🔄 SessionManager: Surveillance gérée automatiquement par apiClient');
     }, []);
 
     const stopSessionMonitoring = useCallback(() => {
-        console.log('🛑 SessionManager: Surveillance gérée automatiquement par apiClient');
     }, []);
 
     return {
@@ -52,10 +48,8 @@ export function useAuthenticatedScreen() {
 
     const sessionManager = useSessionManager({
         onSessionExpired: () => {
-            console.log('🚪 useAuthenticatedScreen: Session gérée automatiquement');
         },
         onSessionRefreshed: () => {
-            console.log('🔄 useAuthenticatedScreen: Session gérée automatiquement');
         }
     });
 

@@ -16,6 +16,7 @@ import { MiniProvider } from '@/src/features/football/context/MiniContext';
 import Header from '@/src/components/molecules/Header';
 import TabBar, { TabItem } from '@/src/components/molecules/TabBar';
 import Text from '@/src/components/atoms/Text';
+import AuthLoading from '@/src/components/molecules/AuthLoading';
 
 // Import des tabs
 import MiniAutoBetTab from './tabs/MiniAutoBetTab';
@@ -26,7 +27,7 @@ type TabType = 'auto' | 'now' | 'config';
 
 function MiniContent() {
     const { colors, mode } = useTheme();
-    const { isAuthenticated, bet261UserData } = useAuth();
+    const { isAuthenticated, isAuthPending, bet261UserData } = useAuth();
     const insets = useSafeAreaInsets();
     const [activeTab, setActiveTab] = useState<TabType>('auto');
 
@@ -50,6 +51,11 @@ function MiniContent() {
     };
 
     const renderTabContent = () => {
+        // Session en cours de chargement : pas de « Connexion requise » pendant la restauration
+        if (isAuthPending) {
+            return <AuthLoading />;
+        }
+
         // Show message if not authenticated
         if (!isAuthenticated || !bet261UserData) {
             return (
