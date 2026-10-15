@@ -51,8 +51,11 @@ export default function ConfigurationTab() {
     const error = configError?.message || contextError;
     const initialLoading = (configLoading && !config) || adminPermissions.isLoading;
 
-    // Form state - adapté selon les permissions
-    const [formData, setFormData] = useState<ConfigUpdateRequest>({});
+    // Form state - adapté selon les permissions. Stocké en texte brut pendant la saisie : convertir en
+    // nombre à chaque frappe (ancien code) effaçait le point/la virgule tapés avant que l'utilisateur
+    // ait fini d'écrire la décimale (ex: « 1. » → parseFloat → 1 → réaffiché "1", le point disparaît).
+    type FormState = { [K in keyof ConfigUpdateRequest]?: string };
+    const [formData, setFormData] = useState<FormState>({});
     const [hasChanges, setHasChanges] = useState(false);
     const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
@@ -67,22 +70,22 @@ export default function ConfigurationTab() {
         onConfirm: () => {},
     });
 
+    const configToFormState = (): FormState => canEditConfig ? {
+        min_odds: String(config!.constraints.min_odds),
+        max_odds: String(config!.constraints.max_odds),
+        max_matches: String(config!.constraints.max_matches),
+        max_total_odds: String(config!.constraints.max_total_odds),
+        default_stake: String(config!.settings.default_stake),
+    } : {
+        default_stake: String(config!.settings.default_stake),
+    };
+
     useEffect(() => {
         if (config) {
-            // Pour les utilisateurs normaux, seulement default_stake
-            const initialData = canEditConfig ? {
-                min_odds: config.constraints.min_odds,
-                max_odds: config.constraints.max_odds,
-                max_matches: config.constraints.max_matches,
-                max_total_odds: config.constraints.max_total_odds,
-                default_stake: config.settings.default_stake,
-            } : {
-                default_stake: config.settings.default_stake,
-            };
-
-            setFormData(initialData);
+            setFormData(configToFormState());
             setHasChanges(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [config, canEditConfig]);
 
     // React Query gère automatiquement le refresh
@@ -95,55 +98,68 @@ export default function ConfigurationTab() {
     }, [refreshConfig]);
 
     const handleInputChange = (field: keyof ConfigUpdateRequest, value: string) => {
-        const numericValue = parseFloat(value) || 0;
-        const newFormData = { ...formData, [field]: numericValue };
+        // Virgule acceptée comme séparateur décimal (clavier malgache/français), convertie en point
+        const cleaned = value.replace(',', '.');
+        const newFormData = { ...formData, [field]: cleaned };
         setFormData(newFormData);
 
-        // Check if there are changes
+        // Changements détectés sur la valeur NUMÉRIQUE (pas le texte : "1.20" et "1.2" sont la même cote)
         if (config) {
+            const n = (v?: string) => v === undefined || v === '' ? undefined : parseFloat(v);
             let hasFieldChanges = false;
 
             if (canEditConfig) {
                 hasFieldChanges =
-                    newFormData.min_odds !== config.constraints.min_odds ||
-                    newFormData.max_odds !== config.constraints.max_odds ||
-                    newFormData.max_matches !== config.constraints.max_matches ||
-                    newFormData.max_total_odds !== config.constraints.max_total_odds ||
-                    newFormData.default_stake !== config.settings.default_stake;
+                    n(newFormData.min_odds) !== config.constraints.min_odds ||
+                    n(newFormData.max_odds) !== config.constraints.max_odds ||
+                    n(newFormData.max_matches) !== config.constraints.max_matches ||
+                    n(newFormData.max_total_odds) !== config.constraints.max_total_odds ||
+                    n(newFormData.default_stake) !== config.settings.default_stake;
             } else {
                 // Pour les utilisateurs normaux, seulement default_stake
-                hasFieldChanges = newFormData.default_stake !== config.settings.default_stake;
+                hasFieldChanges = n(newFormData.default_stake) !== config.settings.default_stake;
             }
 
             setHasChanges(hasFieldChanges);
         }
     };
 
+    /** Valeurs numériques parsées depuis le formulaire texte ; undefined/NaN si champ vide ou invalide. */
+    const parsedValues = () => ({
+        min_odds: parseFloat(formData.min_odds ?? ''),
+        max_odds: parseFloat(formData.max_odds ?? ''),
+        max_matches: parseInt(formData.max_matches ?? '', 10),
+        max_total_odds: parseFloat(formData.max_total_odds ?? ''),
+        default_stake: parseInt(formData.default_stake ?? '', 10),
+    });
+
     const validateForm = (): string | null => {
+        const v = parsedValues();
+
         // Validation default_stake (toujours nécessaire)
-        if (!formData.default_stake || formData.default_stake < 100 || formData.default_stake > 100000) {
+        if (!v.default_stake || v.default_stake < 100 || v.default_stake > 100000) {
             return 'La mise par défaut doit être entre 100 et 100 000 MGA';
         }
 
         // Validations admin seulement
         if (canEditConfig) {
-            if (!formData.min_odds || formData.min_odds < 1 || formData.min_odds > 3) {
+            if (!v.min_odds || v.min_odds < 1 || v.min_odds > 3) {
                 return 'La cote minimale doit être entre 1 et 3';
             }
 
-            if (!formData.max_odds || formData.max_odds < 1 || formData.max_odds > 5) {
+            if (!v.max_odds || v.max_odds < 1 || v.max_odds > 5) {
                 return 'La cote maximale doit être entre 1 et 5';
             }
 
-            if (formData.min_odds >= formData.max_odds) {
+            if (v.min_odds >= v.max_odds) {
                 return 'La cote minimale doit être inférieure à la cote maximale';
             }
 
-            if (!formData.max_matches || formData.max_matches < 1 || formData.max_matches > 50) {
+            if (!v.max_matches || v.max_matches < 1 || v.max_matches > 50) {
                 return 'Le nombre maximum de matchs doit être entre 1 et 50';
             }
 
-            if (!formData.max_total_odds || formData.max_total_odds < 1000 || formData.max_total_odds > 100000) {
+            if (!v.max_total_odds || v.max_total_odds < 1000 || v.max_total_odds > 100000) {
                 return 'La cote totale maximum doit être entre 1 000 et 100 000';
             }
         }
@@ -180,7 +196,9 @@ export default function ConfigurationTab() {
         setShowConfirmModal(false);
 
         try {
-            const result = await updateConfigMutation.mutateAsync(formData);
+            const v = parsedValues();
+            const payload: ConfigUpdateRequest = canEditConfig ? v : { default_stake: v.default_stake };
+            const result = await updateConfigMutation.mutateAsync(payload);
 
             if (result.metadata && result.metadata.updated_at) {
                 setLastUpdateTime(result.metadata.updated_at);
@@ -213,17 +231,7 @@ export default function ConfigurationTab() {
         Keyboard.dismiss();
 
         if (config) {
-            const resetData = canEditConfig ? {
-                min_odds: config.constraints.min_odds,
-                max_odds: config.constraints.max_odds,
-                max_matches: config.constraints.max_matches,
-                max_total_odds: config.constraints.max_total_odds,
-                default_stake: config.settings.default_stake,
-            } : {
-                default_stake: config.settings.default_stake,
-            };
-
-            setFormData(resetData);
+            setFormData(configToFormState());
             setHasChanges(false);
         }
     };
