@@ -46,7 +46,7 @@ export function useMatchCount(config: FootballConfig | undefined, onApplied?: ()
     }, [config]);
 
     const targetCount = mode === 'custom' ? customCount : Number(mode);
-    const maxAllowed = config?.constraints.max_matches;
+    const maxAllowed = config?.constraints.max_matches_limit;
 
     // Retourne true si le nombre de matchs a bien été enregistré
     const apply = useCallback(async (count: number): Promise<boolean> => {

@@ -6,6 +6,9 @@ export interface FootballConfig {
         min_odds: number;
         max_odds: number;
         max_matches: number;
+        /** Plafond réel (fixé par l'admin) : jusqu'où le sélecteur « Personnalisé » peut monter.
+         *  Distinct de `max_matches`, qui est le nombre EFFECTIVEMENT choisi (20/40/personnalisé). */
+        max_matches_limit: number;
         max_total_odds: number;
         max_payout: number;
     };
