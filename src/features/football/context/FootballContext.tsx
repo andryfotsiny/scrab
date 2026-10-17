@@ -23,6 +23,8 @@ interface FootballContextType {
     config: FootballConfig | null;
     matches: FootballMatchesResponse | null;
     autoExecutionActive: boolean;
+    /** Intervalle en heures si l'auto-exécution tourne en mode « Grolo Turbo », null en mode 00h00 classique */
+    autoExecutionIntervalHours: number | null;
     error: string | null;
 
     // Actions - utilise React Query hooks
@@ -37,7 +39,7 @@ interface FootballContextType {
     }>;
     loadMatches: () => Promise<any>;
     executeBet: (stake: number, acceptOddsChange?: boolean) => Promise<ExecuteBetResponse>;
-    startAutoExecution: () => Promise<AutoExecutionResponse>;
+    startAutoExecution: (intervalHours?: number) => Promise<AutoExecutionResponse>;
     stopAutoExecution: () => Promise<AutoExecutionResponse>;
 }
 
@@ -103,11 +105,11 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
     }, [ensureAuthenticated, executeBetMutation.mutate]);
 
     // 🔧 CORRECTION: Typer explicitement le retour de startAutoExecution
-    const startAutoExecution = useCallback(async (): Promise<AutoExecutionResponse> => {
+    const startAutoExecution = useCallback(async (intervalHours?: number): Promise<AutoExecutionResponse> => {
         ensureAuthenticated();
 
         return new Promise<AutoExecutionResponse>((resolve, reject) => {
-            startAutoMutation.mutate(undefined, {
+            startAutoMutation.mutate(intervalHours, {
                 onSuccess: (data) => resolve(data),
                 onError: (error) => reject(error),
             });
@@ -147,6 +149,7 @@ export function FootballProvider({ children }: { children: React.ReactNode }) {
         config: groloData.config || null,
         matches: groloData.matches || null,
         autoExecutionActive: groloData.autoExecutionActive,
+        autoExecutionIntervalHours: groloData.autoExecutionIntervalHours,
         error: groloData.error,
 
         // Actions wrappées

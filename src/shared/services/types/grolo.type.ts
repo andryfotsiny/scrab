@@ -93,6 +93,8 @@ export interface AutoExecutionResponse {
     message: string;
     user: string;
     execution_time?: string;
+    /** Présent uniquement en mode « Grolo Turbo » (répétition toutes les N heures) */
+    interval_hours?: number | null;
     timezone?: string;
     auto_execution_active: boolean;
     was_active?: boolean;

@@ -118,6 +118,13 @@ export default function TabLayout() {
                     title: 'Mini',
                 }}
             />
+            <Tabs.Screen
+                name="grolo-turbo"
+                options={{
+                    href: null, // Cache cet onglet de la barre de navigation
+                    title: 'Grolo Turbo',
+                }}
+            />
         </Tabs>
     );
 }

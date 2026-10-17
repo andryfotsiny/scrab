@@ -87,9 +87,11 @@ class FootballService {
     }
 
     // API 5: Start Auto Execution (requires authentication)
-    async startAutoExecution(): Promise<AutoExecutionResponse> {
+    // intervalHours : répète le pari toutes les N heures au lieu de 00h00 Madagascar (mode « Grolo Turbo »)
+    async startAutoExecution(intervalHours?: number): Promise<AutoExecutionResponse> {
         try {
-            return await apiClient.post<AutoExecutionResponse>('/api/betting/football/auto-execution/start');
+            const params = intervalHours ? { interval_hours: intervalHours } : undefined;
+            return await apiClient.post<AutoExecutionResponse>('/api/betting/football/auto-execution/start', undefined, params);
         } catch (error) {
             console.error('Start auto execution error:', error);
             throw error;

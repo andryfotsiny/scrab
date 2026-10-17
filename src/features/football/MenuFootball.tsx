@@ -25,6 +25,10 @@ export default function MenuFootball() {
         router.push('/mini');
     };
 
+    const handleGroloTurboPress = () => {
+        router.push('/grolo-turbo');
+    };
+
     return (
         <SafeAreaProvider>
             <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -102,6 +106,37 @@ export default function MenuFootball() {
                                     </Text>
                                     <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
                                         Paris rapides et sûrs (exactement 2 matchs)
+                                    </Text>
+                                </View>
+                                <Ionicons
+                                    name="chevron-forward"
+                                    size={20}
+                                    color={colors.textSecondary}
+                                />
+                            </View>
+                        </TouchableOpacity>
+
+                        {/* Ligne de séparation */}
+                        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+                        {/* Grolo Turbo */}
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={handleGroloTurboPress}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.menuContent}>
+                                <Ionicons
+                                    name="repeat-outline"
+                                    size={24}
+                                    color={colors.primary}
+                                />
+                                <View style={styles.textContainer}>
+                                    <Text style={[styles.menuTitle, { color: colors.text }]}>
+                                        Grolo Turbo
+                                    </Text>
+                                    <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
+                                        Même pari que Grolo, répété toutes les N heures
                                     </Text>
                                 </View>
                                 <Ionicons

@@ -142,12 +142,13 @@ export function useExecuteGroloBet() {
 }
 
 // 🔄 Hook: Start Auto Execution
+// intervalHours : répète le pari toutes les N heures au lieu de 00h00 Madagascar (mode « Grolo Turbo »)
 export function useStartGroloAutoExecution() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () => {
-            return footballService.startAutoExecution();
+        mutationFn: (intervalHours?: number) => {
+            return footballService.startAutoExecution(intervalHours);
         },
         onSuccess: (data) => {
 
@@ -255,6 +256,8 @@ export function useGroloData() {
         config: configQuery.data,
         matches: matchesQuery.data,
         autoExecutionActive: autoExecutionData?.auto_execution_active ?? false,
+        // Intervalle en heures si démarré en mode « Grolo Turbo » (undefined/null en mode 00h00 classique)
+        autoExecutionIntervalHours: autoExecutionData?.interval_hours ?? null,
 
         // États de chargement
         loading: configQuery.isLoading || matchesQuery.isLoading ||
