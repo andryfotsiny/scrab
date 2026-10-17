@@ -342,11 +342,13 @@ export default function BetNowTab() {
 
             <MatchCountSelector
                 mode={matchCount.mode}
-                randomCount={matchCount.randomCount}
+                customCount={matchCount.customCount}
                 targetCount={matchCount.targetCount}
                 applying={matchCount.applying}
                 error={matchCount.error}
+                maxAllowed={matchCount.maxAllowed}
                 onSelect={matchCount.selectMode}
+                onApplyCustom={matchCount.applyCustom}
                 availableMatches={matches?.total_matches}
             />
 
